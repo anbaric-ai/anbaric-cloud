@@ -26,11 +26,10 @@ class StateMachine {
     }
 
     startJob(properties?: Map<string, any>, actor? : Actor): Job {
+
+        const job = new Job(crypto.randomUUID(), properties, this.startState);
+
         this.validateProperties(properties ?? new Map(), true);
-
-        const job = new Job(crypto.randomUUID(), properties);
-        job.setState(this.startState);
-
         this.authorizeActor(actor, job);
 
         this.persistence.save(job);
@@ -69,6 +68,11 @@ class StateMachine {
         actionsToRun.forEach(action => {
            mutableJob = action.run(mutableJob);
         });
+
+        const transitions = this.states.get(job.stateId!)!.transitions;
+        for (const transition of transitions) {
+            if (mutableJob.transition(transition)) break;
+        }
 
         this.persistence.save(mutableJob);
     }

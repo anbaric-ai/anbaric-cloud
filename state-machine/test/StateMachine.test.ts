@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
+import {Action, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -118,7 +118,7 @@ describe("StateMachine", () => {
     describe("updateJob", () => {
 
         it("updates the persisted properties and re-enqueues the job", () => {
-            persistence.retrieve.mockReturnValue(new Job("job-1"));
+            persistence.retrieve.mockReturnValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [new PropertyDefinition("colour")]);
             const update = new Map([["colour", "blue"]]);
 
@@ -129,14 +129,14 @@ describe("StateMachine", () => {
         });
 
         it("does not demand required properties on update", () => {
-            persistence.retrieve.mockReturnValue(new Job("job-1"));
+            persistence.retrieve.mockReturnValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [requiredNumber("age")]);
 
             expect(() => machine.updateJob("job-1", new Map([["age", 43]]))).not.toThrowError();
         });
 
         it("rejects an invalid value without updating", () => {
-            persistence.retrieve.mockReturnValue(new Job("job-1"));
+            persistence.retrieve.mockReturnValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [requiredNumber("age")]);
 
             expect(() => machine.updateJob("job-1", new Map([["age", "old"]]))).toThrowError('Invalid value for property "age"');
@@ -157,11 +157,7 @@ describe("StateMachine", () => {
 
     describe("progressJob", () => {
 
-        const jobInState = (stateId : string) => {
-            const job = new Job("job-1");
-            job.setState(stateId);
-            return job;
-        };
+        const jobInState = (stateId : string) => new Job("job-1", new Map(), stateId);
 
         it("runs only the actions whose predicate matches, in order", () => {
             const ran : Array<string> = [];
@@ -198,6 +194,79 @@ describe("StateMachine", () => {
             machine.progressJob("job-1");
 
             expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+        });
+
+        describe("transitions", () => {
+
+            it("applies the first transition whose predicate matches", () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockReturnValue(job);
+                const machine = machineWith([new State("start", [], [
+                    new Transition("rejected", () => false),
+                    new Transition("approved", () => true),
+                    new Transition("archived", () => true),
+                ])]);
+
+                machine.progressJob("job-1");
+
+                expect(job.stateId).toBe("approved");
+            });
+
+            it("leaves the state unchanged when no transition matches", () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockReturnValue(job);
+                const machine = machineWith([new State("start", [], [
+                    new Transition("done", () => false),
+                ])]);
+
+                machine.progressJob("job-1");
+
+                expect(job.stateId).toBe("start");
+            });
+
+            it("applies at most one transition per progression", () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockReturnValue(job);
+                const machine = machineWith([
+                    new State("start", [], [new Transition("middle", () => true)]),
+                    new State("middle", [], [new Transition("done", () => true)]),
+                ]);
+
+                machine.progressJob("job-1");
+
+                expect(job.stateId).toBe("middle");
+            });
+
+            it("evaluates transition predicates after the actions have run", () => {
+                const approve = new Action();
+                approve.run = (job) => {
+                    job.properties.set("approved", true);
+                    return job;
+                };
+                const job = jobInState("start");
+                persistence.retrieve.mockReturnValue(job);
+                const machine = machineWith([new State("start", [approve], [
+                    new Transition("done", (candidate) => candidate.properties.get("approved") === true),
+                ])]);
+
+                machine.progressJob("job-1");
+
+                expect(job.stateId).toBe("done");
+            });
+
+            it("saves the job after transitioning", () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockReturnValue(job);
+                const machine = machineWith([new State("start", [], [
+                    new Transition("done", () => true),
+                ])]);
+
+                machine.progressJob("job-1");
+
+                expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+                expect(persistence.save.mock.calls[0][0].stateId).toBe("done");
+            });
+
         });
 
     });

@@ -1,48 +1,65 @@
 import {describe, expect, it} from "vitest";
 import {Job} from "../src/api/jobs/Job";
+import {Transition} from "../src/api/transitions/Transition";
 
 describe("Job", () => {
 
     it("stores the given id", () => {
-        const job = new Job("job-1");
+        const job = new Job("job-1", new Map(), "start");
 
         expect(job.id).toBe("job-1");
     });
 
     it("stores the given properties map", () => {
         const properties = new Map<string, any>([["colour", "red"]]);
-        const job = new Job("job-1", properties);
+        const job = new Job("job-1", properties, "start");
 
         expect(job.properties).toBe(properties);
     });
 
-    it("defaults properties to an empty map", () => {
-        const job = new Job("job-1");
+    it("starts in the given initial state", () => {
+        const job = new Job("job-1", new Map(), "start");
 
-        expect(job.properties.size).toBe(0);
+        expect(job.stateId).toBe("start");
     });
 
-    it("has no state initially", () => {
-        const job = new Job("job-1");
+    describe("transition", () => {
 
-        expect(job.stateId).toBeUndefined();
-    });
+        it("moves to the target state when the predicate accepts the job", () => {
+            const job = new Job("job-1", new Map(), "start");
 
-    it("exposes the state set via setState", () => {
-        const job = new Job("job-1");
+            const accepted = job.transition(new Transition("done", () => true));
 
-        job.setState("review");
+            expect(accepted).toBe(true);
+            expect(job.stateId).toBe("done");
+        });
 
-        expect(job.stateId).toBe("review");
-    });
+        it("stays put when the predicate rejects the job", () => {
+            const job = new Job("job-1", new Map(), "start");
 
-    it("overwrites a previously set state", () => {
-        const job = new Job("job-1");
+            const accepted = job.transition(new Transition("done", () => false));
 
-        job.setState("review");
-        job.setState("done");
+            expect(accepted).toBe(false);
+            expect(job.stateId).toBe("start");
+        });
 
-        expect(job.stateId).toBe("done");
+        it("evaluates the predicate against the job itself", () => {
+            const job = new Job("job-1", new Map([["approved", true]]), "start");
+            const whenApproved = new Transition("done", (candidate) => candidate.properties.get("approved") === true);
+
+            expect(job.transition(whenApproved)).toBe(true);
+            expect(job.stateId).toBe("done");
+        });
+
+        it("can transition repeatedly", () => {
+            const job = new Job("job-1", new Map(), "start");
+
+            job.transition(new Transition("review", () => true));
+            job.transition(new Transition("done", () => true));
+
+            expect(job.stateId).toBe("done");
+        });
+
     });
 
 });

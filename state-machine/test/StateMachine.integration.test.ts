@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it} from "vitest";
-import {Action, PropertyDefinition, State} from "anbaric-tsapi";
+import {Action, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
@@ -69,6 +69,37 @@ describe("StateMachine with in-memory collaborators", () => {
 
         expect(persistence.list()).toEqual([]);
         expect(queue.dequeueSome()).toEqual([]);
+    });
+
+    it("runs a job through multiple states as it is progressed", () => {
+        const stamped = (key : string) => (job : Job) => job.properties.get(key) === true;
+        const workflow = new StateMachine(
+            [
+                new State("draft", [stampingAction("drafted", true)], [new Transition("review", stamped("drafted"))]),
+                new State("review", [stampingAction("reviewed", true)], [new Transition("done", stamped("reviewed"))]),
+                new State("done"),
+            ],
+            "draft",
+            [],
+            new DefaultActionResolver(),
+            persistence,
+            queue,
+        );
+
+        const job = workflow.startJob();
+        expect(job.stateId).toBe("draft");
+
+        workflow.progressJob(job.id);
+        expect(persistence.retrieve(job.id).stateId).toBe("review");
+
+        workflow.progressJob(job.id);
+        const finished = persistence.retrieve(job.id);
+        expect(finished.stateId).toBe("done");
+        expect(finished.properties.get("drafted")).toBe(true);
+        expect(finished.properties.get("reviewed")).toBe(true);
+
+        workflow.progressJob(job.id);
+        expect(persistence.retrieve(job.id).stateId).toBe("done");
     });
 
     it("a rejected updateJob leaves the job untouched", () => {

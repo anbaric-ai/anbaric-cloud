@@ -11,7 +11,7 @@ const actionMatching = (predicate : (job : Job) => boolean) => {
 describe("DefaultActionResolver", () => {
 
     const resolver = new DefaultActionResolver();
-    const job = new Job("job-1", new Map([["approved", true]]));
+    const job = new Job("job-1", new Map([["approved", true]]), "start");
 
     it("keeps only actions whose predicate accepts the job", () => {
         const matching = actionMatching(j => j.properties.has("approved"));
