@@ -6,14 +6,18 @@ import {CloudConsumer} from "../src/CloudConsumer";
 
 const message = (jobId : string, workflowId : string = "workflow-1") : QueueMessage => ({ jobId, workflowId });
 
-const startStubPlatform = (confirms : Array<QueueMessage>) : Promise<{ server : Server, baseUrl : string }> =>
+const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array<{ workflowId : string, url : string }>) : Promise<{ server : Server, baseUrl : string }> =>
     new Promise(resolve => {
         const server = createServer((request, response) => {
             const chunks : Array<Buffer> = [];
             request.on("data", chunk => chunks.push(chunk));
             request.on("end", () => {
+                const body = () => JSON.parse(Buffer.concat(chunks).toString());
                 if (request.method === "POST" && request.url === "/queue/confirm") {
-                    confirms.push(JSON.parse(Buffer.concat(chunks).toString()));
+                    confirms.push(body());
+                    response.statusCode = 204;
+                } else if (request.method === "POST" && request.url === "/consumers") {
+                    registrations.push(body());
                     response.statusCode = 204;
                 } else {
                     response.statusCode = 404;
@@ -30,13 +34,14 @@ const startStubPlatform = (confirms : Array<QueueMessage>) : Promise<{ server : 
 describe("CloudConsumer", () => {
 
     let confirms : Array<QueueMessage>;
+    let registrations : Array<{ workflowId : string, url : string }>;
     let platform : Server;
     let consumer : CloudConsumer;
-    let consumerUrl : string;
 
     beforeEach(async () => {
         confirms = [];
-        const stub = await startStubPlatform(confirms);
+        registrations = [];
+        const stub = await startStubPlatform(confirms, registrations);
         platform = stub.server;
         consumer = new CloudConsumer(stub.baseUrl, 0);
     });
@@ -58,6 +63,14 @@ describe("CloudConsumer", () => {
             body: JSON.stringify({ messages }),
         });
     };
+
+    it("registers each subscription with the platform", async () => {
+        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+
+        await vi.waitFor(() => expect(registrations).toEqual([
+            { workflowId: "workflow-1", url: `http://localhost:${consumer.port}` },
+        ]));
+    });
 
     it("accepts pushed messages with a 202 listing the job ids", async () => {
         consumer.subscribe("workflow-1", vi.fn(async () => {}));

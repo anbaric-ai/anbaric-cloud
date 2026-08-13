@@ -2,6 +2,7 @@ import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
 import {JobPersistence, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {ConfirmableQueue} from "./ConfirmableQueue";
+import {ConsumerRegistry} from "./ConsumerRegistry";
 
 const readBody = (request : IncomingMessage) : Promise<any> =>
     new Promise((resolve, reject) => {
@@ -22,7 +23,8 @@ class HostingServer {
 
     private server : Server;
 
-    constructor(private persistence : JobPersistence, private queue : ConfirmableQueue) {
+    constructor(private persistence : JobPersistence, private queue : ConfirmableQueue,
+                private registry : ConsumerRegistry = new ConsumerRegistry()) {
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
@@ -49,6 +51,11 @@ class HostingServer {
 
         if (resource === "jobs") return this.handleJobs(method, id, subresource, url, request, response);
         if (resource === "queue" && method === "POST" && !subresource) return this.handleQueue(id, request, response);
+        if (resource === "consumers" && method === "POST" && !id) {
+            const { workflowId, url: consumerUrl } = await readBody(request);
+            this.registry.register(workflowId, consumerUrl);
+            return this.reply(response, 204);
+        }
 
         this.reply(response, 404, { error: "Not found" });
     }

@@ -40,6 +40,16 @@ class CloudConsumer implements Consumer {
     subscribe(workflowId : string, processJob : ProcessJob) : void {
         this.subscribers.set(workflowId, processJob);
         if (!this.server) this.listening = this.listen();
+        void this.register(workflowId);
+    }
+
+    private async register(workflowId : string) : Promise<void> {
+        try {
+            await this.listening;
+            const url = process.env.ANBARIC_CONSUMER_URL ?? `http://localhost:${this.boundPort}`;
+            await this.client.request("POST", "/consumers", { workflowId, url });
+        } catch {
+        }
     }
 
     async cleanUp() : Promise<void> {
