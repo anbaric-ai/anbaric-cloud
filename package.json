@@ -1,0 +1,14 @@
+{
+  "name": "anbaric-root",
+  "private": true,
+  "workspaces": [
+    "state-machine",
+    "tsapi"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}

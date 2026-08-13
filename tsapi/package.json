@@ -1,0 +1,17 @@
+{
+  "name": "anbaric-tsapi",
+  "version": "1.0.0",
+  "description": "These are the shared libraries - types, classes, etc - that both the public state-machine and hosting services share",
+  "license": "MIT",
+  "author": "chris@anbaric.ai",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}
