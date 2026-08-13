@@ -1,0 +1,26 @@
+{
+  "name": "anbaric-cloud-hosting",
+  "version": "1.0.0",
+  "description": "Anbaric Cloud hosting service: Postgres-backed job persistence and queuing exposed over an HTTP API",
+  "license": "MIT",
+  "author": "chris@anbaric.ai",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "anbaric-tsapi": "*",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.15.0",
+    "anbaric-cloud": "*",
+    "anbaric-state-machine": "*",
+    "tsx": "^4.20.0",
+    "typescript": "^7.0.2"
+  }
+}

@@ -11,56 +11,56 @@ describe("InMemoryQueue", () => {
         queue = new InMemoryQueue();
     });
 
-    it("dequeues enqueued jobs in FIFO order", () => {
-        queue.enqueue("a");
-        queue.enqueue("b");
-        queue.enqueue("c");
+    it("dequeues enqueued jobs in FIFO order", async () => {
+        await queue.enqueue("a");
+        await queue.enqueue("b");
+        await queue.enqueue("c");
 
-        expect(queue.dequeueSome()).toEqual(["a", "b", "c"]);
+        expect(await queue.dequeueSome()).toEqual(["a", "b", "c"]);
     });
 
-    it("drains the queue on dequeue", () => {
-        queue.enqueue("a");
+    it("drains the queue on dequeue", async () => {
+        await queue.enqueue("a");
 
-        queue.dequeueSome();
+        await queue.dequeueSome();
 
-        expect(queue.dequeueSome()).toEqual([]);
+        expect(await queue.dequeueSome()).toEqual([]);
     });
 
-    it("releases scheduled jobs once their due date has passed", () => {
-        queue.schedule("a", secondsFromNow(-1));
+    it("releases scheduled jobs once their due date has passed", async () => {
+        await queue.schedule("a", secondsFromNow(-1));
 
-        expect(queue.dequeueSome()).toEqual(["a"]);
+        expect(await queue.dequeueSome()).toEqual(["a"]);
     });
 
-    it("holds back jobs scheduled for the future", () => {
-        queue.schedule("a", secondsFromNow(60));
+    it("holds back jobs scheduled for the future", async () => {
+        await queue.schedule("a", secondsFromNow(60));
 
-        expect(queue.dequeueSome()).toEqual([]);
+        expect(await queue.dequeueSome()).toEqual([]);
     });
 
-    it("keeps future jobs parked across drains", () => {
-        queue.schedule("a", secondsFromNow(60));
+    it("keeps future jobs parked across drains", async () => {
+        await queue.schedule("a", secondsFromNow(60));
 
-        queue.dequeueSome();
-        queue.enqueue("b");
+        await queue.dequeueSome();
+        await queue.enqueue("b");
 
-        expect(queue.dequeueSome()).toEqual(["b"]);
+        expect(await queue.dequeueSome()).toEqual(["b"]);
     });
 
-    it("returns ready jobs before released scheduled jobs", () => {
-        queue.schedule("late", secondsFromNow(-1));
-        queue.enqueue("ready");
+    it("returns ready jobs before released scheduled jobs", async () => {
+        await queue.schedule("late", secondsFromNow(-1));
+        await queue.enqueue("ready");
 
-        expect(queue.dequeueSome()).toEqual(["ready", "late"]);
+        expect(await queue.dequeueSome()).toEqual(["ready", "late"]);
     });
 
-    it("orders released jobs by due date, earliest first", () => {
-        queue.schedule("later", secondsFromNow(-10));
-        queue.schedule("earliest", secondsFromNow(-30));
-        queue.schedule("middle", secondsFromNow(-20));
+    it("orders released jobs by due date, earliest first", async () => {
+        await queue.schedule("later", secondsFromNow(-10));
+        await queue.schedule("earliest", secondsFromNow(-30));
+        await queue.schedule("middle", secondsFromNow(-20));
 
-        expect(queue.dequeueSome()).toEqual(["earliest", "middle", "later"]);
+        expect(await queue.dequeueSome()).toEqual(["earliest", "middle", "later"]);
     });
 
 });

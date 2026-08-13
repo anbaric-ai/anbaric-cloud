@@ -14,76 +14,78 @@ describe("InMemoryJobPersistence", () => {
 
     describe("save and retrieve", () => {
 
-        it("round-trips a job by id", () => {
+        it("round-trips a job by id", async () => {
             const job = makeJob("job-1");
 
-            persistence.save(job);
+            await persistence.save(job);
 
-            expect(persistence.retrieve("job-1")).toBe(job);
+            expect(await persistence.retrieve("job-1")).toBe(job);
         });
 
-        it("overwrites an existing job with the same id", () => {
+        it("overwrites an existing job with the same id", async () => {
             const original = makeJob("job-1", new Map([["version", 1]]));
             const replacement = makeJob("job-1", new Map([["version", 2]]));
 
-            persistence.save(original);
-            persistence.save(replacement);
+            await persistence.save(original);
+            await persistence.save(replacement);
 
-            expect(persistence.retrieve("job-1")).toBe(replacement);
+            expect(await persistence.retrieve("job-1")).toBe(replacement);
         });
 
-        it("throws when retrieving an unknown id", () => {
-            expect(() => persistence.retrieve("missing")).toThrowError('No job found with id "missing"');
+        it("rejects retrieval of an unknown id", async () => {
+            await expect(persistence.retrieve("missing")).rejects.toThrowError('No job found with id "missing"');
         });
 
     });
 
     describe("delete", () => {
 
-        it("removes a saved job", () => {
-            persistence.save(makeJob("job-1"));
+        it("removes a saved job", async () => {
+            await persistence.save(makeJob("job-1"));
 
-            persistence.delete("job-1");
+            await persistence.delete("job-1");
 
-            expect(() => persistence.retrieve("job-1")).toThrowError();
+            await expect(persistence.retrieve("job-1")).rejects.toThrowError();
         });
 
-        it("tolerates unknown ids", () => {
-            expect(() => persistence.delete("missing")).not.toThrowError();
+        it("tolerates unknown ids", async () => {
+            await expect(persistence.delete("missing")).resolves.toBeUndefined();
         });
 
     });
 
     describe("list", () => {
 
-        it("returns jobs in insertion order", () => {
-            persistence.save(makeJob("a"));
-            persistence.save(makeJob("b"));
-            persistence.save(makeJob("c"));
+        it("returns jobs in insertion order", async () => {
+            await persistence.save(makeJob("a"));
+            await persistence.save(makeJob("b"));
+            await persistence.save(makeJob("c"));
 
-            expect(persistence.list().map(job => job.id)).toEqual(["a", "b", "c"]);
+            expect((await persistence.list()).map(job => job.id)).toEqual(["a", "b", "c"]);
         });
 
-        it("returns the requested page", () => {
-            ["a", "b", "c", "d", "e"].forEach(id => persistence.save(makeJob(id)));
-
-            expect(persistence.list(2, 0).map(job => job.id)).toEqual(["a", "b"]);
-            expect(persistence.list(2, 1).map(job => job.id)).toEqual(["c", "d"]);
-            expect(persistence.list(2, 2).map(job => job.id)).toEqual(["e"]);
-        });
-
-        it("returns an empty page past the end", () => {
-            persistence.save(makeJob("a"));
-
-            expect(persistence.list(2, 5)).toEqual([]);
-        });
-
-        it("defaults to the first hundred jobs", () => {
-            for (let i = 0; i < 150; i++) {
-                persistence.save(makeJob(`job-${i}`));
+        it("returns the requested page", async () => {
+            for (const id of ["a", "b", "c", "d", "e"]) {
+                await persistence.save(makeJob(id));
             }
 
-            const listed = persistence.list();
+            expect((await persistence.list(2, 0)).map(job => job.id)).toEqual(["a", "b"]);
+            expect((await persistence.list(2, 1)).map(job => job.id)).toEqual(["c", "d"]);
+            expect((await persistence.list(2, 2)).map(job => job.id)).toEqual(["e"]);
+        });
+
+        it("returns an empty page past the end", async () => {
+            await persistence.save(makeJob("a"));
+
+            expect(await persistence.list(2, 5)).toEqual([]);
+        });
+
+        it("defaults to the first hundred jobs", async () => {
+            for (let i = 0; i < 150; i++) {
+                await persistence.save(makeJob(`job-${i}`));
+            }
+
+            const listed = await persistence.list();
 
             expect(listed.length).toBe(100);
             expect(listed[0].id).toBe("job-0");
@@ -94,26 +96,26 @@ describe("InMemoryJobPersistence", () => {
 
     describe("updateProperties", () => {
 
-        it("merges new keys into the existing properties", () => {
-            persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
+        it("merges new keys into the existing properties", async () => {
+            await persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
 
-            persistence.updateProperties("job-1", new Map([["size", "large"]]));
+            await persistence.updateProperties("job-1", new Map([["size", "large"]]));
 
-            const job = persistence.retrieve("job-1");
+            const job = await persistence.retrieve("job-1");
             expect(job.properties.get("colour")).toBe("red");
             expect(job.properties.get("size")).toBe("large");
         });
 
-        it("overwrites existing keys", () => {
-            persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
+        it("overwrites existing keys", async () => {
+            await persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
 
-            persistence.updateProperties("job-1", new Map([["colour", "blue"]]));
+            await persistence.updateProperties("job-1", new Map([["colour", "blue"]]));
 
-            expect(persistence.retrieve("job-1").properties.get("colour")).toBe("blue");
+            expect((await persistence.retrieve("job-1")).properties.get("colour")).toBe("blue");
         });
 
-        it("throws for an unknown job", () => {
-            expect(() => persistence.updateProperties("missing", new Map())).toThrowError();
+        it("rejects updates for an unknown job", async () => {
+            await expect(persistence.updateProperties("missing", new Map())).rejects.toThrowError();
         });
 
     });

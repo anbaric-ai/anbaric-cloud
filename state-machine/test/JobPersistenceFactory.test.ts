@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
+import {CloudJobPersistence} from "anbaric-cloud";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 import {JobPersistenceFactory} from "../src/persistence/JobPersistenceFactory";
 
@@ -30,10 +31,10 @@ describe("JobPersistenceFactory", () => {
         expect(JobPersistenceFactory.instance()).toBeInstanceOf(InMemoryJobPersistence);
     });
 
-    it("rejects the not-yet-implemented postgres type", () => {
-        process.env.ANBARIC_JOB_PERSISTENCE_TYPE = "postgres";
+    it("returns the cloud client for the cloud type", () => {
+        process.env.ANBARIC_JOB_PERSISTENCE_TYPE = "cloud";
 
-        expect(() => JobPersistenceFactory.instance()).toThrowError("Not implemented");
+        expect(JobPersistenceFactory.instance()).toBeInstanceOf(CloudJobPersistence);
     });
 
     it("returns a fresh store per call", () => {

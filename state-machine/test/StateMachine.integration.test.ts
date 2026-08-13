@@ -39,39 +39,32 @@ describe("StateMachine with in-memory collaborators", () => {
         );
     });
 
-    it("startJob persists a retrievable job and queues it", () => {
-        const job = machine.startJob(new Map([["age", 42]]));
+    it("startJob persists a retrievable job and queues it", async () => {
+        const job = await machine.startJob(new Map([["age", 42]]));
 
-        expect(persistence.retrieve(job.id)).toBe(job);
-        expect(queue.dequeueSome()).toEqual([job.id]);
+        expect(await persistence.retrieve(job.id)).toBe(job);
+        expect(await queue.dequeueSome()).toEqual([job.id]);
     });
 
-    it("updateJob merges into the persisted job and re-queues it", () => {
-        const job = machine.startJob(new Map([["age", 42]]));
-        queue.dequeueSome();
+    it("updateJob merges into the persisted job and re-queues it", async () => {
+        const job = await machine.startJob(new Map([["age", 42]]));
+        await queue.dequeueSome();
 
-        machine.updateJob(job.id, new Map([["age", 43]]));
+        await machine.updateJob(job.id, new Map([["age", 43]]));
 
-        expect(persistence.retrieve(job.id).properties.get("age")).toBe(43);
-        expect(queue.dequeueSome()).toEqual([job.id]);
+        expect((await persistence.retrieve(job.id)).properties.get("age")).toBe(43);
+        expect(await queue.dequeueSome()).toEqual([job.id]);
     });
 
-    it("progressJob runs the current state's actions against the persisted job", () => {
-        const job = machine.startJob();
+    it("progressJob runs the current state's actions against the persisted job", async () => {
+        const job = await machine.startJob();
 
-        machine.progressJob(job.id);
+        await machine.progressJob(job.id);
 
-        expect(persistence.retrieve(job.id).properties.get("progressed")).toBe(true);
+        expect((await persistence.retrieve(job.id)).properties.get("progressed")).toBe(true);
     });
 
-    it("a rejected startJob leaves persistence and queue untouched", () => {
-        expect(() => machine.startJob(new Map([["age", "old"]]))).toThrowError();
-
-        expect(persistence.list()).toEqual([]);
-        expect(queue.dequeueSome()).toEqual([]);
-    });
-
-    it("runs a job through multiple states as it is progressed", () => {
+    it("runs a job through multiple states as it is progressed", async () => {
         const stamped = (key : string) => (job : Job) => job.properties.get(key) === true;
         const workflow = new StateMachine(
             [
@@ -86,30 +79,37 @@ describe("StateMachine with in-memory collaborators", () => {
             queue,
         );
 
-        const job = workflow.startJob();
+        const job = await workflow.startJob();
         expect(job.stateId).toBe("draft");
 
-        workflow.progressJob(job.id);
-        expect(persistence.retrieve(job.id).stateId).toBe("review");
+        await workflow.progressJob(job.id);
+        expect((await persistence.retrieve(job.id)).stateId).toBe("review");
 
-        workflow.progressJob(job.id);
-        const finished = persistence.retrieve(job.id);
+        await workflow.progressJob(job.id);
+        const finished = await persistence.retrieve(job.id);
         expect(finished.stateId).toBe("done");
         expect(finished.properties.get("drafted")).toBe(true);
         expect(finished.properties.get("reviewed")).toBe(true);
 
-        workflow.progressJob(job.id);
-        expect(persistence.retrieve(job.id).stateId).toBe("done");
+        await workflow.progressJob(job.id);
+        expect((await persistence.retrieve(job.id)).stateId).toBe("done");
     });
 
-    it("a rejected updateJob leaves the job untouched", () => {
-        const job = machine.startJob(new Map([["age", 42]]));
-        queue.dequeueSome();
+    it("a rejected startJob leaves persistence and queue untouched", async () => {
+        await expect(machine.startJob(new Map([["age", "old"]]))).rejects.toThrowError();
 
-        expect(() => machine.updateJob(job.id, new Map([["age", "old"]]))).toThrowError();
+        expect(await persistence.list()).toEqual([]);
+        expect(await queue.dequeueSome()).toEqual([]);
+    });
 
-        expect(persistence.retrieve(job.id).properties.get("age")).toBe(42);
-        expect(queue.dequeueSome()).toEqual([]);
+    it("a rejected updateJob leaves the job untouched", async () => {
+        const job = await machine.startJob(new Map([["age", 42]]));
+        await queue.dequeueSome();
+
+        await expect(machine.updateJob(job.id, new Map([["age", "old"]]))).rejects.toThrowError();
+
+        expect((await persistence.retrieve(job.id)).properties.get("age")).toBe(42);
+        expect(await queue.dequeueSome()).toEqual([]);
     });
 
 });

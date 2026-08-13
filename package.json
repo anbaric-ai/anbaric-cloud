@@ -3,7 +3,9 @@
   "private": true,
   "workspaces": [
     "state-machine",
-    "tsapi"
+    "tsapi",
+    "anbaric-cloud",
+    "anbaric-cloud-hosting"
   ],
   "scripts": {
     "test": "vitest run"

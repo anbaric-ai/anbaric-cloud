@@ -1,5 +1,6 @@
 export * from "./api/jobs/Job";
 export * from "./api/jobs/JobPersistence"
+export * from "./api/jobs/JobSerialization"
 export * from "./api/jobs/PropertyDefinition"
 export * from "./api/states/State"
 export * from "./api/actions/ActionResolver"

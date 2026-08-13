@@ -5,7 +5,8 @@
   "license": "MIT",
   "author": "chris@anbaric.ai",
   "type": "module",
-  "main": "index.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "test": "vitest run"
   },
@@ -14,6 +15,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "anbaric-cloud": "*",
     "anbaric-tsapi": "*"
   }
 }

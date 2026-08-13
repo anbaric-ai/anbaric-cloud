@@ -5,9 +5,11 @@ class QueuePoller {
 
     constructor(private queue : Queue, private stateMachine : StateMachine) {}
 
-    private poll() {
-        const jobs = this.queue.dequeueSome();
-        jobs.forEach(jobId => this.stateMachine.progressJob(jobId));
+    private async poll() : Promise<void> {
+        const jobs = await this.queue.dequeueSome();
+        for (const jobId of jobs) {
+            await this.stateMachine.progressJob(jobId);
+        }
     }
 }
 

@@ -5,15 +5,15 @@ class InMemoryQueue implements Queue {
     private ready : Array<string> = [];
     private scheduled : Array<{ job : string, due : Date }> = [];
 
-    enqueue(job : string) : void {
+    async enqueue(job : string) : Promise<void> {
         this.ready.push(job);
     }
 
-    schedule(job : string, due : Date) : void {
+    async schedule(job : string, due : Date) : Promise<void> {
         this.scheduled.push({ job, due });
     }
 
-    dequeueSome() : Array<string> {
+    async dequeueSome() : Promise<Array<string>> {
         const now = new Date();
         const released = this.scheduled
             .filter((entry) => entry.due <= now)
