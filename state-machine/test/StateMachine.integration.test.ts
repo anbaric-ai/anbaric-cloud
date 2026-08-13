@@ -1,9 +1,15 @@
-import {beforeEach, describe, expect, it} from "vitest";
-import {Action, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
+import {beforeEach, describe, expect, it, vi} from "vitest";
+import {Action, Consumer, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
+import {LocalConsumer} from "../src/scheduling/LocalConsumer";
 import {DefaultActionResolver} from "../src/actions/DefaultActionResolver";
+
+const idleConsumer = () : Consumer => ({
+    subscribe: () => {},
+    cleanUp: async () => {},
+});
 
 const stampingAction = (key : string, value : any) => {
     const action = new Action();
@@ -30,20 +36,22 @@ describe("StateMachine with in-memory collaborators", () => {
         persistence = new InMemoryJobPersistence();
         queue = new InMemoryQueue();
         machine = new StateMachine(
+            "workflow-1",
             [new State("start", [stampingAction("progressed", true)])],
             "start",
             [optionalNumber("age")],
             new DefaultActionResolver(),
             persistence,
             queue,
+            idleConsumer(),
         );
     });
 
-    it("startJob persists a retrievable job and queues it", async () => {
+    it("startJob persists a retrievable job and queues it under the workflow", async () => {
         const job = await machine.startJob(new Map([["age", 42]]));
 
         expect(await persistence.retrieve(job.id)).toBe(job);
-        expect(await queue.dequeueSome()).toEqual([job.id]);
+        expect(await queue.dequeueSome()).toEqual([{ jobId: job.id, workflowId: "workflow-1" }]);
     });
 
     it("updateJob merges into the persisted job and re-queues it", async () => {
@@ -53,7 +61,7 @@ describe("StateMachine with in-memory collaborators", () => {
         await machine.updateJob(job.id, new Map([["age", 43]]));
 
         expect((await persistence.retrieve(job.id)).properties.get("age")).toBe(43);
-        expect(await queue.dequeueSome()).toEqual([job.id]);
+        expect(await queue.dequeueSome()).toEqual([{ jobId: job.id, workflowId: "workflow-1" }]);
     });
 
     it("progressJob runs the current state's actions against the persisted job", async () => {
@@ -64,9 +72,34 @@ describe("StateMachine with in-memory collaborators", () => {
         expect((await persistence.retrieve(job.id)).properties.get("progressed")).toBe(true);
     });
 
+    it("a local consumer progresses started jobs without manual intervention", async () => {
+        const consumer = new LocalConsumer(queue, 10);
+        const automatic = new StateMachine(
+            "workflow-auto",
+            [new State("start", [stampingAction("progressed", true)], [new Transition("done", () => true)])],
+            "start",
+            [],
+            new DefaultActionResolver(),
+            persistence,
+            queue,
+            consumer,
+        );
+
+        const job = await automatic.startJob();
+
+        await vi.waitFor(async () => {
+            const progressed = await persistence.retrieve(job.id);
+            expect(progressed.properties.get("progressed")).toBe(true);
+            expect(progressed.stateId).toBe("done");
+        });
+
+        await automatic.cleanUp();
+    });
+
     it("runs a job through multiple states as it is progressed", async () => {
         const stamped = (key : string) => (job : Job) => job.properties.get(key) === true;
         const workflow = new StateMachine(
+            "workflow-multi",
             [
                 new State("draft", [stampingAction("drafted", true)], [new Transition("review", stamped("drafted"))]),
                 new State("review", [stampingAction("reviewed", true)], [new Transition("done", stamped("reviewed"))]),
@@ -77,6 +110,7 @@ describe("StateMachine with in-memory collaborators", () => {
             new DefaultActionResolver(),
             persistence,
             queue,
+            idleConsumer(),
         );
 
         const job = await workflow.startJob();

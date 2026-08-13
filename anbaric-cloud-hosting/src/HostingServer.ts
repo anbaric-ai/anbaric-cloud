@@ -1,6 +1,7 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
-import {JobPersistence, Queue, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {JobPersistence, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {ConfirmableQueue} from "./ConfirmableQueue";
 
 const readBody = (request : IncomingMessage) : Promise<any> =>
     new Promise((resolve, reject) => {
@@ -21,7 +22,7 @@ class HostingServer {
 
     private server : Server;
 
-    constructor(private persistence : JobPersistence, private queue : Queue) {
+    constructor(private persistence : JobPersistence, private queue : ConfirmableQueue) {
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
@@ -88,19 +89,25 @@ class HostingServer {
     private async handleQueue(operation : string | undefined, request : IncomingMessage,
                               response : ServerResponse) : Promise<void> {
         if (operation === "enqueue") {
-            const { jobId } = await readBody(request);
-            await this.queue.enqueue(jobId);
+            const { jobId, workflowId } = await readBody(request);
+            await this.queue.enqueue(jobId, workflowId);
             return this.reply(response, 204);
         }
 
         if (operation === "schedule") {
-            const { jobId, due } = await readBody(request);
-            await this.queue.schedule(jobId, new Date(due));
+            const { jobId, workflowId, due } = await readBody(request);
+            await this.queue.schedule(jobId, workflowId, new Date(due));
             return this.reply(response, 204);
         }
 
         if (operation === "dequeue") {
-            return this.reply(response, 200, { jobIds: await this.queue.dequeueSome() });
+            return this.reply(response, 200, { messages: await this.queue.dequeueSome() });
+        }
+
+        if (operation === "confirm") {
+            const { jobId, workflowId } = await readBody(request);
+            await this.queue.confirm({ jobId, workflowId });
+            return this.reply(response, 204);
         }
 
         this.reply(response, 404, { error: "Not found" });

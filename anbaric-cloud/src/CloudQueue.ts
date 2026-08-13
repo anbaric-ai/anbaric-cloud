@@ -1,4 +1,4 @@
-import {Queue} from "anbaric-tsapi";
+import {Queue, QueueMessage} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient";
 
 class CloudQueue implements Queue {
@@ -9,17 +9,17 @@ class CloudQueue implements Queue {
         this.client = new CloudApiClient(baseUrl);
     }
 
-    async enqueue(jobId : string) : Promise<void> {
-        await this.client.request("POST", "/queue/enqueue", { jobId });
+    async enqueue(jobId : string, workflowId : string) : Promise<void> {
+        await this.client.request("POST", "/queue/enqueue", { jobId, workflowId });
     }
 
-    async schedule(jobId : string, due : Date) : Promise<void> {
-        await this.client.request("POST", "/queue/schedule", { jobId, due: due.toISOString() });
+    async schedule(jobId : string, workflowId : string, due : Date) : Promise<void> {
+        await this.client.request("POST", "/queue/schedule", { jobId, workflowId, due: due.toISOString() });
     }
 
-    async dequeueSome() : Promise<Array<string>> {
-        const result = await this.client.request("POST", "/queue/dequeue") as { jobIds : Array<string> };
-        return result.jobIds;
+    async dequeueSome() : Promise<Array<QueueMessage>> {
+        const result = await this.client.request("POST", "/queue/dequeue") as { messages : Array<QueueMessage> };
+        return result.messages;
     }
 
 }

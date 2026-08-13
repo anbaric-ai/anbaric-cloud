@@ -1,7 +1,8 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
+import {Action, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 
+const WORKFLOW_ID = "workflow-1";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const mockPersistence = () => ({
@@ -15,10 +16,15 @@ const mockPersistence = () => ({
 }) satisfies JobPersistence;
 
 const mockQueue = () => ({
-    enqueue: vi.fn(async (_jobId : string) => {}),
-    schedule: vi.fn(async (_jobId : string, _due : Date) => {}),
-    dequeueSome: vi.fn(async () => [] as Array<string>),
+    enqueue: vi.fn(async (_jobId : string, _workflowId : string) => {}),
+    schedule: vi.fn(async (_jobId : string, _workflowId : string, _due : Date) => {}),
+    dequeueSome: vi.fn(async () => []),
 }) satisfies Queue;
+
+const mockConsumer = () => ({
+    subscribe: vi.fn(),
+    cleanUp: vi.fn(async () => {}),
+}) satisfies Consumer;
 
 const requiredNumber = (id : string) => {
     const definition = new PropertyDefinition(id);
@@ -41,14 +47,50 @@ describe("StateMachine", () => {
 
     let persistence : ReturnType<typeof mockPersistence>;
     let queue : ReturnType<typeof mockQueue>;
+    let consumer : ReturnType<typeof mockConsumer>;
 
     beforeEach(() => {
         persistence = mockPersistence();
         queue = mockQueue();
+        consumer = mockConsumer();
     });
 
     const machineWith = (states : Array<State>, schema : Array<PropertyDefinition> = []) =>
-        new StateMachine(states, "start", schema, undefined, persistence, queue);
+        new StateMachine(WORKFLOW_ID, states, "start", schema, undefined, persistence, queue, consumer);
+
+    describe("construction", () => {
+
+        it("subscribes to the consumer with its workflow id", () => {
+            machineWith([new State("start")]);
+
+            expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith(WORKFLOW_ID, expect.any(Function));
+        });
+
+        it("progresses a job when the consumer delivers its id", async () => {
+            const job = new Job("job-1", new Map(), "start");
+            persistence.retrieve.mockResolvedValue(job);
+            machineWith([new State("start", [], [new Transition("done", () => true)])]);
+
+            const processJob = consumer.subscribe.mock.calls[0][1];
+            await processJob("job-1");
+
+            expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+            expect(job.stateId).toBe("done");
+        });
+
+    });
+
+    describe("cleanUp", () => {
+
+        it("delegates to the consumer", async () => {
+            const machine = machineWith([new State("start")]);
+
+            await machine.cleanUp();
+
+            expect(consumer.cleanUp).toHaveBeenCalledOnce();
+        });
+
+    });
 
     describe("startJob", () => {
 
@@ -69,12 +111,12 @@ describe("StateMachine", () => {
             expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
         });
 
-        it("enqueues the new job id", async () => {
+        it("enqueues the new job id under its workflow", async () => {
             const machine = machineWith([new State("start")]);
 
             const job = await machine.startJob();
 
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith(job.id);
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith(job.id, WORKFLOW_ID);
         });
 
         it("keeps the given properties", async () => {
@@ -127,7 +169,7 @@ describe("StateMachine", () => {
             await machine.updateJob("job-1", update);
 
             expect(persistence.updateProperties).toHaveBeenCalledExactlyOnceWith("job-1", update);
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1");
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
         });
 
         it("does not demand required properties on update", async () => {

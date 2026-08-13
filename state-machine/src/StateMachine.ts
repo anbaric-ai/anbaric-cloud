@@ -1,28 +1,32 @@
-import {ActionResolver, Actor, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
+import {ActionResolver, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
 import {DefaultActionResolver} from "./actions/DefaultActionResolver";
 import {QueueFactory} from "./scheduling/QueueFactory";
-import {QueuePoller} from "./scheduling/QueuePoller";
+import {ConsumerFactory} from "./scheduling/ConsumerFactory";
 
 class StateMachine {
 
+    private workflowId: string;
     private states: Map<string, State>;
     private startState: string;
     private dataSchema: Map<string, PropertyDefinition>;
     private actionResolver: ActionResolver;
     private persistence: JobPersistence;
-    private enque: (jobId: string) => Promise<void>;
+    private queue: Queue;
+    private consumer: Consumer;
 
-    constructor(states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, actionResolver : ActionResolver = new DefaultActionResolver(), persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance()) {
+    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, actionResolver : ActionResolver = new DefaultActionResolver(), persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), consumer : Consumer = ConsumerFactory.instance(queue)) {
 
+        this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
         this.startState = startState;
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.actionResolver = actionResolver;
         this.persistence = persistence;
+        this.queue = queue;
+        this.consumer = consumer;
 
-        new QueuePoller(queue, this);
-        this.enque = queue.enqueue.bind(queue);
+        consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
     }
 
     async startJob(properties?: Map<string, any>, actor? : Actor): Promise<Job> {
@@ -34,7 +38,7 @@ class StateMachine {
 
         await this.persistence.save(job);
 
-        await this.enque(job.id);
+        await this.queue.enqueue(job.id, this.workflowId);
 
         return job;
     }
@@ -44,7 +48,7 @@ class StateMachine {
         this.validateProperties(properties, false);
         await this.persistence.updateProperties(jobId, properties);
 
-        await this.enque(jobId);
+        await this.queue.enqueue(jobId, this.workflowId);
     }
 
     private validateProperties(properties: Map<string, any>, isNew : boolean) {
@@ -75,6 +79,10 @@ class StateMachine {
         }
 
         await this.persistence.save(mutableJob);
+    }
+
+    async cleanUp() : Promise<void> {
+        await this.consumer.cleanUp();
     }
 
     private authorizeActor(actor: Actor | undefined, job: Job) {

@@ -1,27 +1,27 @@
-import {Queue} from "anbaric-tsapi";
+import {Queue, QueueMessage} from "anbaric-tsapi";
 
 class InMemoryQueue implements Queue {
 
-    private ready : Array<string> = [];
-    private scheduled : Array<{ job : string, due : Date }> = [];
+    private ready : Array<QueueMessage> = [];
+    private scheduled : Array<{ message : QueueMessage, due : Date }> = [];
 
-    async enqueue(job : string) : Promise<void> {
-        this.ready.push(job);
+    async enqueue(jobId : string, workflowId : string) : Promise<void> {
+        this.ready.push({ jobId, workflowId });
     }
 
-    async schedule(job : string, due : Date) : Promise<void> {
-        this.scheduled.push({ job, due });
+    async schedule(jobId : string, workflowId : string, due : Date) : Promise<void> {
+        this.scheduled.push({ message: { jobId, workflowId }, due });
     }
 
-    async dequeueSome() : Promise<Array<string>> {
+    async dequeueSome() : Promise<Array<QueueMessage>> {
         const now = new Date();
         const released = this.scheduled
             .filter((entry) => entry.due <= now)
             .sort((a, b) => a.due.getTime() - b.due.getTime());
         this.scheduled = this.scheduled.filter((entry) => entry.due > now);
-        const jobs = [...this.ready, ...released.map((entry) => entry.job)];
+        const messages = [...this.ready, ...released.map((entry) => entry.message)];
         this.ready = [];
-        return jobs;
+        return messages;
     }
 
 }

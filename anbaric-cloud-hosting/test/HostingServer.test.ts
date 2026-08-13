@@ -1,10 +1,21 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import {Job} from "anbaric-tsapi";
+import {Job, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
+import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {HostingServer} from "../src/HostingServer";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
+
+class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
+
+    confirmed : Array<QueueMessage> = [];
+
+    async confirm(message : QueueMessage) : Promise<void> {
+        this.confirmed.push(message);
+    }
+
+}
 
 describe("HostingServer round-trip via the cloud clients", () => {
 
@@ -12,9 +23,11 @@ describe("HostingServer round-trip via the cloud clients", () => {
     let baseUrl : string;
     let persistence : CloudJobPersistence;
     let queue : CloudQueue;
+    let backingQueue : ConfirmableInMemoryQueue;
 
     beforeEach(async () => {
-        server = new HostingServer(new InMemoryJobPersistence(), new InMemoryQueue());
+        backingQueue = new ConfirmableInMemoryQueue();
+        server = new HostingServer(new InMemoryJobPersistence(), backingQueue);
         const port = await server.listen(0);
         baseUrl = `http://127.0.0.1:${port}`;
         persistence = new CloudJobPersistence(baseUrl);
@@ -72,19 +85,33 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     describe("queue", () => {
 
-        it("enqueues and dequeues job ids in order", async () => {
-            await queue.enqueue("job-1");
-            await queue.enqueue("job-2");
+        it("enqueues and dequeues messages in order", async () => {
+            await queue.enqueue("job-1", "workflow-1");
+            await queue.enqueue("job-2", "workflow-2");
 
-            expect(await queue.dequeueSome()).toEqual(["job-1", "job-2"]);
+            expect(await queue.dequeueSome()).toEqual([
+                { jobId: "job-1", workflowId: "workflow-1" },
+                { jobId: "job-2", workflowId: "workflow-2" },
+            ]);
             expect(await queue.dequeueSome()).toEqual([]);
         });
 
-        it("releases past-due scheduled jobs and holds future ones", async () => {
-            await queue.schedule("past-due", new Date(Date.now() - 1000));
-            await queue.schedule("future", new Date(Date.now() + 60_000));
+        it("releases past-due scheduled messages and holds future ones", async () => {
+            await queue.schedule("past-due", "workflow-1", new Date(Date.now() - 1000));
+            await queue.schedule("future", "workflow-1", new Date(Date.now() + 60_000));
 
-            expect(await queue.dequeueSome()).toEqual(["past-due"]);
+            expect(await queue.dequeueSome()).toEqual([{ jobId: "past-due", workflowId: "workflow-1" }]);
+        });
+
+        it("passes confirm messages through to the backing queue", async () => {
+            const response = await fetch(`${baseUrl}/queue/confirm`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ jobId: "job-1", workflowId: "workflow-1" }),
+            });
+
+            expect(response.status).toBe(204);
+            expect(backingQueue.confirmed).toEqual([{ jobId: "job-1", workflowId: "workflow-1" }]);
         });
 
     });
