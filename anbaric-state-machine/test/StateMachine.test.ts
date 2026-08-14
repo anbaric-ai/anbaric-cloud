@@ -234,6 +234,46 @@ describe("StateMachine", () => {
 
     });
 
+    describe("executeAction", () => {
+
+        const approvalAction = () => {
+            const action = new Action("Approve", new Human("chris", "admin"));
+            action.run = async () => new Map([["approved", true]]);
+            return action;
+        };
+
+        it("persists the action's properties and re-enqueues the job", async () => {
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            const machine = machineWith([new State("start")], [new PropertyDefinition("approved")]);
+
+            await machine.executeAction("job-1", approvalAction());
+
+            expect(persistence.updateProperties).toHaveBeenCalledExactlyOnceWith("job-1", new Map([["approved", true]]));
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
+        });
+
+        it("refuses when the action's predicate is unmet", async () => {
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            const machine = machineWith([new State("start")], [new PropertyDefinition("approved")]);
+            const action = approvalAction();
+            action.predicate = () => false;
+
+            await expect(machine.executeAction("job-1", action)).rejects.toThrowError("Action predicate unmet");
+            expect(persistence.updateProperties).not.toHaveBeenCalled();
+            expect(queue.enqueue).not.toHaveBeenCalled();
+        });
+
+        it("refuses properties that fail the schema", async () => {
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            const machine = machineWith([new State("start")]);
+
+            await expect(machine.executeAction("job-1", approvalAction()))
+                .rejects.toThrowError("The action generated invalid properties");
+            expect(persistence.updateProperties).not.toHaveBeenCalled();
+        });
+
+    });
+
     describe("progressJob", () => {
 
         const jobInState = (stateId : string) => new Job("job-1", new Map(), stateId);

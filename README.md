@@ -33,10 +33,19 @@ const customer = await customers.startJob(new Map([["email", "ada@example.com"]]
 
 Every action declares an **actor** (`Code`, `Human` or `Agent` — pure
 identity objects) and a `run` function returning the properties it wants to
-set. Property changes are schema-validated and audited, and each job carries
-its history: who started it, every from→to transition and the actor that made
-it. Jobs can also be updated explicitly with `updateJob(jobId, properties,
-actor)`.
+set. There are three ways to influence a job:
+
+1. **Update it directly**, declaring who is acting:
+   `machine.updateJob(jobId, new Map([["approved", true]]), new Human("chris", "manager"))`.
+2. **Execute an action directly** — the actor is embedded in the action:
+   `machine.executeAction(jobId, approveAction)`.
+3. **Subscribe an action to a state** — pass it in the `State` constructor or
+   call `state.subscribe(action)`, and it runs (predicate permitting)
+   whenever a job is processed in that state.
+
+Whichever way, property changes are schema-validated and audited, and each
+job carries its history: who started it, every from→to transition and the
+actor that made it.
 
 Everything is pluggable through env-driven factories: locally (no env vars)
 you get in-memory persistence and queueing; deployed, the same factories talk

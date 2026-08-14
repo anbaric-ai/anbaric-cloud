@@ -1,4 +1,4 @@
-import {Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
+import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
 import {QueueFactory} from "./scheduling/QueueFactory";
 import {ConsumerFactory} from "./scheduling/ConsumerFactory";
@@ -64,25 +64,21 @@ class StateMachine {
     async executeAction(jobId : string, action : Action) : Promise<void> {
         const job = await this.persistence.retrieve(jobId);
 
-        if (! action.predicate(job)) return Promise.reject("Action predicate unmet");
+        if (! action.predicate(job)) throw new Error("Action predicate unmet");
 
         if (! this.authorizeActor(action.actor, job)) {
             Auditor.instance().audit(jobId, action.actor, "Unauthorized update", null);
-            return Promise.reject("Actor not authorized to execute action");
+            throw new Error("Actor not authorized to execute action");
         }
 
         const newProperties = await action.run(job);
 
         if (! this.validateProperties(newProperties, false)) {
             Auditor.instance().audit(jobId, action.actor, "Invalid properties", Object.fromEntries(newProperties));
-            return Promise.reject("The action generated invalid properties");
+            throw new Error("The action generated invalid properties");
         }
 
-        newProperties.forEach((value, key) => {
-            job.properties.set(key, value);
-        });
-
-        await this.persistence.updateProperties(jobId, properties);
+        await this.persistence.updateProperties(jobId, newProperties);
         Auditor.instance().audit(jobId, action.actor, "Properties updated", Object.fromEntries(newProperties));
 
         await this.queue.enqueue(jobId, this.workflowId);

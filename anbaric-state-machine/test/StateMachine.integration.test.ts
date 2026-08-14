@@ -26,6 +26,12 @@ const optionalFlag = (id : string) => {
     return definition;
 };
 
+const optionalText = (id : string) => {
+    const definition = new PropertyDefinition(id);
+    definition.validation = (value) => typeof value === "string";
+    return definition;
+};
+
 describe("StateMachine with in-memory collaborators", () => {
 
     let persistence : InMemoryJobPersistence;
@@ -143,6 +149,124 @@ describe("StateMachine with in-memory collaborators", () => {
 
         await progress(job.id);
         expect((await persistence.retrieve(job.id)).stateId).toBe("done");
+    });
+
+    it("carries an expense claim through review, human approval and payout", async () => {
+        const checkReceipts = stampingAction("receiptChecked", true);
+        const payOut = stampingAction("paid", true);
+        const approve = new Action("Approve claim", new Human("marisa", "manager"));
+        approve.predicate = (job) => job.properties.get("receiptChecked") === true;
+        approve.run = async () => new Map([["approved", true]]);
+
+        const expenses = new StateMachine(
+            "expense-approval",
+            [
+                new State("submitted", [checkReceipts], [
+                    new Transition("rejected", (job) => job.properties.get("approved") === false),
+                    new Transition("approved", (job) => job.properties.get("approved") === true),
+                ]),
+                new State("approved", [payOut], [new Transition("paid", (job) => job.properties.get("paid") === true)]),
+                new State("rejected"),
+                new State("paid"),
+            ],
+            "submitted",
+            [optionalNumber("amount"), optionalFlag("receiptChecked"), optionalFlag("approved"), optionalFlag("paid")],
+            persistence,
+            queue,
+        );
+
+        const claim = await expenses.startJob(new Map([["amount", 120]]), new Human("lyra", "requester"));
+        expect(claim.startedBy).toBe("lyra");
+
+        await progress(claim.id);
+        expect((await persistence.retrieve(claim.id)).stateId).toBe("submitted");
+
+        await expenses.executeAction(claim.id, approve);
+        await progress(claim.id);
+        expect((await persistence.retrieve(claim.id)).stateId).toBe("approved");
+
+        await progress(claim.id);
+        const settled = await persistence.retrieve(claim.id);
+        expect(settled.stateId).toBe("paid");
+        expect(settled.properties.get("receiptChecked")).toBe(true);
+        expect(settled.transitions).toEqual([
+            { from: "submitted", to: "approved", actor: "expense-approval" },
+            { from: "approved", to: "paid", actor: "expense-approval" },
+        ]);
+    });
+
+    it("branches an order to cancellation or shipping depending on its properties", async () => {
+        const orderMachine = () => new StateMachine(
+            "order-fulfilment",
+            [
+                new State("placed", [], [
+                    new Transition("cancelled", (job) => job.properties.get("cancelled") === true),
+                    new Transition("packing", (job) => job.properties.get("paid") === true),
+                ]),
+                new State("packing", [stampingAction("packed", true)],
+                    [new Transition("shipped", (job) => job.properties.get("packed") === true)]),
+                new State("cancelled"),
+                new State("shipped"),
+            ],
+            "placed",
+            [optionalFlag("paid"), optionalFlag("cancelled"), optionalFlag("packed")],
+            persistence,
+            queue,
+        );
+
+        const orders = orderMachine();
+        const shippedOrder = await orders.startJob();
+        await orders.updateJob(shippedOrder.id, new Map([["paid", true]]), new Human("lyra", "customer"));
+        await progress(shippedOrder.id);
+        await progress(shippedOrder.id);
+        expect((await persistence.retrieve(shippedOrder.id)).stateId).toBe("shipped");
+
+        const cancelledOrder = await orders.startJob();
+        await orders.updateJob(cancelledOrder.id, new Map([["cancelled", true]]), new Human("lyra", "customer"));
+        await progress(cancelledOrder.id);
+        expect((await persistence.retrieve(cancelledOrder.id)).stateId).toBe("cancelled");
+        expect((await persistence.retrieve(cancelledOrder.id)).transitions).toEqual([
+            { from: "placed", to: "cancelled", actor: "order-fulfilment" },
+        ]);
+    });
+
+    it("routes tickets through different paths as action predicates select who acts", async () => {
+        const autoTriage = new Action("Auto triage", new Code("triage-bot"));
+        autoTriage.predicate = (job) => job.properties.get("priority") === "low";
+        autoTriage.run = async () => new Map([["assignee", "triage-bot"]]);
+
+        const escalate = new Action("Escalate", new Code("escalation-rule"));
+        escalate.predicate = (job) => job.properties.get("priority") === "high";
+        escalate.run = async () => new Map([["escalated", true]]);
+
+        const support = new StateMachine(
+            "support-triage",
+            [
+                new State("open", [autoTriage, escalate], [
+                    new Transition("escalated", (job) => job.properties.get("escalated") === true),
+                    new Transition("triaged", (job) => job.properties.get("assignee") !== undefined),
+                ]),
+                new State("escalated"),
+                new State("triaged"),
+            ],
+            "open",
+            [optionalText("priority"), optionalText("assignee"), optionalFlag("escalated")],
+            persistence,
+            queue,
+        );
+
+        const routineTicket = await support.startJob(new Map([["priority", "low"]]));
+        await progress(routineTicket.id);
+        const triaged = await persistence.retrieve(routineTicket.id);
+        expect(triaged.stateId).toBe("triaged");
+        expect(triaged.properties.get("assignee")).toBe("triage-bot");
+        expect(triaged.properties.has("escalated")).toBe(false);
+
+        const urgentTicket = await support.startJob(new Map([["priority", "high"]]));
+        await progress(urgentTicket.id);
+        const escalated = await persistence.retrieve(urgentTicket.id);
+        expect(escalated.stateId).toBe("escalated");
+        expect(escalated.properties.has("assignee")).toBe(false);
     });
 
     it("a rejected startJob leaves persistence and queue untouched", async () => {
