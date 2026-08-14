@@ -6,7 +6,7 @@
    Auth0 session flow and signed CLI tokens work unchanged. */
 
 data "aws_cloudfront_cache_policy" "use_origin_cache_control" {
-  name = "Managed-UseOriginCacheControlHeaders-QueryStrings"
+  name = "UseOriginCacheControlHeaders-QueryStrings"
 }
 
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {

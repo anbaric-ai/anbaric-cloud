@@ -60,6 +60,12 @@ variable "auth0_client_secret" {
   sensitive   = true
 }
 
+variable "auth0_organization" {
+  description = "Auth0 Organization (id or name slug) this tenant's logins are scoped to"
+  type        = string
+  default     = ""
+}
+
 variable "platform_public_url" {
   description = "Public URL of the platform, used for the login callback; defaults to the CloudFront domain"
   type        = string

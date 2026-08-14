@@ -88,6 +88,84 @@ describe("Auth0Authenticator", () => {
         expect(location.searchParams.get("state")).toBe("/jobs?page=2");
     });
 
+    describe("organizations", () => {
+
+        const organizationAuthenticator = (organization : string) =>
+            new Auth0Authenticator(
+                { domain: DOMAIN, clientId: CLIENT_ID, clientSecret: "shhh", publicUrl: PUBLIC_URL, organization },
+                (...args) => getKey(...args),
+            );
+
+        it("scopes the login redirect to the configured organization", async () => {
+            const response = new FakeResponse();
+
+            await organizationAuthenticator("acme").authenticate(undefined, fakeRequest("/jobs"), asServerResponse(response));
+
+            const location = new URL(response.headers.location);
+            expect(location.searchParams.get("organization")).toBe("acme");
+        });
+
+        it("forwards the invitation ticket and organization from an invite link", async () => {
+            const response = new FakeResponse();
+
+            await organizationAuthenticator("acme").authenticate(undefined,
+                fakeRequest("/?invitation=ticket-1&organization=org_123"), asServerResponse(response));
+
+            const location = new URL(response.headers.location);
+            expect(location.searchParams.get("invitation")).toBe("ticket-1");
+            expect(location.searchParams.get("organization")).toBe("org_123");
+        });
+
+        it("accepts a session carrying the configured organization name", async () => {
+            const session = await idTokenWith({ org_id: "org_123", org_name: "acme" });
+            const response = new FakeResponse();
+
+            const user = await organizationAuthenticator("acme").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+
+            expect(user?.id).toBe("auth0|user-1");
+            expect(response.ended).toBe(false);
+        });
+
+        it("accepts a session when configured with the organization id", async () => {
+            const session = await idTokenWith({ org_id: "org_123", org_name: "acme" });
+            const response = new FakeResponse();
+
+            const user = await organizationAuthenticator("org_123").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+
+            expect(user?.id).toBe("auth0|user-1");
+        });
+
+        it("rejects a session from a different organization", async () => {
+            const session = await idTokenWith({ org_id: "org_999", org_name: "rivals" });
+            const response = new FakeResponse();
+
+            const user = await organizationAuthenticator("acme").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+
+            expect(user).toBeUndefined();
+            expect(response.status).toBe(302);
+        });
+
+        it("rejects a session with no organization at all", async () => {
+            const session = await idTokenWith();
+            const response = new FakeResponse();
+
+            const user = await organizationAuthenticator("acme").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+
+            expect(user).toBeUndefined();
+            expect(response.status).toBe(302);
+        });
+
+        it("leaves sessions unscoped when no organization is configured", async () => {
+            const session = await idTokenWith();
+            const response = new FakeResponse();
+
+            const user = await authenticator().authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+
+            expect(user?.id).toBe("auth0|user-1");
+        });
+
+    });
+
     it("redirects to login when the session token is invalid", async () => {
         const session = await idTokenWith({}, { audience: "someone-else" });
         const response = new FakeResponse();

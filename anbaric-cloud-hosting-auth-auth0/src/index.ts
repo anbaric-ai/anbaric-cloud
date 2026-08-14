@@ -15,6 +15,7 @@ const createAuthenticator = () : Authenticator => {
         clientSecret,
         publicUrl: process.env.ANBARIC_PLATFORM_PUBLIC_URL ?? "http://localhost:8787",
         rolesClaim: process.env.ANBARIC_AUTH0_ROLES_CLAIM,
+        organization: process.env.ANBARIC_AUTH0_ORGANIZATION,
     });
 };
 

@@ -8,6 +8,7 @@ type Auth0Options = {
     clientSecret : string,
     publicUrl : string,
     rolesClaim? : string,
+    organization? : string,
 };
 
 type CodeExchange = (code : string) => Promise<string>;
@@ -54,9 +55,19 @@ class Auth0Authenticator extends Authenticator {
             audience: this.options.clientId,
         });
 
+        if (this.options.organization && !this.belongsToOrganization(payload)) {
+            throw new Error(`The session does not belong to the "${this.options.organization}" organization`);
+        }
+
         const claimedRoles = payload[this.options.rolesClaim ?? DEFAULT_ROLES_CLAIM];
         const roles = Array.isArray(claimedRoles) ? claimedRoles.map(id => new Role(String(id))) : [];
         return new User(String(payload.sub), roles);
+    }
+
+    private belongsToOrganization(payload : Record<string, unknown>) : boolean {
+        const organization = this.options.organization!;
+        if (organization.startsWith("org_")) return payload.org_id === organization;
+        return String(payload.org_name ?? "").toLowerCase() === organization.toLowerCase();
     }
 
     private redirectToLogin(requestedUrl : URL, response : ServerResponse) : void {
@@ -66,6 +77,12 @@ class Auth0Authenticator extends Authenticator {
         authorizeUrl.searchParams.set("redirect_uri", `${this.options.publicUrl}${CALLBACK_PATH}`);
         authorizeUrl.searchParams.set("scope", "openid profile email");
         authorizeUrl.searchParams.set("state", requestedUrl.pathname + requestedUrl.search);
+
+        const organization = requestedUrl.searchParams.get("organization") ?? this.options.organization;
+        if (organization) authorizeUrl.searchParams.set("organization", organization);
+
+        const invitation = requestedUrl.searchParams.get("invitation");
+        if (invitation) authorizeUrl.searchParams.set("invitation", invitation);
 
         response.writeHead(302, { location: authorizeUrl.toString() });
         response.end();

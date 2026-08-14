@@ -129,6 +129,8 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
       { name = "ANBARIC_AUTH0_CLIENT_ID", value = var.auth0_client_id },
+    ], var.auth0_organization == "" ? [] : [
+      { name = "ANBARIC_AUTH0_ORGANIZATION", value = var.auth0_organization },
     ])
 
     secrets = concat([

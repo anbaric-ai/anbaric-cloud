@@ -25,6 +25,11 @@ variable "auth0_client_secret" {
   sensitive = true
 }
 
+variable "auth0_organization" {
+  type    = string
+  default = ""
+}
+
 resource "docker_network" "anbaric" {
   name = "anbaric-v2-local"
 }
@@ -87,6 +92,8 @@ resource "docker_container" "platform" {
     "ANBARIC_AUTH0_CLIENT_ID=${var.auth0_client_id}",
     "ANBARIC_AUTH0_CLIENT_SECRET=${var.auth0_client_secret}",
     "ANBARIC_PLATFORM_PUBLIC_URL=http://localhost:8787",
+    ], var.auth0_organization == "" ? [] : [
+    "ANBARIC_AUTH0_ORGANIZATION=${var.auth0_organization}",
   ])
 
   volumes {
