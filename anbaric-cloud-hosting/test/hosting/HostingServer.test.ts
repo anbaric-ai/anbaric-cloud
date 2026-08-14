@@ -562,6 +562,13 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     });
 
+    it("serves the landing page at the root", async () => {
+        const response = await fetch(`${baseUrl}/`);
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toContain("text/html");
+    });
+
     it("answers pings", async () => {
         const response = await fetch(`${baseUrl}/ping`);
 

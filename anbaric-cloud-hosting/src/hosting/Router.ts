@@ -34,6 +34,9 @@ class Router {
         const [resource, id, subresource] = url.pathname.split("/").filter(Boolean);
         const method = request.method ?? "GET";
 
+        if (!resource && method === "GET") {
+            return this.servePage(response);
+        }
         if (resource === "authorize-cli" && id && this.cliAuthorizer) {
             return this.handleAuthorizeCli(method, id, subresource, request, response, user);
         }

@@ -5,6 +5,7 @@ import { Button } from '@anbaric/design-system/components/Button'
 import { Alert } from '@anbaric/design-system/components/Alert'
 
 import { PageShell } from './PageShell'
+import { PlatformNav } from './PlatformNav'
 
 interface CliKey {
   id: string
@@ -35,7 +36,7 @@ function ManageKeysPage() {
   }
 
   return (
-    <PageShell title="Manage keys">
+    <PageShell title="Manage keys" nav={<PlatformNav />}>
       {failed ? (
         <Alert variant="danger" title="Could not load your keys">
           The platform rejected the request — try reloading the page.

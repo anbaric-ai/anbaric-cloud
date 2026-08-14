@@ -1,9 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react'
 
-const shell: CSSProperties = {
-  maxWidth: '30rem',
+const layout: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 'var(--space-lg)',
   margin: '0 auto',
   padding: 'var(--space-lg) var(--space-md)',
+}
+
+const content: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--space-lg)',
@@ -18,12 +25,25 @@ const heading: CSSProperties = {
   textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
 }
 
-function PageShell({ title, children }: { title: string; children: ReactNode }) {
+function PageShell({
+  title,
+  width = '30rem',
+  nav,
+  children,
+}: {
+  title: string
+  width?: string
+  nav?: ReactNode
+  children: ReactNode
+}) {
   return (
-    <main style={shell}>
-      <h1 style={heading}>{title}</h1>
-      {children}
-    </main>
+    <div style={{ ...layout, maxWidth: nav ? `calc(${width} + 18rem)` : width }}>
+      {nav}
+      <main style={content}>
+        <h1 style={heading}>{title}</h1>
+        {children}
+      </main>
+    </div>
   )
 }
 

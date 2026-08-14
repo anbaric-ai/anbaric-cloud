@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import '@anbaric/design-system/tokens.css'
 
 import { AuthorizeCliPage } from './AuthorizeCliPage'
+import { LandingPage } from './LandingPage'
 import { ManageKeysPage } from './ManageKeysPage'
 
 function App() {
@@ -11,7 +12,10 @@ function App() {
   if (path.startsWith('/authorize-cli/')) {
     return <AuthorizeCliPage requestId={path.split('/')[2]} />
   }
-  return <ManageKeysPage />
+  if (path === '/manage-keys') {
+    return <ManageKeysPage />
+  }
+  return <LandingPage />
 }
 
 const root = document.getElementById('root')
