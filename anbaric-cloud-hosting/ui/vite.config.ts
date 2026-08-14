@@ -9,6 +9,9 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 export default defineConfig({
   plugins: [react(), viteSingleFile()],
   base: './',
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   build: {
     cssTarget: 'safari18',
     outDir: '../src/hosting/pages',
