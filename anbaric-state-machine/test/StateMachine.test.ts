@@ -1,6 +1,7 @@
-import {beforeEach, describe, expect, it, vi} from "vitest";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
+import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
 
 const WORKFLOW_ID = "workflow-1";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -18,7 +19,6 @@ const mockPersistence = () => ({
 const mockQueue = () => ({
     enqueue: vi.fn(async (_jobId : string, _workflowId : string) => {}),
     schedule: vi.fn(async (_jobId : string, _workflowId : string, _due : Date) => {}),
-    dequeueSome: vi.fn(async () => []),
 }) satisfies Queue;
 
 const mockConsumer = () => ({
@@ -53,10 +53,15 @@ describe("StateMachine", () => {
         persistence = mockPersistence();
         queue = mockQueue();
         consumer = mockConsumer();
+        vi.spyOn(ConsumerFactory, "instance").mockReturnValue(consumer);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     const machineWith = (states : Array<State>, schema : Array<PropertyDefinition> = []) =>
-        new StateMachine(WORKFLOW_ID, states, "start", schema, undefined, persistence, queue, consumer);
+        new StateMachine(WORKFLOW_ID, states, "start", schema, undefined, persistence, queue);
 
     describe("construction", () => {
 

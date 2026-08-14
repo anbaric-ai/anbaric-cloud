@@ -1,6 +1,6 @@
-import {Queue, QueueMessage} from "anbaric-tsapi";
+import {Dequeue, QueueMessage} from "anbaric-tsapi";
 
-class InMemoryQueue implements Queue {
+class InMemoryQueue implements Dequeue {
 
     private ready : Array<QueueMessage> = [];
     private scheduled : Array<{ message : QueueMessage, due : Date }> = [];

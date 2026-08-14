@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
 import {QueueMessage} from "anbaric-tsapi";
-import {CloudConsumer} from "../src/CloudConsumer";
+import {PushConsumer} from "../src/PushConsumer";
 
 const message = (jobId : string, workflowId : string = "workflow-1") : QueueMessage => ({ jobId, workflowId });
 
@@ -31,19 +31,19 @@ const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array
         }));
     });
 
-describe("CloudConsumer", () => {
+describe("PushConsumer", () => {
 
     let confirms : Array<QueueMessage>;
     let registrations : Array<{ workflowId : string, url : string }>;
     let platform : Server;
-    let consumer : CloudConsumer;
+    let consumer : PushConsumer;
 
     beforeEach(async () => {
         confirms = [];
         registrations = [];
         const stub = await startStubPlatform(confirms, registrations);
         platform = stub.server;
-        consumer = new CloudConsumer(stub.baseUrl, 0);
+        consumer = new PushConsumer(stub.baseUrl, 0);
     });
 
     afterEach(async () => {

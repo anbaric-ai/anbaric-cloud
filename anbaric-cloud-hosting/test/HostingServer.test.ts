@@ -92,22 +92,21 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     describe("queue", () => {
 
-        it("enqueues and dequeues messages in order", async () => {
+        it("enqueues messages into the platform's queue in order", async () => {
             await queue.enqueue("job-1", "workflow-1");
             await queue.enqueue("job-2", "workflow-2");
 
-            expect(await queue.dequeueSome()).toEqual([
+            expect(await backingQueue.dequeueSome()).toEqual([
                 { jobId: "job-1", workflowId: "workflow-1" },
                 { jobId: "job-2", workflowId: "workflow-2" },
             ]);
-            expect(await queue.dequeueSome()).toEqual([]);
         });
 
-        it("releases past-due scheduled messages and holds future ones", async () => {
+        it("schedules messages for later release", async () => {
             await queue.schedule("past-due", "workflow-1", new Date(Date.now() - 1000));
             await queue.schedule("future", "workflow-1", new Date(Date.now() + 60_000));
 
-            expect(await queue.dequeueSome()).toEqual([{ jobId: "past-due", workflowId: "workflow-1" }]);
+            expect(await backingQueue.dequeueSome()).toEqual([{ jobId: "past-due", workflowId: "workflow-1" }]);
         });
 
         it("passes confirm messages through to the backing queue", async () => {

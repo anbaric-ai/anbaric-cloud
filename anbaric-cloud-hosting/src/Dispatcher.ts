@@ -1,4 +1,4 @@
-import {Queue, QueueMessage} from "anbaric-tsapi";
+import {Dequeue, QueueMessage} from "anbaric-tsapi";
 import {ConsumerRegistry} from "./ConsumerRegistry";
 
 class Dispatcher {
@@ -6,7 +6,7 @@ class Dispatcher {
     private ticker? : NodeJS.Timeout;
     private draining = false;
 
-    constructor(private queue : Queue, private registry : ConsumerRegistry,
+    constructor(private queue : Dequeue, private registry : ConsumerRegistry,
                 private dispatchIntervalMs : number = 1000) {}
 
     start() : void {

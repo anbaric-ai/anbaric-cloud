@@ -20,7 +20,7 @@ const readBody = (request : IncomingMessage) : Promise<any> =>
         });
     });
 
-class CloudConsumer implements Consumer {
+class PushConsumer implements Consumer {
 
     private subscribers = new Map<string, ProcessJob>();
     private client : CloudApiClient;
@@ -116,4 +116,4 @@ class CloudConsumer implements Consumer {
 
 }
 
-export { CloudConsumer }
+export { PushConsumer }

@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, QueueMessage, State, Transition} from "anbaric-tsapi";
-import {CloudConsumer, CloudJobPersistence, CloudQueue} from "anbaric-cloud";
+import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
 import {DefaultActionResolver, InMemoryJobPersistence, InMemoryQueue, StateMachine} from "anbaric-state-machine";
 import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {ConsumerRegistry} from "../src/ConsumerRegistry";
@@ -41,6 +41,9 @@ describe("platform end to end", () => {
         const port = await server.listen(0);
         const baseUrl = `http://127.0.0.1:${port}`;
 
+        process.env.ANBARIC_CLOUD_URL = baseUrl;
+        process.env.ANBARIC_CONSUMER_PORT = "0";
+
         dispatcher = new Dispatcher(backingQueue, registry, 10);
         dispatcher.start();
 
@@ -56,11 +59,12 @@ describe("platform end to end", () => {
             new DefaultActionResolver(),
             persistence,
             new CloudQueue(baseUrl),
-            new CloudConsumer(baseUrl, 0),
         );
     });
 
     afterEach(async () => {
+        delete process.env.ANBARIC_CLOUD_URL;
+        delete process.env.ANBARIC_CONSUMER_PORT;
         await machine.cleanUp();
         await dispatcher.cleanUp();
         await server.close();

@@ -1,9 +1,10 @@
-import {beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Consumer, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {Action, Consumer, Dequeue, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {LocalConsumer} from "../src/scheduling/LocalConsumer";
+import {PullConsumer} from "../src/scheduling/PullConsumer";
+import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
 import {DefaultActionResolver} from "../src/actions/DefaultActionResolver";
 
 const idleConsumer = () : Consumer => ({
@@ -35,6 +36,7 @@ describe("StateMachine with in-memory collaborators", () => {
     beforeEach(() => {
         persistence = new InMemoryJobPersistence();
         queue = new InMemoryQueue();
+        vi.spyOn(ConsumerFactory, "instance").mockImplementation(() => idleConsumer());
         machine = new StateMachine(
             "workflow-1",
             [new State("start", [stampingAction("progressed", true)])],
@@ -43,8 +45,11 @@ describe("StateMachine with in-memory collaborators", () => {
             new DefaultActionResolver(),
             persistence,
             queue,
-            idleConsumer(),
         );
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     it("startJob persists a retrievable job and queues it under the workflow", async () => {
@@ -72,8 +77,9 @@ describe("StateMachine with in-memory collaborators", () => {
         expect((await persistence.retrieve(job.id)).properties.get("progressed")).toBe(true);
     });
 
-    it("a local consumer progresses started jobs without manual intervention", async () => {
-        const consumer = new LocalConsumer(queue, 10);
+    it("a pull consumer progresses started jobs without manual intervention", async () => {
+        vi.mocked(ConsumerFactory.instance).mockImplementation(consumedQueue =>
+            Dequeue.supports(consumedQueue) ? new PullConsumer(consumedQueue, 10) : idleConsumer());
         const automatic = new StateMachine(
             "workflow-auto",
             [
@@ -85,7 +91,6 @@ describe("StateMachine with in-memory collaborators", () => {
             new DefaultActionResolver(),
             persistence,
             queue,
-            consumer,
         );
 
         const job = await automatic.startJob();
@@ -113,7 +118,6 @@ describe("StateMachine with in-memory collaborators", () => {
             new DefaultActionResolver(),
             persistence,
             queue,
-            idleConsumer(),
         );
 
         const job = await workflow.startJob();

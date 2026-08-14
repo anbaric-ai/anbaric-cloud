@@ -1,6 +1,6 @@
-import {Queue, QueueMessage} from "anbaric-tsapi";
+import {Dequeue, QueueMessage} from "anbaric-tsapi";
 
-interface ConfirmableQueue extends Queue {
+interface ConfirmableQueue extends Dequeue {
 
     confirm(message : QueueMessage) : Promise<void>;
 

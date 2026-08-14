@@ -15,7 +15,7 @@ class StateMachine {
     private queue: Queue;
     private consumer: Consumer;
 
-    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, actionResolver : ActionResolver = new DefaultActionResolver(), persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), consumer : Consumer = ConsumerFactory.instance(queue)) {
+    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, actionResolver : ActionResolver = new DefaultActionResolver(), persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance()) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
@@ -24,9 +24,9 @@ class StateMachine {
         this.actionResolver = actionResolver;
         this.persistence = persistence;
         this.queue = queue;
-        this.consumer = consumer;
 
-        consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
+        this.consumer = ConsumerFactory.instance(queue)
+        this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
     }
 
     async startJob(properties?: Map<string, any>, actor? : Actor): Promise<Job> {

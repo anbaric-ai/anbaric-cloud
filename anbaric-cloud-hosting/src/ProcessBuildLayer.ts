@@ -26,7 +26,6 @@ class ProcessBuildLayer extends BaseBuildLayer {
                 ANBARIC_CLOUD_URL: this.platformUrl,
                 ANBARIC_JOB_PERSISTENCE_TYPE: "cloud",
                 ANBARIC_QUEUE_TYPE: "cloud",
-                ANBARIC_CONSUMER_TYPE: "cloud",
                 ANBARIC_JSON_STORE_TYPE: "cloud",
                 ANBARIC_SECRET_STORE_TYPE: "cloud",
                 ANBARIC_CONSUMER_PORT: String(deployment.consumerPort),

@@ -1,17 +1,17 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {LocalConsumer} from "../src/scheduling/LocalConsumer";
+import {PullConsumer} from "../src/scheduling/PullConsumer";
 
 const POLL_INTERVAL_MS = 10;
 
-describe("LocalConsumer", () => {
+describe("PullConsumer", () => {
 
     let queue : InMemoryQueue;
-    let consumer : LocalConsumer;
+    let consumer : PullConsumer;
 
     beforeEach(() => {
         queue = new InMemoryQueue();
-        consumer = new LocalConsumer(queue, POLL_INTERVAL_MS);
+        consumer = new PullConsumer(queue, POLL_INTERVAL_MS);
     });
 
     afterEach(async () => {

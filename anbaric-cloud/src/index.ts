@@ -1,4 +1,4 @@
-export * from "./CloudConsumer";
+export * from "./PushConsumer";
 export * from "./CloudJobPersistence";
 export * from "./CloudJsonStore";
 export * from "./CloudSecretStore";

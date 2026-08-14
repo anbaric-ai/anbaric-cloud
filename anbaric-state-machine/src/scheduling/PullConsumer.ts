@@ -1,14 +1,14 @@
-import {Consumer, Queue, QueueMessage} from "anbaric-tsapi";
+import {Consumer, Dequeue, QueueMessage} from "anbaric-tsapi";
 
 type ProcessJob = (jobId : string) => Promise<void>;
 
-class LocalConsumer implements Consumer {
+class PullConsumer implements Consumer {
 
     private subscribers = new Map<string, ProcessJob>();
     private ticker? : NodeJS.Timeout;
     private draining = false;
 
-    constructor(private queue : Queue, private pollIntervalMs : number = 1000) {}
+    constructor(private queue : Dequeue, private pollIntervalMs : number = 1000) {}
 
     subscribe(workflowId : string, processJob : ProcessJob) : void {
         this.subscribers.set(workflowId, processJob);
@@ -51,4 +51,4 @@ class LocalConsumer implements Consumer {
 
 }
 
-export { LocalConsumer }
+export { PullConsumer }

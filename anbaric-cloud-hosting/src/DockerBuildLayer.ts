@@ -57,7 +57,6 @@ class DockerBuildLayer extends BaseBuildLayer {
             "--env", `ANBARIC_CLOUD_URL=${this.options.platformUrl}`,
             "--env", "ANBARIC_JOB_PERSISTENCE_TYPE=cloud",
             "--env", "ANBARIC_QUEUE_TYPE=cloud",
-            "--env", "ANBARIC_CONSUMER_TYPE=cloud",
             "--env", "ANBARIC_JSON_STORE_TYPE=cloud",
             "--env", "ANBARIC_SECRET_STORE_TYPE=cloud",
             "--env", `ANBARIC_CONSUMER_PORT=${deployment.consumerPort}`,
