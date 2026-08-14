@@ -1,0 +1,9 @@
+/* =============================================================
+   Graph — wrapper for the Recharts chart. `color` drives the line/area paint
+   (the chart uses currentColor), keeping it on-palette. Depends on tokens.css.
+   ============================================================= */
+
+.ds-graph {
+  width: 100%;
+  color: var(--color-primary);
+}

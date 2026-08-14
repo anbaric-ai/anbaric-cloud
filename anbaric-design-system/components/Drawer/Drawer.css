@@ -1,0 +1,88 @@
+/* =============================================================
+   Drawer — a large Card docked to the right edge, sliding in over a fully
+   transparent curtain. Native <dialog> for modality. Depends on tokens.css.
+   ============================================================= */
+
+.ds-drawer {
+  width: min(92vw, 28rem);
+  max-width: 92vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0 0 0 auto; /* dock to the right edge */
+  padding: var(--space-md); /* let the Card float off the edges */
+  border: none;
+  background: transparent;
+  overflow: visible;
+  /* Closed/exit state. The timing is symmetric, so close is the exact reverse
+     of open: translate & scale over 400ms, opacity 200ms after a 100ms delay. */
+  opacity: 0;
+  transform: translateX(100%) scale(0.98);
+  transition:
+    transform 400ms ease,
+    opacity 200ms ease 100ms,
+    overlay 400ms ease allow-discrete,
+    display 400ms ease allow-discrete;
+}
+
+.ds-drawer[open] {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+@starting-style {
+  .ds-drawer[open] {
+    opacity: 0;
+    transform: translateX(100%) scale(0.98);
+  }
+}
+
+/* The curtain is fully transparent — no dimming, but still modal. */
+.ds-drawer::backdrop {
+  background: transparent;
+}
+
+/* The Card fills the dialog and scrolls its own content. */
+.ds-drawer .ds-card-root {
+  height: 100%;
+}
+
+.ds-drawer__panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* A side panel sits at elevation level 3, not the Card's default level 1.
+   (Higher specificity than .ds-card so it wins regardless of load order.) */
+.ds-drawer .ds-card {
+  box-shadow: var(--elevation-3);
+}
+
+.ds-drawer__close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 1;
+  display: inline-flex;
+  padding: var(--space-sm);
+  color: var(--color-foreground-tint-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-drawer__close:hover {
+  background: var(--color-background-shade-1);
+  color: var(--color-foreground);
+}
+
+.ds-drawer__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-drawer {
+    transition: none;
+  }
+}

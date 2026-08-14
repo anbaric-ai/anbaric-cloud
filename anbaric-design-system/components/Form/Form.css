@@ -1,0 +1,116 @@
+/* =============================================================
+   Form — styles, and (via Form.tsx) governs the behaviour of, the plain HTML
+   inputs and buttons placed inside it.
+
+   • Inputs / selects / textareas: clean, with a clear 2px border and a forced
+     background (always --color-background, even on a tinted surface), the
+     element radius and small padding. Focus thickens the border to a chunky
+     4px; padding shrinks by the same 2px so the control never changes size.
+   • Buttons: primary fill; Form.tsx disables submit buttons while any field is
+     invalid.
+   • Invalid fields get a failure-coloured border and a warning message.
+
+   Depends on tokens.css.
+   ============================================================= */
+
+.ds-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ds-form input,
+.ds-form select,
+.ds-form textarea {
+  padding: var(--space-sm);
+  font: inherit;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  border: 2px solid var(--color-foreground-tint-2);
+  border-radius: var(--radius-element);
+}
+
+.ds-form input::placeholder,
+.ds-form textarea::placeholder {
+  color: var(--color-foreground-tint-2);
+}
+
+/* Chunky focus border, kept the same overall size via padding compensation. */
+.ds-form input:focus,
+.ds-form select:focus,
+.ds-form textarea:focus {
+  outline: none;
+  border-width: 4px;
+  border-color: var(--color-primary);
+  padding: calc(var(--space-sm) - 2px);
+}
+
+.ds-form [aria-invalid="true"],
+.ds-form .ds-form__control--invalid {
+  border-color: var(--color-failure);
+}
+
+.ds-form [aria-invalid="true"]:focus,
+.ds-form .ds-form__control--invalid:focus {
+  border-color: var(--color-failure);
+}
+
+/* Valid — green the moment a field becomes valid and filled (live, as you
+   type), independent of submitting. */
+.ds-form .ds-form__control--valid,
+.ds-form .ds-form__control--valid:focus {
+  border-color: var(--color-success);
+}
+
+.ds-form__warning {
+  display: block;
+  color: var(--color-failure);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+}
+
+.ds-form button {
+  align-self: flex-start;
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-background);
+  background: var(--color-primary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-form button:focus-visible {
+  outline: none;
+  border-width: 4px;
+  border-color: var(--color-foreground);
+  padding: calc(var(--space-sm) - 2px) calc(var(--space-md) - 2px);
+}
+
+.ds-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Complete / success ------------------------------------- */
+/* Green styling for a valid, completed submission. Placed after the base
+   rules so it wins on equal specificity. */
+.ds-form--complete input,
+.ds-form--complete select,
+.ds-form--complete textarea,
+.ds-form--complete input:focus,
+.ds-form--complete select:focus,
+.ds-form--complete textarea:focus {
+  border-color: var(--color-success);
+}
+
+.ds-form--complete button {
+  /* dark ink on green reads better than the light label used on primary */
+  color: var(--color-foreground);
+  background: var(--color-success);
+}
+
+.ds-form--complete button:focus-visible {
+  border-color: var(--color-success-shade);
+}

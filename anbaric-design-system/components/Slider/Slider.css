@@ -1,0 +1,125 @@
+/* =============================================================
+   Slider — a custom track, fill, thumb and optional ticks, with a transparent
+   native range input on top for interaction. The thumb shows the value and
+   expands (mostly horizontally) on hover/focus.
+
+   --frac (0–1) is set in Slider.tsx; --thumb-w is the thumb's resting width and
+   also the native thumb width, so the custom thumb lines up with the value.
+   Depends on tokens.css.
+   ============================================================= */
+
+.ds-slider {
+  --thumb-w: 2.25rem;
+  position: relative;
+  width: 100%;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* The custom thumb travels between its half-width insets, matching how the
+   native range maps value → position. */
+.ds-slider__track,
+.ds-slider__fill {
+  height: var(--space-sm);
+  border-radius: var(--radius-element);
+}
+
+.ds-slider__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--color-background-shade-2);
+  overflow: hidden;
+}
+
+.ds-slider__fill {
+  width: calc(var(--frac) * (100% - var(--thumb-w)) + var(--thumb-w) / 2);
+  background: var(--color-primary);
+}
+
+/* Ticks, inset by half a thumb so they align with the thumb's travel. */
+.ds-slider__ticks {
+  position: absolute;
+  left: calc(var(--thumb-w) / 2);
+  right: calc(var(--thumb-w) / 2);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.ds-slider__tick {
+  width: 2px;
+  height: var(--space-sm);
+  border-radius: 1px;
+  background: var(--color-background);
+}
+
+/* The visible thumb — centred on the value position, showing the number. */
+.ds-slider__thumb {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--frac) * (100% - var(--thumb-w)) + var(--thumb-w) / 2);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--thumb-w);
+  height: 1.5rem;
+  padding: 0 var(--space-sm);
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1;
+  box-shadow: var(--elevation-1);
+  pointer-events: none;
+  transition:
+    min-width 120ms ease,
+    height 120ms ease,
+    padding 120ms ease,
+    box-shadow 120ms ease;
+}
+
+/* On hover (or keyboard focus) the thumb grows — more horizontally. Uses
+   :focus-visible so a mouse drag doesn't keep it expanded after mouse-out. */
+.ds-slider:hover .ds-slider__thumb,
+.ds-slider:has(.ds-slider__input:focus-visible) .ds-slider__thumb {
+  min-width: calc(var(--thumb-w) + 0.7rem);
+  height: 1.7rem;
+  padding: 0 calc(var(--space-sm) + 0.3rem);
+}
+
+.ds-slider:has(.ds-slider__input:focus-visible) .ds-slider__thumb {
+  box-shadow: var(--elevation-1), 0 0 0 4px var(--color-primary-tint);
+}
+
+/* Transparent native input on top: handles drag, click and keyboard. */
+.ds-slider__input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Native thumb is invisible but its width must match --thumb-w so the value
+   maps to the same position as the custom thumb. */
+.ds-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--thumb-w);
+  height: 1.5rem;
+}
+
+.ds-slider__input::-moz-range-thumb {
+  width: var(--thumb-w);
+  height: 1.5rem;
+  border: none;
+}

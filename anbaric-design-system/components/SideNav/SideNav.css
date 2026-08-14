@@ -1,0 +1,158 @@
+/* =============================================================
+   SideNav — a left navigation panel at elevation level 3, on the same glass
+   surface as the cards. Collapses to an icons-only rail. Depends on tokens.css.
+   ============================================================= */
+
+.ds-sidenav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 14rem;
+  padding: var(--space-md);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-background-shade-2);
+  border-radius: var(--radius-container);
+  box-shadow: var(--elevation-3);
+  transition: width 200ms ease;
+}
+
+.ds-sidenav__top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  min-height: 1.75rem;
+}
+
+/* Absolutely positioned so collapsing only fades it — it never changes the
+   layout, so nothing below stutters. */
+.ds-sidenav__header {
+  position: absolute;
+  left: var(--space-sm);
+  top: 50%;
+  transform: translate(0, -50%);
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 1.1rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 1;
+  transition:
+    opacity 80ms ease,
+    transform 80ms ease;
+}
+
+.ds-sidenav__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm);
+  color: var(--color-foreground-tint-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-sidenav__toggle:hover {
+  background: var(--color-background-shade-1);
+  color: var(--color-foreground);
+}
+
+.ds-sidenav__toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-sidenav__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-sidenav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--color-foreground-tint-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-sidenav__item:hover:not(:disabled) {
+  background: var(--color-background-shade-1);
+  color: var(--color-foreground);
+}
+
+.ds-sidenav__item--active {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-background));
+  font-weight: 600;
+}
+
+/* Hovering the current item deepens the primary tint (not the bg shade).
+   Specificity matches the generic hover rule and wins by source order. */
+.ds-sidenav__item--active:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-background));
+}
+
+.ds-sidenav__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-sidenav__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ds-sidenav__icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.ds-sidenav__icon .material-symbols-rounded {
+  font-size: 1.35rem;
+}
+
+.ds-sidenav__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Collapsed: icons-only rail -------------------------------- */
+.ds-sidenav--collapsed {
+  width: 4.25rem;
+  padding-left: var(--space-sm);
+  padding-right: var(--space-sm);
+}
+
+/* Fade and slide the header out (it's absolute, so no layout change). */
+.ds-sidenav--collapsed .ds-sidenav__header {
+  opacity: 0;
+  transform: translate(-100%, -50%);
+}
+
+.ds-sidenav--collapsed .ds-sidenav__label {
+  display: none;
+}
+
+.ds-sidenav--collapsed .ds-sidenav__top,
+.ds-sidenav--collapsed .ds-sidenav__item {
+  justify-content: center;
+}

@@ -1,0 +1,75 @@
+/* =============================================================
+   OptionsMenu — a trigger and a popover menu (native Popover API). The menu
+   renders in the top layer; position is set in JS as it opens. Depends on
+   tokens.css.
+   ============================================================= */
+
+.ds-options {
+  position: relative;
+  display: inline-block;
+}
+
+.ds-options__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-lg);
+  min-height: var(--space-lg);
+  padding: var(--space-sm);
+  font: inherit;
+  line-height: 1;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  border: 1px solid var(--color-background-shade-2);
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-options__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* Popover menu in the top layer; top/left/right are set in JS. */
+.ds-options__menu {
+  inset: auto;
+  min-width: 12rem;
+  margin: 0;
+  padding: var(--space-sm);
+  list-style: none;
+  background: var(--color-background);
+  border: 1px solid var(--color-background-shade-2);
+  border-radius: var(--radius-container);
+  box-shadow: var(--elevation-2);
+}
+
+.ds-options__menu:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-options__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm);
+  font: inherit;
+  text-align: left;
+  color: var(--color-foreground);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-options__item:hover:not(:disabled),
+.ds-options__item:focus-visible {
+  outline: none;
+  background: var(--color-background-shade-1);
+}
+
+.ds-options__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

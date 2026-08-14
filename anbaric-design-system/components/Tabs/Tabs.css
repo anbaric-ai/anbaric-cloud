@@ -1,0 +1,47 @@
+/* =============================================================
+   Tabs — a tab list and panels. Depends on tokens.css.
+   ============================================================= */
+
+.ds-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ds-tabs__list {
+  display: flex;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--color-background-shade-2);
+}
+
+.ds-tabs__tab {
+  appearance: none;
+  margin-bottom: -1px;
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  color: var(--color-foreground-tint-2);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-element) var(--radius-element) 0 0;
+  cursor: pointer;
+}
+
+.ds-tabs__tab:hover {
+  color: var(--color-foreground);
+}
+
+.ds-tabs__tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.ds-tabs__tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-tabs__panel[hidden] {
+  display: none;
+}

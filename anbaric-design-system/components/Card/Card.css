@@ -1,0 +1,65 @@
+/* =============================================================
+   Card — a glass surface container that owns its spacing and corners.
+
+   • Medium padding and medium gaps between its children; the card takes the
+     container radius and every direct child the element radius, so children sit
+     concentric inside it.
+   • Sits at elevation level 1.
+   • Glass surface: a translucent white radial gradient over a background blur.
+   • Framed by a 1px border — a REAL element (.ds-card-border) rendered before,
+     and sitting genuinely behind, the card surface (.ds-card): one pixel larger
+     on every side and masked to its outermost pixel. Being a genuine sibling
+     (not a pseudo-element), it degrades to a plain 1px border if CSS masking is
+     unsupported, instead of bleeding through.
+
+   Depends on tokens.css.
+   ============================================================= */
+
+/* The card surface. Also used directly, as a bare element, by the static
+   style-guide sections. */
+.ds-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-container);
+  background: var(--surface-glass);
+  box-shadow: var(--elevation-1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ds-card > * {
+  border-radius: var(--radius-element);
+}
+
+/* The Card component: wraps the surface, with the border element behind it. */
+.ds-card-root {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+}
+
+.ds-card-root > .ds-card {
+  flex: 1 1 auto;
+}
+
+/* The 1px frame: a layer one pixel larger on every side (so 2px wider and
+   taller), masked so only its outermost pixel ring is visible. */
+.ds-card-border {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  padding: 1px;
+  border-radius: calc(var(--radius-container) + 1px);
+  background-image: var(--_card-frame-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}

@@ -1,0 +1,38 @@
+/* =============================================================
+   Shared theming for the Recharts-based pharmacokinetics charts. Recharts
+   internals are styled via CSS (so var() works), keeping them on-palette.
+   Depends on tokens.css.
+   ============================================================= */
+
+.ds-pk {
+  width: 100%;
+}
+
+.ds-pk .recharts-cartesian-grid line {
+  stroke: var(--color-background-shade-2);
+}
+
+.ds-pk .recharts-cartesian-axis-line,
+.ds-pk .recharts-cartesian-axis-tick-line {
+  stroke: var(--color-background-shade-2);
+}
+
+.ds-pk .recharts-cartesian-axis-tick-value,
+.ds-pk .recharts-label {
+  fill: var(--color-foreground-tint-1);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+}
+
+.ds-pk .recharts-legend-item-text {
+  color: var(--color-foreground-tint-1) !important;
+  font-size: 0.78rem;
+}
+
+.ds-pk .recharts-default-tooltip {
+  background: var(--color-background) !important;
+  border: 1px solid var(--color-background-shade-2) !important;
+  border-radius: var(--radius-element);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}

@@ -1,0 +1,57 @@
+{
+  "name": "@anbaric/design-system",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./components/Card": "./components/Card/index.ts",
+    "./components/Annotation": "./components/Annotation/index.ts",
+    "./components/Button": "./components/Button/index.ts",
+    "./components/SplitButton": "./components/SplitButton/index.ts",
+    "./components/Modal": "./components/Modal/index.ts",
+    "./components/Drawer": "./components/Drawer/index.ts",
+    "./components/Alert": "./components/Alert/index.ts",
+    "./components/Badge": "./components/Badge/index.ts",
+    "./components/Form": "./components/Form/index.ts",
+    "./components/Slider": "./components/Slider/index.ts",
+    "./components/Graph": "./components/Graph/index.ts",
+    "./components/Tooltip": "./components/Tooltip/index.ts",
+    "./components/OptionsMenu": "./components/OptionsMenu/index.ts",
+    "./components/ConcentrationCurve": "./components/ConcentrationCurve/index.ts",
+    "./components/ExposureBars": "./components/ExposureBars/index.ts",
+    "./components/pk": "./components/pk.ts",
+    "./components/Steps": "./components/Steps/index.ts",
+    "./components/LoadingBar": "./components/LoadingBar/index.ts",
+    "./components/Tabs": "./components/Tabs/index.ts",
+    "./components/RadioGroup": "./components/RadioGroup/index.ts",
+    "./components/Toggle": "./components/Toggle/index.ts",
+    "./components/SideNav": "./components/SideNav/index.ts",
+    "./components/*": "./components/*",
+    "./shared/*": "./shared/*"
+  },
+  "dependencies": {
+    "recharts": "^3.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}

@@ -1,0 +1,81 @@
+/* =============================================================
+   Steps — a numbered wizard progress indicator. Depends on tokens.css.
+   ============================================================= */
+
+.ds-steps {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-steps__step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+/* Connector from the previous marker to this one (behind the markers). */
+.ds-steps__step:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: var(--color-background-shade-2);
+  z-index: 0;
+}
+
+.ds-steps__step--done::before,
+.ds-steps__step--current::before {
+  background: var(--color-primary);
+}
+
+.ds-steps__marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--color-background);
+  border: 2px solid var(--color-background-shade-2);
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-steps__step--done .ds-steps__marker {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-background);
+}
+
+.ds-steps__step--current .ds-steps__marker {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-background);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.ds-steps__label {
+  font-size: 0.8rem;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-steps__step--done .ds-steps__label {
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-steps__step--current .ds-steps__label {
+  color: var(--color-foreground);
+  font-weight: 600;
+}

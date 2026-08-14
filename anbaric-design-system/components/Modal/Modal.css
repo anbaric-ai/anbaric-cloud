@@ -1,0 +1,120 @@
+/* =============================================================
+   Modal — native <dialog> at elevation 4, with a dimmed backdrop and a
+   scale/fade entrance. Depends on tokens.css.
+   ============================================================= */
+
+.ds-modal {
+  width: min(92vw, 32rem);
+  max-height: 86vh;
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-foreground);
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    overlay 160ms ease allow-discrete,
+    display 160ms ease allow-discrete;
+}
+
+.ds-modal[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .ds-modal[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.ds-modal::backdrop {
+  background: color-mix(in srgb, var(--color-grey) 50%, transparent);
+  opacity: 0;
+  transition:
+    opacity 160ms ease,
+    overlay 160ms ease allow-discrete,
+    display 160ms ease allow-discrete;
+}
+
+.ds-modal[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .ds-modal[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.ds-modal__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 86vh;
+  background: var(--color-background);
+  border: 1px solid var(--color-background-shade-2);
+  border-radius: var(--radius-container);
+  box-shadow: var(--elevation-4);
+  overflow: hidden;
+}
+
+.ds-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-background-shade-2);
+}
+
+.ds-modal__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 1.15rem;
+}
+
+.ds-modal__close {
+  display: inline-flex;
+  padding: var(--space-sm);
+  color: var(--color-foreground-tint-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-modal__close:hover {
+  background: var(--color-background-shade-1);
+  color: var(--color-foreground);
+}
+
+.ds-modal__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-modal__body {
+  padding: var(--space-md);
+  overflow-y: auto;
+}
+
+.ds-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-background-shade-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-modal,
+  .ds-modal::backdrop {
+    transition: none;
+  }
+}

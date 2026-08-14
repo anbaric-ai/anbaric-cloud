@@ -1,0 +1,70 @@
+/* =============================================================
+   Toggle — an on/off switch over a native checkbox. Depends on tokens.css.
+   ============================================================= */
+
+.ds-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+}
+
+/* Native checkbox hidden but still focusable / interactive. */
+.ds-toggle__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.ds-toggle__track {
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--color-background-shade-2);
+  transition: background-color 140ms ease;
+}
+
+.ds-toggle__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.175rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--color-background);
+  box-shadow: var(--elevation-1);
+  transform: translateY(-50%);
+  transition: transform 140ms ease;
+}
+
+.ds-toggle__input:checked + .ds-toggle__track {
+  background: var(--color-primary);
+}
+
+.ds-toggle__input:checked + .ds-toggle__track .ds-toggle__thumb {
+  transform: translate(1.25rem, -50%);
+}
+
+.ds-toggle__input:focus-visible + .ds-toggle__track {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ds-toggle__label {
+  color: var(--color-foreground);
+}
+
+.ds-toggle:has(.ds-toggle__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-toggle__track,
+  .ds-toggle__thumb {
+    transition: none;
+  }
+}

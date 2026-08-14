@@ -1,0 +1,45 @@
+/* =============================================================
+   Badge — a small status label. A per-tone colour (--ds-badge-color) drives
+   the text and tinted pill. Depends on tokens.css.
+   ============================================================= */
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  border-radius: 999px;
+  color: var(--ds-badge-color);
+  background: color-mix(in srgb, var(--ds-badge-color) 14%, var(--color-background));
+}
+
+.ds-badge--neutral {
+  --ds-badge-color: var(--color-foreground-tint-1);
+}
+
+.ds-badge--primary {
+  --ds-badge-color: var(--color-primary);
+}
+
+.ds-badge--success {
+  --ds-badge-color: var(--color-success-shade);
+}
+
+.ds-badge--warning {
+  --ds-badge-color: var(--color-accent-shade);
+}
+
+.ds-badge--danger {
+  --ds-badge-color: var(--color-failure);
+}
+
+.ds-badge__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--ds-badge-color);
+}

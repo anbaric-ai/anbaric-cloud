@@ -1,0 +1,166 @@
+/* =============================================================
+   AnnotatedDiagram — leader lines + labels for annotating diagrams.
+
+   Legibility rules baked in:
+   • Leaders are straight runs joined by a single 45° elbow — never curves.
+   • Labels collect into side gutters and are vertically decluttered so they
+     never overlap, and share a common edge for a calm, aligned read.
+   • One tone per annotation; colour carries meaning, weight carries hierarchy.
+   Depends on tokens.css.
+   ============================================================= */
+
+.ds-annot {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  /* Per-tone colour, resolved on each item. */
+  --annot-neutral: var(--color-foreground-tint-1);
+  --annot-primary: var(--color-primary);
+  --annot-warning: #e0902a; /* amber — no global token, scoped here */
+  --annot-danger: var(--color-failure-shade);
+}
+
+/* --- markers --- */
+.ds-annot__dot {
+  fill: var(--annot-neutral);
+}
+.ds-annot__marker--primary .ds-annot__dot {
+  fill: var(--annot-primary);
+}
+.ds-annot__marker--warning .ds-annot__dot {
+  fill: var(--annot-warning);
+}
+.ds-annot__marker--danger .ds-annot__dot {
+  fill: var(--annot-danger);
+}
+
+/* Static soft glow behind problem markers (the wave carries the motion). */
+.ds-annot__halo {
+  fill: transparent;
+}
+.ds-annot__marker--warning .ds-annot__halo {
+  fill: var(--annot-warning);
+  opacity: 0.16;
+}
+.ds-annot__marker--danger .ds-annot__halo {
+  fill: var(--color-failure);
+  opacity: 0.18;
+}
+
+/* --- pulsing wave: rings that ripple out from the target --- */
+.ds-annot__ripple {
+  fill: none;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ds-annot-ripple 2.7s ease-out infinite;
+}
+.ds-annot__marker--warning .ds-annot__ripple {
+  stroke: var(--annot-warning);
+}
+.ds-annot__marker--danger .ds-annot__ripple {
+  stroke: var(--annot-danger);
+}
+
+@keyframes ds-annot-ripple {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(4.2);
+    opacity: 0;
+  }
+}
+
+/* --- leaders --- */
+.ds-annot__leader {
+  fill: none;
+  stroke: var(--annot-neutral);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-opacity: 0.75;
+}
+.ds-annot__item--primary .ds-annot__leader {
+  stroke: var(--annot-primary);
+}
+.ds-annot__item--warning .ds-annot__leader {
+  stroke: var(--annot-warning);
+}
+.ds-annot__item--danger .ds-annot__leader {
+  stroke: var(--annot-danger);
+}
+
+.ds-annot__anchor {
+  fill: var(--annot-neutral);
+}
+.ds-annot__item--primary .ds-annot__anchor {
+  fill: var(--annot-primary);
+}
+.ds-annot__item--warning .ds-annot__anchor {
+  fill: var(--annot-warning);
+}
+.ds-annot__item--danger .ds-annot__anchor {
+  fill: var(--annot-danger);
+}
+
+/* --- callouts --- */
+.ds-annot__callout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  line-height: 1.15;
+  border-color: var(--annot-neutral);
+}
+.ds-annot__callout--right {
+  padding-left: 0.4rem;
+  border-left: 2px solid;
+  border-color: inherit;
+}
+.ds-annot__callout--left {
+  padding-right: 0.4rem;
+  text-align: right;
+  border-right: 2px solid;
+  border-color: inherit;
+}
+.ds-annot__item--primary .ds-annot__callout {
+  border-color: var(--annot-primary);
+}
+.ds-annot__item--warning .ds-annot__callout {
+  border-color: var(--annot-warning);
+}
+.ds-annot__item--danger .ds-annot__callout {
+  border-color: var(--annot-danger);
+}
+
+.ds-annot__title {
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.8rem;
+  color: var(--color-foreground);
+}
+.ds-annot__item--danger .ds-annot__title {
+  color: var(--annot-danger);
+}
+.ds-annot__item--warning .ds-annot__title {
+  color: var(--annot-warning);
+}
+.ds-annot__item--primary .ds-annot__title {
+  color: var(--annot-primary);
+}
+
+.ds-annot__detail {
+  font-size: 0.74rem;
+  color: var(--color-foreground-tint-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-annot__ripple {
+    animation: none;
+    opacity: 0.28;
+    transform: scale(1.6);
+  }
+}

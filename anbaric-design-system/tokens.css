@@ -1,0 +1,138 @@
+/* =============================================================
+   Anbaric Design System — Design Tokens
+
+   Colour names come from the Anbaric brand book (anbaric-v2.pdf):
+   three pairs — Svalbard Blue & Magister Violet (clarity and
+   imagination), Aether Pink & Pan Coral (warmth and motion),
+   Asriel Ink & Shadowglass Navy (depth and focus) — plus a set
+   of light/dark neutrals.
+   ============================================================= */
+
+:root {
+  /* --- Colour: Primary — Magister Violet -------------------- */
+  --color-primary-tint: #bb97ff;
+  --color-primary: #9d6dff;
+  --color-primary-shade: #7a50d6;
+
+  /* --- Colour: Accent -------------------------------------- */
+  /* Two distinct accents rather than a tint/shade ramp:
+     Svalbard Blue and Aether Pink — the ends of the mark's gradient. */
+  --color-accent: #5bc6ff;
+  --color-accent-2: #ff5bbe;
+
+  /* --- Colour: Foreground — Shadowglass Navy ---------------- */
+  /* Dark ink base, so two tints (a shade would read as black).
+     Tint 1 is Asriel Ink; tint 2 is a lighter step of the same hue. */
+  --color-foreground: #110b2d;
+  --color-foreground-tint-1: #322f60;
+  --color-foreground-tint-2: #6e6b96;
+
+  /* --- Colour: Background — Frost White --------------------- */
+  /* Near-white surface, so two shades (a tint would read as white):
+     Glacier Grey and Haze Silver from the neutral ramp. */
+  --color-background: #f9fafc;
+  --color-background-shade-1: #e7ebf0;
+  --color-background-shade-2: #d1d6de;
+
+  /* --- Colour: Success ------------------------------------- */
+  --color-success-tint: #89f5b5;
+  --color-success: #61f29d;
+  --color-success-shade: #49b676;
+
+  /* --- Colour: Failure — Pan Coral -------------------------- */
+  --color-failure-tint: #ffa1b3;
+  --color-failure: #ff7b94;
+  --color-failure-shade: #c25b72;
+
+  /* --- Colour: Grey — Storm Charcoal ------------------------ */
+  /* A neutral dark — the one colour without a brand hue. For scrims
+     (e.g. the modal curtain), dividers and muted UI. */
+  --color-grey: #2b2e42;
+
+  /* --- Gradients ------------------------------------------- */
+  /* The brand blend runs cool to warm — blue through violet to pink —
+     kept linear and shallow per the brand book. */
+  --gradient-primary-accent: linear-gradient(
+    20deg,
+    var(--color-accent),
+    var(--color-primary),
+    var(--color-accent-2)
+  );
+  --gradient-primary-glow: radial-gradient(
+    circle at top right,
+    var(--color-primary),
+    var(--color-background)
+  );
+  /* A pale, subtle haze for large surfaces (e.g. the page) — only a touch of
+     primary mixed into the background. */
+  --gradient-primary-haze: radial-gradient(
+    circle at top right,
+    color-mix(in srgb, var(--color-primary) 16%, var(--color-background)),
+    var(--color-background)
+  );
+
+  /* --- Surfaces -------------------------------------------- */
+  /* Translucent glass surface shared by cards and the side nav. */
+  --surface-glass: radial-gradient(circle at 30% 30%, #ffffff40, #ffffff20);
+  /* Internal — the Card's 1px frame sheen ONLY. Not a general-purpose
+     gradient; the leading underscore marks it private. Do not reuse. */
+  --_card-frame-gradient: linear-gradient(170deg, white, transparent, #ffffff60);
+
+  /* --- Spacing --------------------------------------------- */
+  /* Three steps, all in rem so spacing scales with the root font-size.
+       small  — padding inside an element (e.g. an input)
+       medium — padding & gaps between elements within a container
+       large  — space between containers */
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 2rem;
+
+  /* --- Radius ---------------------------------------------- */
+  /* Concentric radii: an element is inset from its container by the
+     container's padding (medium). For the curves to stay concentric, the
+     container radius must equal that padding plus the element radius —
+     hence container = medium + small, element = small. */
+  --radius-element: var(--space-sm);
+  --radius-container: calc(var(--space-md) + var(--space-sm));
+
+  /* --- Elevation ------------------------------------------- */
+  /* Six levels. Shadows are tinted with Shadowglass Navy so they stay in
+     palette. Pair --elevation-cutout with a darker surface
+     (--color-background-shade-2) to read as a hole in the canvas.
+       -1  cutout  — inset; previews & read-only content (looking through it)
+        0  canvas  — the main surface, flat
+        1  card    — a super-subtle resting lift
+        2  popover — tooltips, popovers, anything transient that moves
+        3  panel   — global UI: nav & side panels entering from the edge
+        4  modal   — blocking modal dialogs */
+  --elevation-cutout: inset 0 3px 16px rgba(17, 11, 45, 0.1),
+    inset 0 2px 7px rgba(17, 11, 45, 0.06);
+  --elevation-0: none;
+  --elevation-1: 0 1px 2px rgba(17, 11, 45, 0.06);
+  --elevation-2: 0 4px 10px rgba(17, 11, 45, 0.1), 0 1px 3px rgba(17, 11, 45, 0.06);
+  --elevation-3: 0 10px 28px rgba(17, 11, 45, 0.14),
+    0 3px 8px rgba(17, 11, 45, 0.08);
+  --elevation-4: 0 20px 50px rgba(17, 11, 45, 0.24),
+    0 6px 14px rgba(17, 11, 45, 0.12);
+
+  /* --- Typography: families -------------------------------- */
+  /* The brand pairs Druk (headlines) with Founders Grotesk (body). Both are
+     licensed faces: when they aren't installed, the stacks fall back to the
+     closest free approximations, loaded by the preview (Anton condensed
+     display; Inter body). */
+  --font-body: "Founders Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+  --font-title: "Druk", "Anton", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* --- Typography: weights --------------------------------- */
+  --font-weight-light: 300; /* Founders Grotesk light body option */
+  --font-weight-regular: 400; /* body */
+  --font-weight-medium: 500; /* IBM Plex Mono labels */
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700; /* Druk headline weight */
+
+  /* --- Typography: headline treatment ----------------------- */
+  /* Druk is set bold, uppercase, at 90% line-height (per the brand book). */
+  --title-line-height: 0.9;
+  --title-transform: uppercase;
+}

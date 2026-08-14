@@ -1,0 +1,76 @@
+/* =============================================================
+   Alert — an inline status message. A per-variant colour (--ds-alert-color)
+   drives the left border, icon and tinted background. Depends on tokens.css.
+   ============================================================= */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-element);
+  border-left: 3px solid var(--ds-alert-color);
+  background: color-mix(in srgb, var(--ds-alert-color) 10%, var(--color-background));
+  color: var(--color-foreground);
+}
+
+.ds-alert--info {
+  --ds-alert-color: var(--color-primary);
+}
+
+.ds-alert--success {
+  --ds-alert-color: var(--color-success-shade);
+}
+
+.ds-alert--warning {
+  --ds-alert-color: var(--color-accent-shade);
+}
+
+.ds-alert--danger {
+  --ds-alert-color: var(--color-failure);
+}
+
+.ds-alert__icon {
+  flex: none;
+  color: var(--ds-alert-color);
+  font-size: 1.25rem;
+}
+
+.ds-alert__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ds-alert__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ds-alert__body {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-alert__dismiss {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  color: var(--color-foreground-tint-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-alert__dismiss:hover {
+  color: var(--color-foreground);
+}
+
+.ds-alert__dismiss:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}

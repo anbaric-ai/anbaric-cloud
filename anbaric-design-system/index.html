@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anbaric Design System</title>
+    <link rel="icon" type="image/png" href="./shared/assets/anbaric-favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;600;700&family=Anton&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./tokens.css" />
+    <!-- Component styles are imported by their components and bundled in via
+         preview/main.tsx (run `npm run dev`). The static token sections below
+         only need tokens.css plus the inline styles here; the .ds-card token
+         cards are styled once the bundle loads Card.css. -->
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      .material-symbols-rounded {
+        line-height: 1;
+        font-variation-settings:
+          'opsz' 24,
+          'wght' 400,
+          'GRAD' 0,
+          'FILL' 0;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--color-background);
+        /* A tiled SVG noise tile layered over the pale haze. The noise is
+           rendered once (static, not animated), so it's cheap. */
+        background-image:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
+          var(--gradient-primary-haze);
+        background-size: 140px 140px, cover;
+        background-repeat: repeat, no-repeat;
+        background-attachment: fixed;
+        color: var(--color-foreground);
+        font-family: var(--font-body);
+        font-weight: var(--font-weight-regular);
+        line-height: 1.5;
+      }
+
+      /* App shell: a full-height left nav hugging the screen edge, beside a
+         padded content column. */
+      /* The nav is fixed (out of flow), so the page height tracks the content,
+         not a forced 100vh. The content is offset by the nav's width. */
+      .app {
+        --nav-w: 14rem;
+      }
+
+      .app__nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 10;
+        height: 100vh;
+      }
+
+      /* Dock the nav to the edge: square corners, full height, right border
+         only. (The standalone SideNav stays a rounded floating panel.) */
+      .app__nav .ds-sidenav {
+        height: 100%;
+        border-radius: 0;
+        border-width: 0 1px 0 0;
+      }
+
+      .app__content {
+        min-width: 0;
+        margin-left: var(--nav-w);
+        padding: 2.5rem;
+        transition: margin-left 200ms ease;
+      }
+
+      .section {
+        max-width: 1040px;
+        margin: 0 auto 3rem;
+      }
+
+      .guidance-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+      }
+
+      @media (max-width: 760px) {
+        .app__nav {
+          position: static;
+          height: auto;
+        }
+        .app__nav .ds-sidenav {
+          width: 100%;
+          height: auto;
+          border-width: 0 0 1px 0;
+        }
+        .app__content {
+          margin-left: 0;
+        }
+        .guidance-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Section header pattern: a two-digit mono number + body subtitle,
+         e.g. "01. Colour Palette". */
+      .eyebrow {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+        margin: 0 0 0.75rem;
+        font-family: var(--font-body);
+        font-size: 1.25rem;
+        font-weight: var(--font-weight-semibold);
+      }
+
+      .eyebrow__num {
+        font-family: var(--font-mono);
+        font-weight: var(--font-weight-medium);
+        font-size: 0.95rem;
+        color: var(--color-primary);
+      }
+
+      .section__lead {
+        margin: 0 0 2rem;
+        color: var(--color-foreground-tint-2);
+      }
+
+      /* Inline jump from a Foundations/Components section to its guidance. */
+      .guidance-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 120ms ease;
+      }
+
+      .guidance-link:hover {
+        color: var(--color-primary-shade);
+      }
+
+      .guidance-link .material-symbols-rounded {
+        font-size: 1.05em;
+        transition: transform 120ms ease;
+      }
+
+      .guidance-link:hover .material-symbols-rounded {
+        transform: translateX(2px);
+      }
+
+      .guidance-link:focus-visible {
+        outline: none;
+        border-radius: var(--radius-element);
+        box-shadow: 0 0 0 3px var(--color-primary-tint);
+      }
+
+      /* The card surface is now the <Card> component (.ds-card in
+         components/Card/Card.css): medium padding & gaps, container radius,
+         and the element radius on every direct child. The colour/logo/gradient
+         blocks below are those direct children, so they pick up the element
+         radius automatically; .swatches additionally clips overflow so its grid
+         of edge-to-edge fills follows the rounded corners. */
+      .palette {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.25rem;
+      }
+
+      @media (max-width: 760px) {
+        .palette {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 500px) {
+        .palette {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Swatch presentation lives in its own classes so .card stays generic.
+         Main colour spans the full width; the two variants sit half-width
+         beneath it. */
+      .swatches {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        overflow: hidden;
+      }
+
+      .swatch {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 0.15rem;
+        min-height: 64px;
+        padding: 0.55rem 0.7rem;
+        background: var(--swatch);
+        color: var(--swatch-label, var(--color-foreground));
+        font-size: 0.7rem;
+        font-family: var(--font-mono);
+        letter-spacing: 0.02em;
+      }
+
+      .swatch--main {
+        grid-column: 1 / -1;
+        min-height: 96px;
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: flex-start;
+        gap: 0.6rem;
+      }
+
+      /* Full-width but at the shorter variant height, so a lone second
+         colour lines up with the tint/shade row on other cards. */
+      .swatch--full {
+        grid-column: 1 / -1;
+      }
+
+      .swatch__token {
+        font-size: 0.62rem;
+        opacity: 0.75;
+      }
+
+      .card__meta {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .card__name {
+        font-weight: 600;
+      }
+
+      .card__token {
+        color: var(--color-foreground-tint-2);
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+      }
+
+      /* --- Logos ----------------------------------------------- */
+      .logos,
+      .gradients {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .logo-stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
+        padding: 2.5rem;
+        background: var(--color-foreground);
+      }
+
+      /* Light stage for the ink (dark-text) logo variant. */
+      .logo-stage--light {
+        background: var(--color-background-shade-1);
+      }
+
+      .logo-stage img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .logo-stage--wordmark img {
+        max-height: 44px;
+      }
+
+      .logo-stage--ident img {
+        max-height: 104px;
+      }
+
+      /* --- Gradient swatches ----------------------------------- */
+      .swatch--gradient {
+        min-height: 150px;
+      }
+
+      /* --- Spacing & containers -------------------------------- */
+      .spacing-scale {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-md);
+      }
+
+      .spacing-scale li {
+        display: grid;
+        grid-template-columns: 5rem 1fr;
+        align-items: center;
+        gap: var(--space-md);
+      }
+
+      .spacing-scale__name {
+        font-weight: 600;
+      }
+
+      .spacing-scale__track {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      .spacing-scale__bar {
+        block-size: 1.5rem;
+        background: var(--color-primary);
+        border-radius: var(--radius-element);
+      }
+
+      .spacing-scale__meta {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--color-foreground-tint-2);
+      }
+
+      /* A container: medium padding, medium gaps, container radius. Scoped to
+         beat the Card's `.ds-card > *` element-radius rule regardless of load
+         order. */
+      .ds-card .demo-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        background: var(--color-background-shade-1);
+        border: 1px solid var(--color-background-shade-2);
+        border-radius: var(--radius-container);
+      }
+
+      /* Elements inside it: small padding, element radius — concentric. */
+      .demo-element {
+        padding: var(--space-sm);
+        background: var(--color-primary);
+        color: var(--color-background);
+        border-radius: var(--radius-element);
+      }
+
+      .demo-input {
+        padding: var(--space-sm);
+        font: inherit;
+        color: var(--color-foreground);
+        background: var(--color-background);
+        border: 1px solid var(--color-foreground-tint-2);
+        border-radius: var(--radius-element);
+      }
+
+      /* --- Elevation ------------------------------------------- */
+      .elevations {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: var(--space-lg);
+      }
+
+      .elevation {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        min-height: 120px;
+        padding: var(--space-md);
+        background: var(--color-background);
+        border-radius: var(--radius-container);
+      }
+
+      .elevation__level {
+        font-family: var(--font-title);
+        font-weight: var(--font-weight-bold);
+        font-size: 1.5rem;
+      }
+
+      .elevation__use {
+        font-size: 0.8rem;
+        color: var(--color-foreground-tint-2);
+      }
+
+      /* -1: a hole in the canvas — inset shadow over a darker surface. */
+      .elevation--cutout {
+        background: var(--color-background-shade-2);
+        box-shadow: var(--elevation-cutout);
+      }
+
+      /* 0: the flat canvas — bordered here only so it reads against the page. */
+      .elevation--0 {
+        box-shadow: var(--elevation-0);
+        border: 1px solid var(--color-background-shade-2);
+      }
+
+      .elevation--1 {
+        box-shadow: var(--elevation-1);
+      }
+
+      .elevation--2 {
+        box-shadow: var(--elevation-2);
+      }
+
+      .elevation--3 {
+        box-shadow: var(--elevation-3);
+      }
+
+      .elevation--4 {
+        box-shadow: var(--elevation-4);
+      }
+
+      /* --- Typography specimens -------------------------------- */
+      .specimens {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .specimen__label {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-foreground-tint-2);
+      }
+
+      .specimen__sample {
+        margin: 0;
+      }
+
+      .title-light {
+        font-family: var(--font-body);
+        font-weight: var(--font-weight-light);
+        font-size: 2.75rem;
+        line-height: 1.1;
+      }
+
+      .title-bold {
+        font-family: var(--font-title);
+        font-weight: var(--font-weight-bold);
+        font-size: 2.75rem;
+        line-height: var(--title-line-height);
+        text-transform: var(--title-transform);
+        letter-spacing: 0.01em;
+      }
+
+      .body-sample {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        max-width: 60ch;
+        color: var(--color-foreground-tint-1);
+      }
+
+      .mono-sample {
+        font-family: var(--font-mono);
+        font-size: 1rem;
+      }
+
+      /* --- Components ------------------------------------------ */
+      .components {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      /* Children of the demo Card below. They deliberately do NOT set their
+         own border-radius — the Card enforces the element radius on every
+         direct child via `.ds-card > *`. */
+      .component-demo__title {
+        margin: 0;
+        font-family: var(--font-title);
+        font-weight: var(--font-weight-bold);
+        font-size: 1.25rem;
+      }
+
+      .component-demo__body {
+        margin: 0;
+        color: var(--color-foreground-tint-1);
+      }
+
+      .component-demo__input {
+        padding: var(--space-sm);
+        font: inherit;
+        color: var(--color-foreground);
+        background: var(--color-background);
+        border: 1px solid var(--color-foreground-tint-2);
+      }
+
+      .component-demo__panel {
+        padding: var(--space-sm);
+        background: var(--color-background-shade-2);
+        color: var(--color-foreground);
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/preview/main.tsx"></script>
+  </body>
+</html>

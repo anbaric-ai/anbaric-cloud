@@ -1,0 +1,90 @@
+/* =============================================================
+   LoadingBar — an indeterminate bar with a flowing colourful gradient and a
+   sweeping sheen, plus cycling messages. Depends on tokens.css.
+   ============================================================= */
+
+.ds-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.ds-loading__bar {
+  position: relative;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--color-background-shade-1);
+  overflow: hidden;
+}
+
+/* Flowing brand-colour gradient. */
+.ds-loading__flow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-accent-2),
+    var(--color-success),
+    var(--color-accent),
+    var(--color-primary)
+  );
+  background-size: 200% 100%;
+  animation: ds-loading-flow 2.4s linear infinite;
+}
+
+/* Sweeping sheen on top. */
+.ds-loading__bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    #ffffff80 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  animation: ds-loading-sheen 1.8s ease-in-out infinite;
+}
+
+.ds-loading__message {
+  font-size: 0.8rem;
+  color: var(--color-foreground-tint-1);
+  animation: ds-loading-fade 0.4s ease;
+}
+
+@keyframes ds-loading-flow {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes ds-loading-sheen {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+
+@keyframes ds-loading-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-loading__flow,
+  .ds-loading__bar::after,
+  .ds-loading__message {
+    animation: none;
+  }
+}
