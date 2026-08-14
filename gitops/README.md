@@ -19,6 +19,16 @@ tofu apply             # staging/prod need -var image=... and -var db_password=.
 
 Local expects Docker Desktop to be running. Staging and prod expect AWS credentials in the environment, an image pushed to ECR, and an S3 state backend configured (see the commented `backend` block) before the first shared apply.
 
+Environment-specific configuration (Auth0 tenants, AWS settings) is supplied per environment via a gitignored `terraform.tfvars` — never commit tenant ids, domains, or credentials to this repo:
+
+```hcl
+# gitops/<env>/terraform.tfvars (gitignored)
+auth0_domain   = "your-tenant.eu.auth0.com"
+auth0_audience = "https://api.your-platform.example"
+```
+
+When `auth0_domain` is set, the platform boots with `ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0` and verifies bearer tokens against that tenant; when unset, authentication is disabled (local dev default).
+
 An app connects to a platform with:
 
 ```sh

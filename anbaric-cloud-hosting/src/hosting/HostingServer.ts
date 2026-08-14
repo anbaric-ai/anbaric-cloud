@@ -2,6 +2,7 @@ import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
 import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
+import {Authenticator} from "../auth/Authenticator";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 
@@ -26,7 +27,8 @@ class HostingServer {
                 private registry : ConsumerRegistry = new ConsumerRegistry(),
                 private buildLayer? : BuildLayer,
                 private documentStoreFor? : (collection : string) => JsonStore,
-                private secretStore? : SecretStore) {
+                private secretStore? : SecretStore,
+                private authenticator? : Authenticator) {
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
@@ -53,6 +55,9 @@ class HostingServer {
 
         if (resource === "ping" && method === "GET") {
             return this.reply(response, 200, { status: "ok" });
+        }
+        if (resource === "whoami" && method === "GET" && !id && this.authenticator) {
+            return this.handleWhoAmI(request, response);
         }
         if (resource === "jobs") return this.handleJobs(method, id, subresource, url, request, response);
         if (resource === "queue" && method === "POST" && !subresource) return this.handleQueue(id, request, response);
@@ -97,6 +102,20 @@ class HostingServer {
         const payload = Buffer.from(await upstream.arrayBuffer());
         response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/octet-stream" });
         response.end(payload);
+    }
+
+    private async handleWhoAmI(request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        const header = String(request.headers.authorization ?? "");
+        if (!header.startsWith("Bearer ")) {
+            return this.reply(response, 401, { error: "Expected a bearer token" });
+        }
+
+        try {
+            const user = await this.authenticator!.authenticate(header.slice("Bearer ".length));
+            return this.reply(response, 200, { id: user.id, roles: user.roles.map(role => role.id) });
+        } catch (error) {
+            return this.reply(response, 401, { error: error instanceof Error ? error.message : "Not authenticated" });
+        }
     }
 
     private async handleSecrets(method : string, name : string | undefined,

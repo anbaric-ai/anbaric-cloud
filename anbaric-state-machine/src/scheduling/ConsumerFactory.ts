@@ -6,8 +6,9 @@ const ConsumerFactory = {
     instance(queue : Queue) : Consumer {
         if (Dequeue.supports(queue)) {
             return new PullConsumer(queue);
+        } else {
+            return new PushConsumer();
         }
-        return new PushConsumer();
     }
 }
 

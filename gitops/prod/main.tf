@@ -32,6 +32,16 @@ variable "db_password" {
   sensitive = true
 }
 
+variable "auth0_domain" {
+  type    = string
+  default = ""
+}
+
+variable "auth0_audience" {
+  type    = string
+  default = ""
+}
+
 module "platform" {
   source = "../modules/anbaric-platform-aws"
 
@@ -39,6 +49,8 @@ module "platform" {
   aws_region        = var.aws_region
   image             = var.image
   db_password       = var.db_password
+  auth0_domain      = var.auth0_domain
+  auth0_audience    = var.auth0_audience
   db_instance_class = "db.t4g.small"
   desired_count     = 2
 }

@@ -9,6 +9,16 @@ terraform {
 
 provider "docker" {}
 
+variable "auth0_domain" {
+  type    = string
+  default = ""
+}
+
+variable "auth0_audience" {
+  type    = string
+  default = ""
+}
+
 resource "docker_network" "anbaric" {
   name = "anbaric-v2-local"
 }
@@ -57,14 +67,18 @@ resource "docker_container" "platform" {
     name = docker_network.anbaric.name
   }
 
-  env = [
+  env = concat([
     "ANBARIC_DATABASE_URL=postgres://anbaric:anbaric@anbaric-v2-postgres:5432/anbaric",
     "ANBARIC_HOSTING_PORT=8787",
     "ANBARIC_BUILD_LAYER=docker",
     "ANBARIC_APP_BASE_IMAGE=anbaric-v2-platform:local",
     "ANBARIC_DOCKER_NETWORK=anbaric-v2-local",
     "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8787",
-  ]
+    ], var.auth0_domain == "" ? [] : [
+    "ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0",
+    "ANBARIC_AUTH0_DOMAIN=${var.auth0_domain}",
+    "ANBARIC_AUTH0_AUDIENCE=${var.auth0_audience}",
+  ])
 
   volumes {
     host_path      = "/var/run/docker.sock"

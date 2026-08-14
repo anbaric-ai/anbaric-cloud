@@ -3,6 +3,9 @@ import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
+import {Authenticator} from "../../src/auth/Authenticator";
+import {Role} from "../../src/auth/Role";
+import {User} from "../../src/auth/User";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
 
@@ -217,6 +220,61 @@ describe("HostingServer round-trip via the cloud clients", () => {
         const stateMachines = await (await fetch(`${baseUrl}/state-machines`)).json();
 
         expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
+    });
+
+    describe("whoami", () => {
+
+        class StubAuthenticator extends Authenticator {
+            async authenticate(token : string) : Promise<User> {
+                if (token !== "valid-token") throw new Error("Not authenticated");
+                return new User("user-1", [new Role("admin")]);
+            }
+        }
+
+        let authenticatedServer : HostingServer;
+        let authenticatedUrl : string;
+
+        beforeEach(async () => {
+            authenticatedServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new StubAuthenticator());
+            authenticatedUrl = `http://127.0.0.1:${await authenticatedServer.listen(0)}`;
+        });
+
+        afterEach(async () => {
+            await authenticatedServer.close();
+        });
+
+        it("identifies the bearer of a valid token", async () => {
+            const response = await fetch(`${authenticatedUrl}/whoami`, {
+                headers: { authorization: "Bearer valid-token" },
+            });
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual({ id: "user-1", roles: ["admin"] });
+        });
+
+        it("rejects a missing bearer token", async () => {
+            const response = await fetch(`${authenticatedUrl}/whoami`);
+
+            expect(response.status).toBe(401);
+        });
+
+        it("rejects an invalid token", async () => {
+            const response = await fetch(`${authenticatedUrl}/whoami`, {
+                headers: { authorization: "Bearer forged" },
+            });
+
+            expect(response.status).toBe(401);
+        });
+
+        it("is not routed on a platform without an authenticator", async () => {
+            const response = await fetch(`${baseUrl}/whoami`, {
+                headers: { authorization: "Bearer valid-token" },
+            });
+
+            expect(response.status).toBe(404);
+        });
+
     });
 
     it("answers pings", async () => {

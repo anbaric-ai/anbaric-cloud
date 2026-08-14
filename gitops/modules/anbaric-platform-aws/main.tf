@@ -101,10 +101,14 @@ resource "aws_ecs_task_definition" "platform" {
 
     portMappings = [{ containerPort = var.hosting_port }]
 
-    environment = [
+    environment = concat([
       { name = "ANBARIC_DATABASE_URL", value = "postgres://anbaric:${var.db_password}@${aws_db_instance.anbaric.address}:5432/anbaric" },
       { name = "ANBARIC_HOSTING_PORT", value = tostring(var.hosting_port) },
-    ]
+    ], var.auth0_domain == "" ? [] : [
+      { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
+      { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
+      { name = "ANBARIC_AUTH0_AUDIENCE", value = var.auth0_audience },
+    ])
 
     logConfiguration = {
       logDriver = "awslogs"

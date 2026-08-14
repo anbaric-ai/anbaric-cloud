@@ -1,0 +1,21 @@
+{
+  "name": "anbaric-cloud-hosting-auth-auth0",
+  "version": "1.0.0",
+  "description": "Auth0 implementation of the Anbaric platform's Authenticator",
+  "license": "MIT",
+  "author": "chris@anbaric.ai",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "anbaric-cloud-hosting": "*",
+    "jose": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}

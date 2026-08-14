@@ -40,3 +40,15 @@ variable "hosting_port" {
   type    = number
   default = 8787
 }
+
+variable "auth0_domain" {
+  description = "Auth0 tenant domain (empty disables authentication)"
+  type        = string
+  default     = ""
+}
+
+variable "auth0_audience" {
+  description = "Auth0 API audience for platform tokens"
+  type        = string
+  default     = ""
+}

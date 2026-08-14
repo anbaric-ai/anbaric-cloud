@@ -2,6 +2,7 @@ import {SecretsManagerClient} from "@aws-sdk/client-secrets-manager";
 import {SecretStore} from "anbaric-tsapi";
 import {InMemorySecretStore} from "anbaric-data-store";
 import {Pool} from "pg";
+import {loadAuthenticator} from "./auth/AuthenticatorLoader";
 import {ensureSchema} from "./data-store/Schema";
 import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore";
 import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
@@ -34,8 +35,10 @@ const secretStore : SecretStore = process.env.AWS_REGION
     ? new SecretsManagerSecretStore(new SecretsManagerClient({}))
     : new InMemorySecretStore();
 
+const authenticator = await loadAuthenticator(process.env.ANBARIC_AUTHENTICATOR);
+
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
-    (collection) => new PostgresJsonStore(pool, collection), secretStore);
+    (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator);
 const port = await server.listen(hostingPort);
 
 const dispatcher = new Dispatcher(queue, registry, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));

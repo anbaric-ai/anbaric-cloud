@@ -18,6 +18,7 @@ COPY anbaric-cloud/package.json anbaric-cloud/
 COPY anbaric-cloud-hosting/package.json anbaric-cloud-hosting/
 COPY anbaric-cli/package.json anbaric-cli/
 COPY anbaric-data-store/package.json anbaric-data-store/
+COPY anbaric-cloud-hosting-auth-auth0/package.json anbaric-cloud-hosting-auth-auth0/
 RUN npm ci
 
 COPY tsapi tsapi
@@ -26,6 +27,7 @@ COPY anbaric-cloud anbaric-cloud
 COPY anbaric-cloud-hosting anbaric-cloud-hosting
 COPY anbaric-cli anbaric-cli
 COPY anbaric-data-store anbaric-data-store
+COPY anbaric-cloud-hosting-auth-auth0 anbaric-cloud-hosting-auth-auth0
 
 EXPOSE 8787
 CMD ["npx", "tsx", "anbaric-cloud-hosting/src/main.ts"]

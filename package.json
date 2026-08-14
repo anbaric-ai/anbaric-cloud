@@ -6,6 +6,7 @@
     "tsapi",
     "anbaric-cloud",
     "anbaric-cloud-hosting",
+    "anbaric-cloud-hosting-auth-auth0",
     "anbaric-cli",
     "anbaric-data-store"
   ],
