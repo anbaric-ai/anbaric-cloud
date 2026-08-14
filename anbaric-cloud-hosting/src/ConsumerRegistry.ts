@@ -10,6 +10,10 @@ class ConsumerRegistry {
         return this.consumers.get(workflowId);
     }
 
+    list() : Array<{ workflowId : string, url : string }> {
+        return Array.from(this.consumers, ([workflowId, url]) => ({ workflowId, url }));
+    }
+
 }
 
 export { ConsumerRegistry }

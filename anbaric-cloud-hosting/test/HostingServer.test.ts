@@ -1,7 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import {Job, QueueMessage} from "anbaric-tsapi";
-import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
+import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
+import {CloudJobPersistence, CloudJsonStore, CloudQueue} from "anbaric-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
+import {InMemoryJsonStore} from "anbaric-json-store";
 import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {HostingServer} from "../src/HostingServer";
 
@@ -27,7 +28,12 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     beforeEach(async () => {
         backingQueue = new ConfirmableInMemoryQueue();
-        server = new HostingServer(new InMemoryJobPersistence(), backingQueue);
+        const documentStores = new Map<string, JsonStore>();
+        server = new HostingServer(new InMemoryJobPersistence(), backingQueue, undefined, undefined,
+            (collection) => {
+                if (!documentStores.has(collection)) documentStores.set(collection, new InMemoryJsonStore());
+                return documentStores.get(collection)!;
+            });
         const port = await server.listen(0);
         baseUrl = `http://127.0.0.1:${port}`;
         persistence = new CloudJobPersistence(baseUrl);
@@ -114,6 +120,63 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect(backingQueue.confirmed).toEqual([{ jobId: "job-1", workflowId: "workflow-1" }]);
         });
 
+    });
+
+    describe("json documents", () => {
+
+        const customerSchema = {
+            type: "object" as const,
+            required: ["name"],
+            properties: { name: { type: "string" as const } },
+        };
+
+        it("round-trips documents through the cloud store", async () => {
+            const store = new CloudJsonStore("customers", customerSchema, baseUrl);
+
+            await store.save("ada", { name: "Ada" });
+
+            expect(await store.retrieve("ada")).toEqual({ name: "Ada" });
+        });
+
+        it("rejects an invalid document client-side before it reaches the platform", async () => {
+            const store = new CloudJsonStore("customers", customerSchema, baseUrl);
+
+            await expect(store.save("bad", { name: 7 })).rejects.toThrowError("failed schema validation");
+            expect(await store.list()).toEqual([]);
+        });
+
+        it("keeps collections separate", async () => {
+            const customers = new CloudJsonStore("customers", customerSchema, baseUrl);
+            const orders = new CloudJsonStore("orders", undefined, baseUrl);
+
+            await customers.save("ada", { name: "Ada" });
+            await orders.save("order-1", { total: 42 });
+
+            expect(await customers.list()).toEqual([{ name: "Ada" }]);
+            expect(await orders.list()).toEqual([{ total: 42 }]);
+        });
+
+        it("deletes documents and 404s unknown ids", async () => {
+            const store = new CloudJsonStore("customers", customerSchema, baseUrl);
+            await store.save("ada", { name: "Ada" });
+
+            await store.delete("ada");
+
+            await expect(store.retrieve("ada")).rejects.toThrowError('No document found with id "ada"');
+        });
+
+    });
+
+    it("lists registered state machines", async () => {
+        await fetch(`${baseUrl}/consumers`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ workflowId: "workflow-1", url: "http://app:8788" }),
+        });
+
+        const stateMachines = await (await fetch(`${baseUrl}/state-machines`)).json();
+
+        expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
     });
 
     it("returns 404 for unknown routes", async () => {

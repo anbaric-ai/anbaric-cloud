@@ -10,7 +10,7 @@ terraform {
 provider "docker" {}
 
 resource "docker_network" "anbaric" {
-  name = "anbaric-local"
+  name = "anbaric-v2-local"
 }
 
 resource "docker_image" "postgres" {
@@ -18,7 +18,7 @@ resource "docker_image" "postgres" {
 }
 
 resource "docker_container" "postgres" {
-  name  = "anbaric-postgres"
+  name  = "anbaric-v2-postgres"
   image = docker_image.postgres.image_id
 
   networks_advanced {
@@ -33,35 +33,48 @@ resource "docker_container" "postgres" {
 
   ports {
     internal = 5432
-    external = 5432
+    external = 5433
   }
 }
 
-resource "docker_image" "platform" {
-  name = "anbaric-platform:local"
+resource "terraform_data" "platform_image" {
+  triggers_replace = timestamp()
 
-  build {
-    context    = "../.."
-    dockerfile = "anbaric-cloud-hosting/Dockerfile"
+  provisioner "local-exec" {
+    command = "docker build -t anbaric-v2-platform:local -f ../../anbaric-cloud-hosting/Dockerfile ../.."
   }
 }
 
 resource "docker_container" "platform" {
-  name  = "anbaric-platform"
-  image = docker_image.platform.image_id
+  name  = "anbaric-v2-platform"
+  image = "anbaric-v2-platform:local"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.platform_image]
+  }
 
   networks_advanced {
     name = docker_network.anbaric.name
   }
 
   env = [
-    "ANBARIC_DATABASE_URL=postgres://anbaric:anbaric@anbaric-postgres:5432/anbaric",
+    "ANBARIC_DATABASE_URL=postgres://anbaric:anbaric@anbaric-v2-postgres:5432/anbaric",
     "ANBARIC_HOSTING_PORT=8787",
   ]
 
   ports {
     internal = 8787
     external = 8787
+  }
+
+  ports {
+    internal = 9000
+    external = 9000
+  }
+
+  ports {
+    internal = 9001
+    external = 9001
   }
 
   restart    = "on-failure"

@@ -1,0 +1,47 @@
+import {mkdir, readFile, writeFile} from "node:fs/promises";
+import {homedir} from "node:os";
+import {join} from "node:path";
+
+type CliOptions = {
+    platformUrl : string,
+    tenant? : string,
+};
+
+type CliFlags = {
+    platformUrl? : string,
+    tenant? : string,
+};
+
+const DEFAULT_PLATFORM_URL = "http://localhost:8787";
+
+const configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
+
+const CliConfig = {
+
+    async load() : Promise<CliFlags> {
+        try {
+            return JSON.parse(await readFile(join(configDir(), "config.json"), "utf8"));
+        } catch {
+            return {};
+        }
+    },
+
+    async save(options : CliFlags) : Promise<string> {
+        await mkdir(configDir(), { recursive: true });
+        const path = join(configDir(), "config.json");
+        await writeFile(path, JSON.stringify(options, null, 2));
+        return path;
+    },
+
+    async resolve(flags : CliFlags) : Promise<CliOptions> {
+        const stored = await CliConfig.load();
+        return {
+            platformUrl: flags.platformUrl ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL,
+            tenant: flags.tenant ?? stored.tenant,
+        };
+    },
+
+};
+
+export { CliConfig, DEFAULT_PLATFORM_URL };
+export type { CliFlags, CliOptions };

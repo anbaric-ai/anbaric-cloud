@@ -30,4 +30,16 @@ describe("job serialization", () => {
         expect(roundTripped.properties.size).toBe(0);
     });
 
+    it("round-trips the workflow id", () => {
+        const roundTripped = deserializeJob(serializeJob(new Job("job-1", new Map(), "start", "workflow-1")));
+
+        expect(roundTripped.workflowId).toBe("workflow-1");
+    });
+
+    it("round-trips a job without a workflow id", () => {
+        const roundTripped = deserializeJob(serializeJob(new Job("job-1", new Map(), "start")));
+
+        expect(roundTripped.workflowId).toBeUndefined();
+    });
+
 });

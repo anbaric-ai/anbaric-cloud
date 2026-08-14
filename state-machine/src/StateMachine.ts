@@ -31,7 +31,7 @@ class StateMachine {
 
     async startJob(properties?: Map<string, any>, actor? : Actor): Promise<Job> {
 
-        const job = new Job(crypto.randomUUID(), properties, this.startState);
+        const job = new Job(crypto.randomUUID(), properties, this.startState, this.workflowId);
 
         this.validateProperties(properties ?? new Map(), true);
         this.authorizeActor(actor, job);

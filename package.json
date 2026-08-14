@@ -5,7 +5,9 @@
     "state-machine",
     "tsapi",
     "anbaric-cloud",
-    "anbaric-cloud-hosting"
+    "anbaric-cloud-hosting",
+    "anbaric-cli",
+    "json-store"
   ],
   "scripts": {
     "test": "vitest run"

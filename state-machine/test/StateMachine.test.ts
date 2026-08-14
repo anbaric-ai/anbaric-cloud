@@ -103,6 +103,14 @@ describe("StateMachine", () => {
             expect(job.stateId).toBe("start");
         });
 
+        it("stamps the new job with its workflow id", async () => {
+            const machine = machineWith([new State("start")]);
+
+            const job = await machine.startJob();
+
+            expect(job.workflowId).toBe(WORKFLOW_ID);
+        });
+
         it("persists the new job", async () => {
             const machine = machineWith([new State("start")]);
 

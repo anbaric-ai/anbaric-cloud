@@ -7,20 +7,20 @@ class PostgresJobPersistence implements JobPersistence {
 
     async save(job : Job) : Promise<void> {
         await this.pool.query(
-            `INSERT INTO jobs (id, state, properties) VALUES ($1, $2, $3)
-             ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, properties = EXCLUDED.properties`,
-            [job.id, job.stateId, Object.fromEntries(job.properties)],
+            `INSERT INTO jobs (id, state, properties, workflow_id) VALUES ($1, $2, $3, $4)
+             ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, properties = EXCLUDED.properties, workflow_id = EXCLUDED.workflow_id`,
+            [job.id, job.stateId, Object.fromEntries(job.properties), job.workflowId],
         );
     }
 
     async retrieve(id : string) : Promise<Job> {
         const result = await this.pool.query(
-            "SELECT id, state, properties FROM jobs WHERE id = $1",
+            "SELECT id, state, properties, workflow_id FROM jobs WHERE id = $1",
             [id],
         );
         if (result.rowCount === 0) throw new Error(`No job found with id "${id}"`);
 
-        return deserializeJob(result.rows[0]);
+        return this.deserializeRow(result.rows[0]);
     }
 
     async delete(id : string) : Promise<void> {
@@ -29,11 +29,15 @@ class PostgresJobPersistence implements JobPersistence {
 
     async list(pageSize : number = 100, page : number = 0) : Promise<Array<Job>> {
         const result = await this.pool.query(
-            "SELECT id, state, properties FROM jobs ORDER BY inserted_at LIMIT $1 OFFSET $2",
+            "SELECT id, state, properties, workflow_id FROM jobs ORDER BY inserted_at LIMIT $1 OFFSET $2",
             [pageSize, page * pageSize],
         );
 
-        return result.rows.map(deserializeJob);
+        return result.rows.map(row => this.deserializeRow(row));
+    }
+
+    private deserializeRow(row : { id : string, state : string, properties : Record<string, any>, workflow_id? : string }) : Job {
+        return deserializeJob({ ...row, workflowId: row.workflow_id ?? undefined });
     }
 
     async updateProperties(id : string, properties : Map<string, any>) : Promise<void> {

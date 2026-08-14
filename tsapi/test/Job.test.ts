@@ -23,6 +23,18 @@ describe("Job", () => {
         expect(job.stateId).toBe("start");
     });
 
+    it("has no workflow by default", () => {
+        const job = new Job("job-1", new Map(), "start");
+
+        expect(job.workflowId).toBeUndefined();
+    });
+
+    it("stores the given workflow id", () => {
+        const job = new Job("job-1", new Map(), "start", "workflow-1");
+
+        expect(job.workflowId).toBe("workflow-1");
+    });
+
     describe("transition", () => {
 
         it("moves to the target state when the predicate accepts the job", () => {

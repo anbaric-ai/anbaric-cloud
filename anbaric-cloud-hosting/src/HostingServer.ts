@@ -1,34 +1,35 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
-import {JobPersistence, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {JobPersistence, JsonStore, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {BuildLayer} from "./BuildLayer";
 import {ConfirmableQueue} from "./ConfirmableQueue";
 import {ConsumerRegistry} from "./ConsumerRegistry";
 
-const readBody = (request : IncomingMessage) : Promise<any> =>
+const readRawBody = (request : IncomingMessage) : Promise<Buffer> =>
     new Promise((resolve, reject) => {
         const chunks : Array<Buffer> = [];
         request.on("data", chunk => chunks.push(chunk));
         request.on("error", reject);
-        request.on("end", () => {
-            const raw = Buffer.concat(chunks).toString();
-            try {
-                resolve(raw.length === 0 ? undefined : JSON.parse(raw));
-            } catch (error) {
-                reject(error);
-            }
-        });
+        request.on("end", () => resolve(Buffer.concat(chunks)));
     });
+
+const readBody = async (request : IncomingMessage) : Promise<any> => {
+    const raw = (await readRawBody(request)).toString();
+    return raw.length === 0 ? undefined : JSON.parse(raw);
+};
 
 class HostingServer {
 
     private server : Server;
 
     constructor(private persistence : JobPersistence, private queue : ConfirmableQueue,
-                private registry : ConsumerRegistry = new ConsumerRegistry()) {
+                private registry : ConsumerRegistry = new ConsumerRegistry(),
+                private buildLayer? : BuildLayer,
+                private documentStoreFor? : (collection : string) => JsonStore) {
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
-                const status = message.startsWith("No job found") ? 404 : 500;
+                const status = /^No .+ found/.test(message) ? 404 : 500;
                 this.reply(response, status, { error: message });
             });
         });
@@ -55,6 +56,63 @@ class HostingServer {
             const { workflowId, url: consumerUrl } = await readBody(request);
             this.registry.register(workflowId, consumerUrl);
             return this.reply(response, 204);
+        }
+        if (resource === "apps" && this.buildLayer) {
+            return this.handleApps(method, id, subresource, request, response);
+        }
+        if (resource === "state-machines" && method === "GET" && !id) {
+            return this.reply(response, 200, this.registry.list());
+        }
+        if (resource === "documents" && id && this.documentStoreFor) {
+            return this.handleDocuments(method, this.documentStoreFor(id), subresource, url, request, response);
+        }
+
+        this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async handleDocuments(method : string, store : JsonStore, documentId : string | undefined,
+                                  url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (!documentId && method === "GET") {
+            const pageSize = Number(url.searchParams.get("pageSize") ?? 100);
+            const page = Number(url.searchParams.get("page") ?? 0);
+            return this.reply(response, 200, await store.list(pageSize, page));
+        }
+
+        if (documentId) {
+            if (method === "PUT") {
+                await store.save(documentId, await readBody(request));
+                return this.reply(response, 204);
+            }
+            if (method === "GET") {
+                return this.reply(response, 200, await store.retrieve(documentId));
+            }
+            if (method === "DELETE") {
+                await store.delete(documentId);
+                return this.reply(response, 204);
+            }
+        }
+
+        this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async handleApps(method : string, appName : string | undefined, subresource : string | undefined,
+                             request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (method === "GET" && !appName) {
+            return this.reply(response, 200, this.buildLayer!.list());
+        }
+
+        if (!appName) return this.reply(response, 404, { error: "Not found" });
+
+        if (method === "POST" && subresource === "deploy") {
+            const tarball = await readRawBody(request);
+            if (tarball.length === 0) return this.reply(response, 400, { error: "Expected a gzipped tarball body" });
+            return this.reply(response, 202, this.buildLayer!.deploy(appName, tarball));
+        }
+
+        if (method === "GET" && !subresource) {
+            const status = this.buildLayer!.status(appName);
+            if (!status) return this.reply(response, 404, { error: `No app named "${appName}"` });
+            return this.reply(response, 200, status);
         }
 
         this.reply(response, 404, { error: "Not found" });
