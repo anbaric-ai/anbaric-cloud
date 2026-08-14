@@ -81,9 +81,10 @@ resource "aws_ecs_cluster" "anbaric" {
   name = "anbaric-${var.environment}"
 }
 
-/* Fargate offers no docker socket, so the platform runs with its default
-   ProcessBuildLayer: deployed apps live as child processes inside this task
-   and reach the internal entry point on localhost, which is never exposed. */
+/* Fargate offers no docker socket, so no build layer is configured yet: app
+   deployment is unavailable on AWS until the Fargate build layer (CodeBuild
+   image bake, one ECS service per app) lands. The platform APIs, pages and
+   job processing all work. */
 resource "aws_ecs_task_definition" "platform" {
   family                   = "anbaric-${var.environment}-platform"
   requires_compatibilities = ["FARGATE"]

@@ -12,7 +12,6 @@ import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
 import {DockerBuildLayer} from "./app-management/DockerBuildLayer";
-import {ProcessBuildLayer} from "./app-management/ProcessBuildLayer";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -33,7 +32,7 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         network: process.env.ANBARIC_DOCKER_NETWORK ?? "anbaric-v2-local",
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL ?? `http://localhost:${internalPort}`,
     })
-    : new ProcessBuildLayer(appsDir, `http://localhost:${internalPort}`);
+    : undefined;
 
 const secretStore : SecretStore = process.env.AWS_REGION
     ? new SecretsManagerSecretStore(new SecretsManagerClient({}))
