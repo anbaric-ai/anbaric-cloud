@@ -46,7 +46,7 @@ class DeployCommand {
         const tarballPath = join(workDir, "app.tar.gz");
 
         await new Promise<void>((resolvePacked, reject) => {
-            const tar = spawn("tar", ["-czf", tarballPath, "-C", appDir, "--exclude", "node_modules", "."]);
+            const tar = spawn("tar", ["--no-xattrs", "-czf", tarballPath, "-C", appDir, "--exclude", "node_modules", "."]);
             tar.on("exit", code => code === 0 ? resolvePacked() : reject(new Error(`tar exited with code ${code}`)));
             tar.on("error", reject);
         });
