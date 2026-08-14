@@ -1,9 +1,9 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
 import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
-import {BuildLayer} from "./BuildLayer";
-import {ConfirmableQueue} from "./ConfirmableQueue";
-import {ConsumerRegistry} from "./ConsumerRegistry";
+import {BuildLayer} from "../app-management/BuildLayer";
+import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
+import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 
 const readRawBody = (request : IncomingMessage) : Promise<Buffer> =>
     new Promise((resolve, reject) => {

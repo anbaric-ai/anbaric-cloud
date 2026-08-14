@@ -6,9 +6,9 @@ import {join} from "node:path";
 import {readFile} from "node:fs/promises";
 import {QueueMessage} from "anbaric-tsapi";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
-import {ProcessBuildLayer} from "../src/ProcessBuildLayer";
-import {ConfirmableQueue} from "../src/ConfirmableQueue";
-import {HostingServer} from "../src/HostingServer";
+import {ProcessBuildLayer} from "../../src/app-management/ProcessBuildLayer";
+import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {HostingServer} from "../../src/hosting/HostingServer";
 
 const APP_PORT = 9100;
 const CONSUMER_PORT_BASE = 8900;

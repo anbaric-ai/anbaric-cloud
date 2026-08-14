@@ -3,7 +3,7 @@ import {spawn} from "node:child_process";
 import {mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {CommandRunner, DockerBuildLayer} from "../src/DockerBuildLayer";
+import {CommandRunner, DockerBuildLayer} from "../../src/app-management/DockerBuildLayer";
 
 const APP_PORT = 4000;
 const CONSUMER_PORT_BASE = 8950;

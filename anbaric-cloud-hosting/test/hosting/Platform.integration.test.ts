@@ -2,10 +2,10 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, QueueMessage, State, Transition} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
 import {DefaultActionResolver, InMemoryJobPersistence, InMemoryQueue, StateMachine} from "anbaric-state-machine";
-import {ConfirmableQueue} from "../src/ConfirmableQueue";
-import {ConsumerRegistry} from "../src/ConsumerRegistry";
-import {Dispatcher} from "../src/Dispatcher";
-import {HostingServer} from "../src/HostingServer";
+import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
+import {Dispatcher} from "../../src/queuing/Dispatcher";
+import {HostingServer} from "../../src/hosting/HostingServer";
 
 class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
 

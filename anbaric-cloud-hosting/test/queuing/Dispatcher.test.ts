@@ -3,8 +3,8 @@ import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
 import {QueueMessage} from "anbaric-tsapi";
 import {InMemoryQueue} from "anbaric-state-machine";
-import {ConsumerRegistry} from "../src/ConsumerRegistry";
-import {Dispatcher} from "../src/Dispatcher";
+import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
+import {Dispatcher} from "../../src/queuing/Dispatcher";
 
 const DISPATCH_INTERVAL_MS = 10;
 

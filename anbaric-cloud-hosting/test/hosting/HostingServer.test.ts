@@ -3,8 +3,8 @@ import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
-import {ConfirmableQueue} from "../src/ConfirmableQueue";
-import {HostingServer} from "../src/HostingServer";
+import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {HostingServer} from "../../src/hosting/HostingServer";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
 

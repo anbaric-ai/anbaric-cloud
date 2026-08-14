@@ -8,7 +8,7 @@ import {
     ResourceNotFoundException,
     SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
-import {SecretsManagerSecretStore} from "../src/SecretsManagerSecretStore";
+import {SecretsManagerSecretStore} from "../../src/data-store/SecretsManagerSecretStore";
 
 const notFound = () => new ResourceNotFoundException({ message: "not found", $metadata: {} });
 const alreadyExists = () => new ResourceExistsException({ message: "exists", $metadata: {} });
