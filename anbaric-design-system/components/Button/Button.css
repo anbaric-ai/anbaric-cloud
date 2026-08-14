@@ -1,7 +1,7 @@
 /* =============================================================
-   Button — a solid fill. On hover the surface embosses upward (no height
-   change); on click it depresses. All transitions are quick and subtle.
-   Depends on tokens.css.
+   Button — the main ink gradient as its fill. On hover the surface
+   embosses upward (no height change); on click it depresses. All
+   transitions are quick and subtle. Depends on tokens.css.
    ============================================================= */
 
 .ds-button {
@@ -16,7 +16,7 @@
   line-height: 1;
   white-space: nowrap;
   color: var(--color-background);
-  background: var(--color-primary);
+  background: var(--gradient-ink);
   border: 1px solid color-mix(in srgb, var(--color-foreground) 18%, transparent);
   border-radius: var(--radius-element);
   cursor: pointer;
@@ -53,13 +53,14 @@
 /* --- Variants -------------------------------------------------- */
 .ds-button--primary {
   color: var(--color-background);
-  background: var(--color-primary);
+  background: var(--gradient-ink);
 }
 
 .ds-button--ghost {
-  color: var(--color-primary);
+  /* The shade variant keeps coral text readable on light surfaces. */
+  color: var(--color-primary-shade);
   background: transparent;
-  border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 
 .ds-button--danger {

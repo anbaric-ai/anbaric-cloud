@@ -96,11 +96,11 @@ interface ColourCard {
 
 const palette: ColourCard[] = [
   {
-    name: 'Primary · Magister Violet',
+    name: 'Primary · Pan Coral',
     swatches: [
-      { token: '--color-primary', hex: '#9D6DFF', main: true, dark: true },
-      { token: '--color-primary-tint', hex: '#BB97FF' },
-      { token: '--color-primary-shade', hex: '#7A50D6', dark: true },
+      { token: '--color-primary', hex: '#FF7B94', main: true, dark: true },
+      { token: '--color-primary-tint', hex: '#FFA1B3' },
+      { token: '--color-primary-shade', hex: '#C25B72', dark: true },
     ],
   },
   {
@@ -135,11 +135,11 @@ const palette: ColourCard[] = [
     ],
   },
   {
-    name: 'Failure · Pan Coral',
+    name: 'Failure · Bolvangar Crimson',
     swatches: [
-      { token: '--color-failure', hex: '#FF7B94', main: true, dark: true },
-      { token: '--color-failure-tint', hex: '#FFA1B3' },
-      { token: '--color-failure-shade', hex: '#C25B72', dark: true },
+      { token: '--color-failure', hex: '#E23D5B', main: true, dark: true },
+      { token: '--color-failure-tint', hex: '#F0768C' },
+      { token: '--color-failure-shade', hex: '#A62B44', dark: true },
     ],
   },
   {
@@ -194,15 +194,15 @@ function Gradients() {
         <div
           className="swatch swatch--gradient"
           style={vars({
-            '--swatch': 'var(--gradient-primary-accent)',
+            '--swatch': 'var(--gradient-ink)',
             '--swatch-label': 'var(--color-background)',
           })}
         >
-          <span className="swatch__token">--gradient-primary-accent</span>
+          <span className="swatch__token">--gradient-ink</span>
         </div>
         <div className="card__meta">
-          <span className="card__name">Blue → Violet → Pink</span>
-          <code className="card__token">linear · 20°</code>
+          <span className="card__name">Asriel Ink → Shadowglass Navy</span>
+          <code className="card__token">linear · top to bottom</code>
         </div>
       </Card>
       <Card>
@@ -381,8 +381,9 @@ function ComponentDemos() {
       <Card>
         <h3 className="component-demo__title">Button</h3>
         <p className="component-demo__body">
-          A solid fill with a plain border. Hover embosses the surface up (no
-          jump) and a click presses it in. Variants, icons, and a loading state.
+          The main ink gradient as the fill, with a plain border. Hover embosses
+          the surface up (no jump) and a click presses it in. Variants, icons,
+          and a loading state.
         </p>
         <div style={row}>
           <Button>Primary</Button>
@@ -885,7 +886,7 @@ function Foundations() {
         title="Gradients"
         lead={
           <>
-            A linear blend, a radial glow, and a pale haze.{' '}
+            The main ink gradient, a radial glow, and a pale haze.{' '}
             <GuidanceLink anchor="guidance-gradients" />
           </>
         }
@@ -1060,7 +1061,7 @@ function Guidance() {
           <GuidanceCard title="Why">
             <p className="component-demo__body">
               Anbaric products surface the state of real work — jobs, deploys,
-              approvals — so colour has to be trustworthy: when coral always
+              approvals — so colour has to be trustworthy: when crimson always
               means failure and green always means clear, people can read a
               verdict at a glance. A small, disciplined
               palette is what makes that signal reliable.
@@ -1081,7 +1082,7 @@ function Guidance() {
               text; its hover mixes a little ink in via
               <code> color-mix</code>. A “failed” badge uses
               <code> --color-failure</code>; a “live” badge uses
-              <code> --color-success</code>. The same coral never appears just
+              <code> --color-success</code>. The same crimson never appears just
               to look striking.
             </p>
           </GuidanceCard>
@@ -1094,9 +1095,10 @@ function Guidance() {
             <p className="component-demo__body">
               Three blends, each with a role. The pale
               <code> --gradient-primary-haze</code> is the page backdrop. The
-              radial <code> --gradient-primary-glow</code> and the linear
-              {' '}<code>--gradient-primary-accent</code> are bolder — for a hero
-              area or a single feature surface.
+              radial <code> --gradient-primary-glow</code> is bolder — for a hero
+              area or a single feature surface — and the vertical
+              {' '}<code>--gradient-ink</code> is the main gradient: the ink
+              pair, carried by buttons.
             </p>
           </GuidanceCard>
           <GuidanceCard title="Why">

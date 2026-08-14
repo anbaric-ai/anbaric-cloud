@@ -131,12 +131,12 @@ of a ramp.
 
 | Role | Base | Variants |
 | --- | --- | --- |
-| Primary — Magister Violet | `#9D6DFF` | tint `#BB97FF`, shade `#7A50D6` |
+| Primary — Pan Coral | `#FF7B94` | tint `#FFA1B3`, shade `#C25B72` |
 | Accents — Svalbard Blue & Aether Pink | `#5BC6FF` | second accent `--color-accent-2` `#FF5BBE` |
 | Foreground — Shadowglass Navy | `#110B2D` | two **tints**: Asriel Ink `#322F60` and `#6E6B96` (a shade would read as black) |
 | Background — Frost White | `#F9FAFC` | two **shades**: Glacier Grey `#E7EBF0` and Haze Silver `#D1D6DE` |
 | Success | `#61F29D` | tint `#89F5B5`, shade `#49B676` |
-| Failure — Pan Coral | `#FF7B94` | tint `#FFA1B3`, shade `#C25B72` |
+| Failure — Bolvangar Crimson | `#E23D5B` | tint `#F0768C`, shade `#A62B44` — invented for the error state, deeper and more urgent than the coral primary |
 | Grey — Storm Charcoal | `#2B2E42` | neutral — scrims, dividers, muted UI |
 
 Token names follow `--color-<role>`, `--color-<role>-tint` / `-shade`, with
@@ -147,7 +147,7 @@ two-step colours, and `--color-accent-2` for the second accent.
 
 | Token | Definition |
 | --- | --- |
-| `--gradient-primary-accent` | `linear-gradient(20deg, accent, primary, accent-2)` — blue → violet → pink, kept linear and shallow per the brand book |
+| `--gradient-ink` | `linear-gradient(180deg, foreground-tint-1, foreground)` — Asriel Ink into Shadowglass Navy, top to bottom; the main gradient, carried by buttons |
 | `--gradient-primary-glow` | `radial-gradient(circle at top right, primary, background)` |
 | `--gradient-primary-haze` | pale glow — `radial-gradient` of ~16% primary mixed into the background (used for the page) |
 

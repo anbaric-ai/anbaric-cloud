@@ -9,10 +9,10 @@
    ============================================================= */
 
 :root {
-  /* --- Colour: Primary — Magister Violet -------------------- */
-  --color-primary-tint: #bb97ff;
-  --color-primary: #9d6dff;
-  --color-primary-shade: #7a50d6;
+  /* --- Colour: Primary — Pan Coral -------------------------- */
+  --color-primary-tint: #ffa1b3;
+  --color-primary: #ff7b94;
+  --color-primary-shade: #c25b72;
 
   /* --- Colour: Accent -------------------------------------- */
   /* Two distinct accents rather than a tint/shade ramp:
@@ -39,10 +39,12 @@
   --color-success: #61f29d;
   --color-success-shade: #49b676;
 
-  /* --- Colour: Failure — Pan Coral -------------------------- */
-  --color-failure-tint: #ffa1b3;
-  --color-failure: #ff7b94;
-  --color-failure-shade: #c25b72;
+  /* --- Colour: Failure — Bolvangar Crimson ------------------- */
+  /* Invented for the error state: a deeper, more urgent red than Pan
+     Coral (now the primary), staying on the palette's warm side. */
+  --color-failure-tint: #f0768c;
+  --color-failure: #e23d5b;
+  --color-failure-shade: #a62b44;
 
   /* --- Colour: Grey — Storm Charcoal ------------------------ */
   /* A neutral dark — the one colour without a brand hue. For scrims
@@ -50,13 +52,12 @@
   --color-grey: #2b2e42;
 
   /* --- Gradients ------------------------------------------- */
-  /* The brand blend runs cool to warm — blue through violet to pink —
-     kept linear and shallow per the brand book. */
-  --gradient-primary-accent: linear-gradient(
-    20deg,
-    var(--color-accent),
-    var(--color-primary),
-    var(--color-accent-2)
+  /* The main gradient: the ink pair, Asriel Ink into Shadowglass Navy,
+     running top to bottom. Buttons carry it as their fill. */
+  --gradient-ink: linear-gradient(
+    180deg,
+    var(--color-foreground-tint-1),
+    var(--color-foreground)
   );
   --gradient-primary-glow: radial-gradient(
     circle at top right,
