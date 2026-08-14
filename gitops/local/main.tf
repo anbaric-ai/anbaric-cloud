@@ -60,7 +60,16 @@ resource "docker_container" "platform" {
   env = [
     "ANBARIC_DATABASE_URL=postgres://anbaric:anbaric@anbaric-v2-postgres:5432/anbaric",
     "ANBARIC_HOSTING_PORT=8787",
+    "ANBARIC_BUILD_LAYER=docker",
+    "ANBARIC_APP_BASE_IMAGE=anbaric-v2-platform:local",
+    "ANBARIC_DOCKER_NETWORK=anbaric-v2-local",
+    "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8787",
   ]
+
+  volumes {
+    host_path      = "/var/run/docker.sock"
+    container_path = "/var/run/docker.sock"
+  }
 
   ports {
     internal = 8787

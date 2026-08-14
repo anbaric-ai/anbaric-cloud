@@ -6,7 +6,7 @@ import {join} from "node:path";
 import {readFile} from "node:fs/promises";
 import {QueueMessage} from "anbaric-tsapi";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
-import {BuildLayer} from "../src/BuildLayer";
+import {ProcessBuildLayer} from "../src/ProcessBuildLayer";
 import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {HostingServer} from "../src/HostingServer";
 
@@ -50,16 +50,16 @@ const packFixture = async (dir : string) : Promise<Buffer> => {
     return readFile(tarballPath);
 };
 
-describe("BuildLayer via the hosting API", () => {
+describe("ProcessBuildLayer via the hosting API", () => {
 
     let workDir : string;
-    let buildLayer : BuildLayer;
+    let buildLayer : ProcessBuildLayer;
     let server : HostingServer;
     let baseUrl : string;
 
     beforeEach(async () => {
         workDir = await mkdtemp(join(tmpdir(), "anbaric-build-"));
-        buildLayer = new BuildLayer(join(workDir, "apps"), "http://localhost:0", CONSUMER_PORT_BASE);
+        buildLayer = new ProcessBuildLayer(join(workDir, "apps"), "http://localhost:0", CONSUMER_PORT_BASE);
         await mkdir(join(workDir, "apps"), { recursive: true });
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, buildLayer);
         baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
@@ -99,6 +99,7 @@ describe("BuildLayer via the hosting API", () => {
             appName: "fixture-app",
             status: "building",
             appPort: APP_PORT,
+            appHost: "localhost",
         });
     });
 
@@ -138,7 +139,7 @@ describe("BuildLayer via the hosting API", () => {
 
         const apps = await (await fetch(`${baseUrl}/apps`)).json();
 
-        expect(apps).toEqual([{ appName: "fixture-app", status: "running", appPort: APP_PORT }]);
+        expect(apps).toEqual([{ appName: "fixture-app", status: "running", appPort: APP_PORT, appHost: "localhost" }]);
     });
 
     it("rejects a deploy without a port", async () => {

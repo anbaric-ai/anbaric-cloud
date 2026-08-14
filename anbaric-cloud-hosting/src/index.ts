@@ -1,4 +1,6 @@
 export * from "./BuildLayer";
+export * from "./DockerBuildLayer";
+export * from "./ProcessBuildLayer";
 export * from "./ConfirmableQueue";
 export * from "./ConsumerRegistry";
 export * from "./Dispatcher";

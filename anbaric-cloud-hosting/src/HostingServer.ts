@@ -76,19 +76,19 @@ class HostingServer {
         if (resource && this.buildLayer) {
             const app = this.buildLayer.status(resource);
             if (app && app.status === "running") {
-                return this.forwardToApp(app.appPort, resource, method, url, request, response);
+                return this.forwardToApp(app.appHost, app.appPort, resource, method, url, request, response);
             }
         }
 
         this.reply(response, 404, { error: "Not found" });
     }
 
-    private async forwardToApp(appPort : number, appName : string, method : string, url : URL,
+    private async forwardToApp(appHost : string, appPort : number, appName : string, method : string, url : URL,
                                request : IncomingMessage, response : ServerResponse) : Promise<void> {
         const appPath = url.pathname.slice(`/${appName}`.length) || "/";
         const body = method === "GET" || method === "HEAD" ? undefined : await readRawBody(request);
 
-        const upstream = await fetch(`http://localhost:${appPort}${appPath}${url.search}`, {
+        const upstream = await fetch(`http://${appHost}:${appPort}${appPath}${url.search}`, {
             method,
             headers: { "content-type": String(request.headers["content-type"] ?? "application/json") },
             body: body && body.length > 0 ? new Uint8Array(body) : undefined,
