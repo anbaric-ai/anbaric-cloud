@@ -1,14 +1,41 @@
 import {describe, expect, it} from "vitest";
+import {IncomingMessage, ServerResponse} from "node:http";
 import {Authenticator} from "../../src/auth/Authenticator";
 import {KeyPair} from "../../src/auth/KeyPair";
 import {Role} from "../../src/auth/Role";
 import {User} from "../../src/auth/User";
 
+const fakeRequest = (url : string = "/") => ({ url }) as IncomingMessage;
+
+class FakeResponse {
+
+    status? : number;
+    headers : Record<string, any> = {};
+    ended = false;
+
+    writeHead(status : number, headers? : Record<string, any>) {
+        this.status = status;
+        Object.assign(this.headers, headers ?? {});
+        return this;
+    }
+
+    end() {
+        this.ended = true;
+    }
+
+}
+
+const fakeResponse = () => new FakeResponse();
+const asServerResponse = (response : FakeResponse) => response as unknown as ServerResponse;
+
 class StubAuthenticator extends Authenticator {
 
-    async authenticate(token : string) : Promise<User> {
-        if (token !== "valid") throw new Error("Not authenticated");
-        return new User("user-1", [new Role("admin")]);
+    async authenticate(session : string | undefined, _request : IncomingMessage,
+                       response : ServerResponse) : Promise<User | undefined> {
+        if (session === "valid") return new User("user-1", [new Role("admin")]);
+        response.writeHead(302, { location: "https://login.example/" });
+        response.end();
+        return undefined;
     }
 
 }
@@ -35,21 +62,30 @@ describe("Authenticator", () => {
 
     const authenticator = new StubAuthenticator();
 
-    it("authenticates a valid token into a user", async () => {
-        const user = await authenticator.authenticate("valid");
+    it("authenticates a valid session into a user", async () => {
+        const response = fakeResponse();
 
-        expect(user.id).toBe("user-1");
+        const user = await authenticator.authenticate("valid", fakeRequest(), asServerResponse(response));
+
+        expect(user?.id).toBe("user-1");
+        expect(response.ended).toBe(false);
     });
 
-    it("rejects an invalid token", async () => {
-        await expect(authenticator.authenticate("bogus")).rejects.toThrowError("Not authenticated");
+    it("takes over the response when there is no valid session", async () => {
+        const response = fakeResponse();
+
+        const user = await authenticator.authenticate(undefined, fakeRequest(), asServerResponse(response));
+
+        expect(user).toBeUndefined();
+        expect(response.status).toBe(302);
+        expect(response.headers.location).toBe("https://login.example/");
+        expect(response.ended).toBe(true);
     });
 
-    it("authorizes a user holding the required role", async () => {
-        const user = await authenticator.authenticate("valid");
+    it("authorizes every request by default", async () => {
+        const user = new User("user-1");
 
-        expect(authenticator.authorize(user, new Role("admin"))).toBe(true);
-        expect(authenticator.authorize(user, new Role("operator"))).toBe(false);
+        expect(await authenticator.authorize(user, fakeRequest(), asServerResponse(fakeResponse()))).toBe(true);
     });
 
 });

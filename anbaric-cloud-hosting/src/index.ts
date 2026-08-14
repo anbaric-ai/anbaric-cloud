@@ -11,6 +11,7 @@ export * from "./data-store/PostgresJsonStore";
 export * from "./data-store/Schema";
 export * from "./data-store/SecretsManagerSecretStore";
 export * from "./hosting/HostingServer";
+export * from "./hosting/Router";
 export * from "./queuing/ConfirmableQueue";
 export * from "./queuing/ConsumerRegistry";
 export * from "./queuing/Dispatcher";

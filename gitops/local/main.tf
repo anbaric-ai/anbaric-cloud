@@ -14,9 +14,15 @@ variable "auth0_domain" {
   default = ""
 }
 
-variable "auth0_audience" {
+variable "auth0_client_id" {
   type    = string
   default = ""
+}
+
+variable "auth0_client_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
 resource "docker_network" "anbaric" {
@@ -77,7 +83,9 @@ resource "docker_container" "platform" {
     ], var.auth0_domain == "" ? [] : [
     "ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0",
     "ANBARIC_AUTH0_DOMAIN=${var.auth0_domain}",
-    "ANBARIC_AUTH0_AUDIENCE=${var.auth0_audience}",
+    "ANBARIC_AUTH0_CLIENT_ID=${var.auth0_client_id}",
+    "ANBARIC_AUTH0_CLIENT_SECRET=${var.auth0_client_secret}",
+    "ANBARIC_PLATFORM_PUBLIC_URL=http://localhost:8787",
   ])
 
   volumes {

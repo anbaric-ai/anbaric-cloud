@@ -1,14 +1,17 @@
-import {Role} from "./Role";
+import {IncomingMessage, ServerResponse} from "node:http";
 import {User} from "./User";
+
+const SESSION_COOKIE = "anbaric_session";
 
 abstract class Authenticator {
 
-    abstract authenticate(token : string) : Promise<User>;
+    abstract authenticate(session : string | undefined, request : IncomingMessage,
+                          response : ServerResponse) : Promise<User | undefined>;
 
-    authorize(user : User, required : Role) : boolean {
-        return user.hasRole(required);
+    async authorize(_user : User, _request : IncomingMessage, _response : ServerResponse) : Promise<boolean> {
+        return true;
     }
 
 }
 
-export { Authenticator }
+export { Authenticator, SESSION_COOKIE }

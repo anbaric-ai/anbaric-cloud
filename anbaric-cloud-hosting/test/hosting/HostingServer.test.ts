@@ -222,13 +222,26 @@ describe("HostingServer round-trip via the cloud clients", () => {
         expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
     });
 
-    describe("whoami", () => {
+    describe("authentication", () => {
 
         class StubAuthenticator extends Authenticator {
-            async authenticate(token : string) : Promise<User> {
-                if (token !== "valid-token") throw new Error("Not authenticated");
-                return new User("user-1", [new Role("admin")]);
+
+            async authenticate(session : string | undefined, _request : import("node:http").IncomingMessage,
+                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                if (session === "valid-session") return new User("user-1", [new Role("admin")]);
+                response.writeHead(302, { location: "https://login.example/authorize" });
+                response.end();
+                return undefined;
             }
+
+        }
+
+        class DenyingAuthenticator extends StubAuthenticator {
+
+            async authorize() : Promise<boolean> {
+                return false;
+            }
+
         }
 
         let authenticatedServer : HostingServer;
@@ -244,33 +257,52 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await authenticatedServer.close();
         });
 
-        it("identifies the bearer of a valid token", async () => {
+        it("redirects any resource access without a session to the login flow", async () => {
+            const response = await fetch(`${authenticatedUrl}/jobs`, { redirect: "manual" });
+
+            expect(response.status).toBe(302);
+            expect(response.headers.get("location")).toBe("https://login.example/authorize");
+        });
+
+        it("serves resources when a valid session cookie is presented", async () => {
+            const response = await fetch(`${authenticatedUrl}/jobs`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+            });
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual([]);
+        });
+
+        it("identifies the session's user on whoami", async () => {
             const response = await fetch(`${authenticatedUrl}/whoami`, {
-                headers: { authorization: "Bearer valid-token" },
+                headers: { cookie: "anbaric_session=valid-session" },
             });
 
             expect(response.status).toBe(200);
             expect(await response.json()).toEqual({ id: "user-1", roles: ["admin"] });
         });
 
-        it("rejects a missing bearer token", async () => {
-            const response = await fetch(`${authenticatedUrl}/whoami`);
+        it("keeps ping open without a session", async () => {
+            const response = await fetch(`${authenticatedUrl}/ping`);
 
-            expect(response.status).toBe(401);
+            expect(response.status).toBe(200);
         });
 
-        it("rejects an invalid token", async () => {
-            const response = await fetch(`${authenticatedUrl}/whoami`, {
-                headers: { authorization: "Bearer forged" },
+        it("refuses requests the authorizer denies", async () => {
+            const denying = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new DenyingAuthenticator());
+            const denyingUrl = `http://127.0.0.1:${await denying.listen(0)}`;
+
+            const response = await fetch(`${denyingUrl}/jobs`, {
+                headers: { cookie: "anbaric_session=valid-session" },
             });
 
-            expect(response.status).toBe(401);
+            expect(response.status).toBe(403);
+            await denying.close();
         });
 
-        it("is not routed on a platform without an authenticator", async () => {
-            const response = await fetch(`${baseUrl}/whoami`, {
-                headers: { authorization: "Bearer valid-token" },
-            });
+        it("has no whoami on a platform without an authenticator", async () => {
+            const response = await fetch(`${baseUrl}/whoami`);
 
             expect(response.status).toBe(404);
         });

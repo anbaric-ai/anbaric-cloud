@@ -23,11 +23,12 @@ Environment-specific configuration (Auth0 tenants, AWS settings) is supplied per
 
 ```hcl
 # gitops/<env>/terraform.tfvars (gitignored)
-auth0_domain   = "your-tenant.eu.auth0.com"
-auth0_audience = "https://api.your-platform.example"
+auth0_domain        = "your-tenant.eu.auth0.com"
+auth0_client_id     = "your Auth0 application client id"
+auth0_client_secret = "your Auth0 application client secret"
 ```
 
-When `auth0_domain` is set, the platform boots with `ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0` and verifies bearer tokens against that tenant; when unset, authentication is disabled (local dev default).
+When `auth0_domain` is set, the platform boots with `ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0` and every resource (except `/ping`) requires a login session: browsers are redirected to the tenant's login page and return via `<platform>/callback`, which must be listed in the Auth0 application's Allowed Callback URLs (for local: `http://localhost:8787/callback`). When unset, authentication is disabled (local dev default).
 
 An app connects to a platform with:
 

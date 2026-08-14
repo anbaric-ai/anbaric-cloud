@@ -107,7 +107,9 @@ resource "aws_ecs_task_definition" "platform" {
     ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
-      { name = "ANBARIC_AUTH0_AUDIENCE", value = var.auth0_audience },
+      { name = "ANBARIC_AUTH0_CLIENT_ID", value = var.auth0_client_id },
+      { name = "ANBARIC_AUTH0_CLIENT_SECRET", value = var.auth0_client_secret },
+      { name = "ANBARIC_PLATFORM_PUBLIC_URL", value = var.platform_public_url },
     ])
 
     logConfiguration = {

@@ -47,8 +47,21 @@ variable "auth0_domain" {
   default     = ""
 }
 
-variable "auth0_audience" {
-  description = "Auth0 API audience for platform tokens"
+variable "auth0_client_id" {
+  description = "Auth0 application client id for the platform's login flow"
+  type        = string
+  default     = ""
+}
+
+variable "auth0_client_secret" {
+  description = "Auth0 application client secret for the platform's login flow"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "platform_public_url" {
+  description = "Public URL of the platform, used for the login callback"
   type        = string
   default     = ""
 }

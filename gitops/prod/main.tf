@@ -37,7 +37,18 @@ variable "auth0_domain" {
   default = ""
 }
 
-variable "auth0_audience" {
+variable "auth0_client_id" {
+  type    = string
+  default = ""
+}
+
+variable "auth0_client_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "platform_public_url" {
   type    = string
   default = ""
 }
@@ -49,8 +60,10 @@ module "platform" {
   aws_region        = var.aws_region
   image             = var.image
   db_password       = var.db_password
-  auth0_domain      = var.auth0_domain
-  auth0_audience    = var.auth0_audience
+  auth0_domain        = var.auth0_domain
+  auth0_client_id     = var.auth0_client_id
+  auth0_client_secret = var.auth0_client_secret
+  platform_public_url = var.platform_public_url
   db_instance_class = "db.t4g.small"
   desired_count     = 2
 }
