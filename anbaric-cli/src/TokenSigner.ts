@@ -1,0 +1,24 @@
+import {createPrivateKey, sign} from "node:crypto";
+import {StoredKey} from "./CliConfig";
+
+const DEFAULT_LIFETIME_SECONDS = 60;
+
+class TokenSigner {
+
+    constructor(private key : StoredKey, private lifetimeSeconds : number = DEFAULT_LIFETIME_SECONDS) {}
+
+    sign(now : Date = new Date()) : string {
+        const issuedAt = Math.floor(now.getTime() / 1000);
+        const header = this.encoded({ alg: "EdDSA", typ: "JWT", kid: this.key.keyId });
+        const payload = this.encoded({ iat: issuedAt, exp: issuedAt + this.lifetimeSeconds });
+        const signature = sign(null, Buffer.from(`${header}.${payload}`), createPrivateKey(this.key.privateKey));
+        return `${header}.${payload}.${signature.toString("base64url")}`;
+    }
+
+    private encoded(claims : unknown) : string {
+        return Buffer.from(JSON.stringify(claims)).toString("base64url");
+    }
+
+}
+
+export { TokenSigner }

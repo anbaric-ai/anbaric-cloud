@@ -9,6 +9,10 @@ class InMemoryCliKeyStore implements CliKeyStore {
         this.keys.set(key.id, key);
     }
 
+    async find(id : string) : Promise<CliKey | undefined> {
+        return this.keys.get(id);
+    }
+
     async listFor(userId : string) : Promise<Array<CliKey>> {
         return Array.from(this.keys.values()).filter(key => key.userId === userId);
     }

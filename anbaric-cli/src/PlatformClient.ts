@@ -1,4 +1,5 @@
 import {CliOptions} from "./CliConfig";
+import {TokenSigner} from "./TokenSigner";
 
 class PlatformClient {
 
@@ -36,6 +37,7 @@ class PlatformClient {
         const headers : Record<string, string> = {};
         if (contentType) headers["content-type"] = contentType;
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
+        if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
 
         const response = await fetch(`${this.options.platformUrl}${path}`, {
             method,

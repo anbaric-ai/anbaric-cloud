@@ -5,6 +5,7 @@ import {join} from "node:path";
 type CliOptions = {
     platformUrl : string,
     tenant? : string,
+    key? : StoredKey,
 };
 
 type CliFlags = {
@@ -43,9 +44,12 @@ const CliConfig = {
 
     async resolve(flags : CliFlags) : Promise<CliOptions> {
         const stored = await CliConfig.load();
+        const platformUrl = flags.platformUrl ?? process.env.ANBARIC_CLOUD_URL ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL;
+        const key = await CliConfig.loadKey();
         return {
-            platformUrl: flags.platformUrl ?? process.env.ANBARIC_CLOUD_URL ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL,
+            platformUrl,
             tenant: flags.tenant ?? process.env.ANBARIC_TENANT ?? stored.tenant,
+            key: key?.platformUrl === platformUrl ? key : undefined,
         };
     },
 

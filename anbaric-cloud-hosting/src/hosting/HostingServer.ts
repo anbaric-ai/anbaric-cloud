@@ -4,6 +4,7 @@ import {JobPersistence, JsonStore, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {Authenticator, SESSION_COOKIE} from "../auth/Authenticator";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
+import {TokenAuthenticator} from "../auth/TokenAuthenticator";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
@@ -20,7 +21,8 @@ class HostingServer {
                 documentStoreFor? : (collection : string) => JsonStore,
                 secretStore? : SecretStore,
                 private authenticator? : Authenticator,
-                cliAuthorizer? : CliAuthorizer) {
+                cliAuthorizer? : CliAuthorizer,
+                private tokenAuthenticator? : TokenAuthenticator) {
         this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer);
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
@@ -50,17 +52,27 @@ class HostingServer {
             return this.router.route(request, response);
         }
 
+        if (this.tokenAuthenticator?.handles(request)) {
+            const user = await this.tokenAuthenticator.authenticate(request, response);
+            if (!user) return;
+            return this.authorizeAndRoute(user, request, response);
+        }
+
         const user = await this.authenticateSession(request, response);
         if (this.authenticator && !user) return;
+        if (user) return this.authorizeAndRoute(user, request, response);
 
-        if (this.authenticator && user) {
+        await this.router.route(request, response, user);
+    }
+
+    private async authorizeAndRoute(user : User, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (this.authenticator) {
             const permitted = await this.authenticator.authorize(user, request, response);
             if (!permitted) {
                 if (!response.writableEnded) this.reply(response, 403, { error: "Not authorized" });
                 return;
             }
         }
-
         await this.router.route(request, response, user);
     }
 

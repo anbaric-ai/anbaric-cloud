@@ -1,6 +1,8 @@
 import {afterEach, describe, expect, it} from "vitest";
+import {generateKeyPairSync} from "node:crypto";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
+import {StoredKey} from "../src/CliConfig";
 import {PlatformClient} from "../src/PlatformClient";
 
 describe("PlatformClient", () => {
@@ -39,6 +41,44 @@ describe("PlatformClient", () => {
         const client = await clientAgainst(200, {}, JSON.stringify({ ok: true }));
 
         expect(await client.get("/jobs")).toEqual({ ok: true });
+    });
+
+    const keyPair = generateKeyPairSync("ed25519");
+
+    const storedKeyFor = (platformUrl : string) : StoredKey => ({
+        platformUrl,
+        keyId: "key-1",
+        clientName: "chris laptop",
+        publicKey: keyPair.publicKey.export({ type: "spki", format: "pem" }).toString(),
+        privateKey: keyPair.privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+    });
+
+    const headerRecordingPlatform = (received : Array<string | undefined>) =>
+        new Promise<string>(resolve => {
+            server = createServer((request, response) => {
+                received.push(request.headers.authorization);
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+            });
+            server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+        });
+
+    it("signs every request with a bearer token when a key is configured", async () => {
+        const received : Array<string | undefined> = [];
+        const platformUrl = await headerRecordingPlatform(received);
+
+        await new PlatformClient({ platformUrl, key: storedKeyFor(platformUrl) }).get("/jobs");
+
+        expect(received[0]).toMatch(/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    });
+
+    it("sends no authorization header without a key", async () => {
+        const received : Array<string | undefined> = [];
+        const platformUrl = await headerRecordingPlatform(received);
+
+        await new PlatformClient({ platformUrl }).get("/jobs");
+
+        expect(received[0]).toBeUndefined();
     });
 
     it("keeps ordinary error messages intact", async () => {

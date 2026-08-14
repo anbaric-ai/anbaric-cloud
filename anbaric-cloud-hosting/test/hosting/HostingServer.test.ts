@@ -1,3 +1,4 @@
+import {generateKeyPairSync, sign} from "node:crypto";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-cloud";
@@ -5,8 +6,10 @@ import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
 import {Authenticator} from "../../src/auth/Authenticator";
 import {CliAuthorizer} from "../../src/auth/CliAuthorizer";
+import {CliKey} from "../../src/auth/CliKey";
 import {InMemoryCliKeyStore} from "../../src/auth/InMemoryCliKeyStore";
 import {Role} from "../../src/auth/Role";
+import {TokenAuthenticator} from "../../src/auth/TokenAuthenticator";
 import {User} from "../../src/auth/User";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
@@ -408,6 +411,83 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect(await (await fetch(`${baseUrl}/keys`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             })).json()).toEqual([]);
+        });
+
+    });
+
+    describe("token authentication", () => {
+
+        class RedirectingAuthenticator extends Authenticator {
+
+            async authenticate(_session : string | undefined, _request : import("node:http").IncomingMessage,
+                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                response.writeHead(302, { location: "https://login.example/authorize" });
+                response.end();
+                return undefined;
+            }
+
+        }
+
+        const keyPair = generateKeyPairSync("ed25519");
+        const encoded = (claims : unknown) => Buffer.from(JSON.stringify(claims)).toString("base64url");
+
+        const mintToken = (kid : string, expiresInSeconds : number = 60) => {
+            const issuedAt = Math.floor(Date.now() / 1000);
+            const header = encoded({ alg: "EdDSA", typ: "JWT", kid });
+            const payload = encoded({ iat: issuedAt, exp: issuedAt + expiresInSeconds });
+            const signature = sign(null, Buffer.from(`${header}.${payload}`), keyPair.privateKey).toString("base64url");
+            return `${header}.${payload}.${signature}`;
+        };
+
+        let tokenServer : HostingServer;
+        let tokenUrl : string;
+
+        beforeEach(async () => {
+            const keyStore = new InMemoryCliKeyStore();
+            await keyStore.save(new CliKey("key-1", "user-1", "chris laptop",
+                keyPair.publicKey.export({ type: "spki", format: "pem" }).toString()));
+            tokenServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new RedirectingAuthenticator(),
+                new CliAuthorizer(keyStore), new TokenAuthenticator(keyStore));
+            tokenUrl = `http://127.0.0.1:${await tokenServer.listen(0)}`;
+        });
+
+        afterEach(async () => {
+            await tokenServer.close();
+        });
+
+        it("serves resources for a valid bearer token instead of redirecting to login", async () => {
+            const response = await fetch(`${tokenUrl}/jobs`, {
+                headers: { authorization: `Bearer ${mintToken("key-1")}` },
+            });
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual([]);
+        });
+
+        it("identifies the token's user on whoami", async () => {
+            const response = await fetch(`${tokenUrl}/whoami`, {
+                headers: { authorization: `Bearer ${mintToken("key-1")}` },
+            });
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual({ id: "user-1", roles: [] });
+        });
+
+        it("rejects an invalid bearer token with 401 rather than a login redirect", async () => {
+            const response = await fetch(`${tokenUrl}/jobs`, {
+                headers: { authorization: `Bearer ${mintToken("key-1", -10)}` },
+                redirect: "manual",
+            });
+
+            expect(response.status).toBe(401);
+            expect((await response.json()).error).toContain("anbaric login");
+        });
+
+        it("falls back to the session flow when no bearer token is sent", async () => {
+            const response = await fetch(`${tokenUrl}/jobs`, { redirect: "manual" });
+
+            expect(response.status).toBe(302);
         });
 
     });

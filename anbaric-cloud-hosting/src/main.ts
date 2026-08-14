@@ -4,6 +4,7 @@ import {InMemorySecretStore} from "anbaric-data-store";
 import {Pool} from "pg";
 import {loadAuthenticator} from "./auth/AuthenticatorLoader";
 import {CliAuthorizer} from "./auth/CliAuthorizer";
+import {TokenAuthenticator} from "./auth/TokenAuthenticator";
 import {PostgresCliKeyStore} from "./data-store/PostgresCliKeyStore";
 import {ensureSchema} from "./data-store/Schema";
 import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore";
@@ -38,10 +39,13 @@ const secretStore : SecretStore = process.env.AWS_REGION
     : new InMemorySecretStore();
 
 const authenticator = await loadAuthenticator(process.env.ANBARIC_AUTHENTICATOR);
-const cliAuthorizer = new CliAuthorizer(new PostgresCliKeyStore(pool));
+const cliKeyStore = new PostgresCliKeyStore(pool);
+const cliAuthorizer = new CliAuthorizer(cliKeyStore);
+const tokenAuthenticator = new TokenAuthenticator(cliKeyStore);
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
-    (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer);
+    (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer,
+    tokenAuthenticator);
 const port = await server.listen(hostingPort);
 
 const dispatcher = new Dispatcher(queue, registry, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));

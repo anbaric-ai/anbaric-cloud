@@ -13,6 +13,15 @@ class PostgresCliKeyStore implements CliKeyStore {
         );
     }
 
+    async find(id : string) : Promise<CliKey | undefined> {
+        const result = await this.pool.query(
+            "SELECT id, user_id, client_name, public_key, created_at FROM anbaric_system.cli_keys WHERE id = $1",
+            [id],
+        );
+        const row = result.rows[0];
+        return row && new CliKey(row.id, row.user_id, row.client_name, row.public_key, row.created_at);
+    }
+
     async listFor(userId : string) : Promise<Array<CliKey>> {
         const result = await this.pool.query(
             "SELECT id, user_id, client_name, public_key, created_at FROM anbaric_system.cli_keys WHERE user_id = $1 ORDER BY created_at",

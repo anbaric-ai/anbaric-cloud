@@ -7,6 +7,7 @@ export * from "./auth/InMemoryCliKeyStore";
 export * from "./auth/AuthenticatorLoader";
 export * from "./auth/KeyPair";
 export * from "./auth/Role";
+export * from "./auth/TokenAuthenticator";
 export * from "./auth/User";
 export * from "./app-management/DockerBuildLayer";
 export * from "./app-management/ProcessBuildLayer";
