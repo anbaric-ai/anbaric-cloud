@@ -14,14 +14,15 @@ const optionalFlag = (id : string) => {
     return property;
 };
 
-const sendWelcome = () => new Action(
-    "Send welcome email",
-    new Code("send-welcome-email", async (job) => {
+const sendWelcome = () => {
+    const action = new Action("Send welcome email", new Code("send-welcome-email"),
+        "Emails a welcome message to a newly registered customer");
+    action.run = async (job) => {
         console.log(`sending welcome email to ${job.properties.get("email")}`);
         return new Map([["welcomeSent", true]]);
-    }),
-    "Emails a welcome message to a newly registered customer",
-);
+    };
+    return action;
+};
 
 const customerWorkflow = (persistence : JobPersistence, queue : Queue) => new StateMachine(
     "customer-onboarding",

@@ -36,8 +36,9 @@ const requiredNumber = (id : string) => {
 };
 
 const stampingAction = (key : string, value : any, accepts : boolean = true) => {
-    const action = new Action(key, new Code(key, async () => new Map([[key, value]])));
+    const action = new Action(key, new Code(key));
     action.predicate = () => accepts;
+    action.run = async () => new Map([[key, value]]);
     return action;
 };
 
@@ -253,7 +254,7 @@ describe("StateMachine", () => {
             expect(job.properties.has("skipped")).toBe(false);
         });
 
-        it("leaves actions of other actor types untouched", async () => {
+        it("changes nothing when an action keeps the default run stub", async () => {
             const job = jobInState("start");
             persistence.retrieve.mockResolvedValue(job);
             machineWith([new State("start", [new Action("Approve", new Human("chris", "admin"))])]);

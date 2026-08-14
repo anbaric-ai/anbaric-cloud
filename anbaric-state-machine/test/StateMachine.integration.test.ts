@@ -8,8 +8,11 @@ import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
 import {PullConsumer} from "../src/scheduling/PullConsumer";
 import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
 
-const stampingAction = (key : string, value : any) =>
-    new Action(key, new Code(key, async () => new Map([[key, value]])));
+const stampingAction = (key : string, value : any) => {
+    const action = new Action(key, new Code(key));
+    action.run = async () => new Map([[key, value]]);
+    return action;
+};
 
 const optionalNumber = (id : string) => {
     const definition = new PropertyDefinition(id);

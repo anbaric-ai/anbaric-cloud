@@ -1,4 +1,4 @@
-import {Actor, Job} from "anbaric-tsapi";
+import {Actor} from "anbaric-tsapi";
 
 class Code implements Actor {
 
@@ -6,11 +6,8 @@ class Code implements Actor {
     readonly id : string;
     readonly role : string;
 
-    run : (job : Job) => Promise<Map<string, any>>;
-
-    constructor(id : string, run : (job : Job) => Promise<Map<string, any>>, role : string = "code") {
+    constructor(id : string, role : string = "code") {
         this.id = id;
-        this.run = run;
         this.role = role;
     }
 

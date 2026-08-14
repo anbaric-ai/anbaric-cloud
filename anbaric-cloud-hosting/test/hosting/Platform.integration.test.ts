@@ -17,8 +17,11 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue
 
 }
 
-const stampingAction = (key : string) =>
-    new Action(key, new Code(key, async () => new Map([[key, true]])));
+const stampingAction = (key : string) => {
+    const action = new Action(key, new Code(key));
+    action.run = async () => new Map([[key, true]]);
+    return action;
+};
 
 const optionalFlag = (id : string) => {
     const definition = new PropertyDefinition(id);

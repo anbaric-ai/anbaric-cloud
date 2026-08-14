@@ -61,6 +61,33 @@ class StateMachine {
         await this.queue.enqueue(jobId, this.workflowId);
     }
 
+    async executeAction(jobId : string, action : Action) : Promise<void> {
+        const job = await this.persistence.retrieve(jobId);
+
+        if (! action.predicate(job)) return Promise.reject("Action predicate unmet");
+
+        if (! this.authorizeActor(action.actor, job)) {
+            Auditor.instance().audit(jobId, action.actor, "Unauthorized update", null);
+            return Promise.reject("Actor not authorized to execute action");
+        }
+
+        const newProperties = await action.run(job);
+
+        if (! this.validateProperties(newProperties, false)) {
+            Auditor.instance().audit(jobId, action.actor, "Invalid properties", Object.fromEntries(newProperties));
+            return Promise.reject("The action generated invalid properties");
+        }
+
+        newProperties.forEach((value, key) => {
+            job.properties.set(key, value);
+        });
+
+        await this.persistence.updateProperties(jobId, properties);
+        Auditor.instance().audit(jobId, action.actor, "Properties updated", Object.fromEntries(newProperties));
+
+        await this.queue.enqueue(jobId, this.workflowId);
+    }
+
     private validateProperties(properties : Map<string, any>, isNew : boolean) : boolean {
         for (const [key, value] of properties) {
             const definition = this.dataSchema.get(key);
@@ -84,7 +111,6 @@ class StateMachine {
         const currentState = this.states.get(job.stateId!);
 
         for (const action of currentState?.actions ?? []) {
-            if (action.actor.type !== "CODE") continue;
             if (! action.predicate(job)) continue;
 
             if (! this.authorizeActor(action.actor, job)) {

@@ -6,9 +6,6 @@ import {Job} from "../src/api/jobs/Job";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const human : Actor = { type: "HUMAN", id: "chris", role: "admin" };
-const agent : Actor = { type: "AGENT", id: "helper", role: "assistant" };
-const code = (run : (job : Job) => Promise<Map<string, any>>) : Actor =>
-    ({ type: "CODE", id: "code-1", role: "code", run }) as Actor;
 
 describe("Action", () => {
 
@@ -42,26 +39,17 @@ describe("Action", () => {
         expect(action.predicate(new Job("job-2", new Map([["approved", true]]), "start"))).toBe(true);
     });
 
-    it("runs a code actor's function against the job", async () => {
-        const action = new Action("Stamp", code(async (job) => new Map([["stamped", job.id]])));
-
-        const properties = await action.run(new Job("job-1", new Map(), "start"));
-
-        expect(properties).toEqual(new Map([["stamped", "job-1"]]));
-    });
-
-    it("refuses to run a human action", async () => {
+    it("returns no properties by default", async () => {
         const action = new Action("Approve", human);
 
-        await expect(action.run(new Job("job-1", new Map(), "start")))
-            .rejects.toThrowError('Actions for "HUMAN" actors are not implemented yet');
+        expect(await action.run(new Job("job-1", new Map(), "start"))).toEqual(new Map());
     });
 
-    it("refuses to run an agent action", async () => {
-        const action = new Action("Suggest", agent);
+    it("supports a custom run function", async () => {
+        const action = new Action("Stamp", human);
+        action.run = async (job) => new Map([["stamped", job.id]]);
 
-        await expect(action.run(new Job("job-1", new Map(), "start")))
-            .rejects.toThrowError('Actions for "AGENT" actors are not implemented yet');
+        expect(await action.run(new Job("job-1", new Map(), "start"))).toEqual(new Map([["stamped", "job-1"]]));
     });
 
 });

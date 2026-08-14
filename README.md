@@ -15,10 +15,8 @@ start with `CLAUDE.md` and the package READMEs.
 import {Action, PropertyDefinition, State, Transition} from "anbaric-tsapi";
 import {Code, StateMachine} from "anbaric-state-machine";
 
-const sendWelcome = new Action(
-    "Send welcome email",
-    new Code("send-welcome", async (job) => new Map([["welcomeSent", true]])),
-);
+const sendWelcome = new Action("Send welcome email", new Code("send-welcome"));
+sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
 
 const customers = new StateMachine(
     "customer-onboarding",
@@ -33,11 +31,12 @@ const customers = new StateMachine(
 const customer = await customers.startJob(new Map([["email", "ada@example.com"]]));
 ```
 
-Every action names an **actor** — `Code` runs a function you supply and
-returns the properties it wants to set; `Human` and `Agent` actors are on the
-roadmap. Property changes are schema-validated and audited, and each job
-carries its history: who started it, every from→to transition and the actor
-that made it.
+Every action declares an **actor** (`Code`, `Human` or `Agent` — pure
+identity objects) and a `run` function returning the properties it wants to
+set. Property changes are schema-validated and audited, and each job carries
+its history: who started it, every from→to transition and the actor that made
+it. Jobs can also be updated explicitly with `updateJob(jobId, properties,
+actor)`.
 
 Everything is pluggable through env-driven factories: locally (no env vars)
 you get in-memory persistence and queueing; deployed, the same factories talk

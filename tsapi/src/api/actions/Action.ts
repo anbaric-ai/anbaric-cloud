@@ -10,8 +10,6 @@ class Action {
     description : string;
     actor : Actor;
 
-    predicate = (_job : Job) => true;
-
     constructor(name : string, actor : Actor, description : string = "", id : string = crypto.randomUUID()) {
         this.name = name;
         this.actor = actor;
@@ -19,12 +17,8 @@ class Action {
         this.id = id;
     }
 
-    async run(job : Job) : Promise<Map<string, any>> {
-        if (this.actor.type === "CODE" && "run" in this.actor) {
-            return (this.actor as Actor & { run : CodeRun }).run(job);
-        }
-        throw new Error(`Actions for "${this.actor.type}" actors are not implemented yet`);
-    }
+    predicate = (_job : Job) => true;
+    run : CodeRun = async (_job : Job) => new Map();
 
 }
 
