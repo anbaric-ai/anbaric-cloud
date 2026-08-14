@@ -1,0 +1,12 @@
+{
+  "name": "crm",
+  "version": "1.0.0",
+  "description": "Demo CRM: customers managed by an Anbaric state machine",
+  "type": "module",
+  "main": "src/main.ts",
+  "dependencies": {
+    "anbaric-cloud": "*",
+    "anbaric-state-machine": "*",
+    "anbaric-tsapi": "*"
+  }
+}
