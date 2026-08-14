@@ -1,7 +1,10 @@
-import {createInterface} from "node:readline/promises";
 import {CliConfig, CliFlags, DEFAULT_PLATFORM_URL} from "../CliConfig";
+import {KeyRequest} from "../KeyRequest";
+import {openBrowser} from "../BrowserOpener";
 import {bold, check, dim, green} from "../ui/Ansi";
+import {ask} from "../ui/Prompt";
 import {select} from "../ui/Select";
+import {Spinner} from "../ui/Spinner";
 
 const ANBARIC_CLOUD_URL = "https://cloud.anbaric.ai";
 const PING_TIMEOUT_MS = 1500;
@@ -14,10 +17,46 @@ class LoginCommand {
         const tenant = flags.tenant ?? await this.ask("Tenant", stored.tenant ?? "default");
 
         const path = await CliConfig.save({ platformUrl, tenant });
+        console.log(`${check} Using ${bold(platformUrl)} as tenant ${bold(tenant)} ${dim(`(saved to ${path})`)}`);
 
-        console.log(`${check} Logged in to ${bold(platformUrl)} as tenant ${bold(tenant)}`);
-        console.log(dim(`  saved to ${path} (authentication tokens will land here later)`));
-        return 0;
+        if (!await this.requiresAuthentication(platformUrl)) {
+            console.log(dim("  this platform has authentication disabled, so no key is needed"));
+            return 0;
+        }
+
+        return this.authorizeTerminal(platformUrl);
+    }
+
+    private async authorizeTerminal(platformUrl : string) : Promise<number> {
+        const request = new KeyRequest(platformUrl);
+
+        console.log(`\nOpening your browser to authorize this terminal. If nothing opens, visit:\n  ${bold(request.authorizeUrl)}\n`);
+        openBrowser(request.authorizeUrl);
+
+        const spinner = new Spinner("waiting for the browser authorization").start();
+        try {
+            const key = await request.awaitKey();
+            spinner.stop();
+            const keyPath = await CliConfig.saveKey(key);
+            console.log(`${check} This terminal is now authorized as ${bold(key.clientName)}`);
+            console.log(dim(`  keypair saved to ${keyPath}`));
+            return 0;
+        } catch (error) {
+            spinner.stop();
+            throw error;
+        }
+    }
+
+    private async requiresAuthentication(platformUrl : string) : Promise<boolean> {
+        try {
+            const response = await fetch(`${platformUrl}/whoami`, {
+                redirect: "manual",
+                signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+            });
+            return response.status !== 404;
+        } catch {
+            return false;
+        }
     }
 
     private async choosePlatformUrl() : Promise<string> {
@@ -50,12 +89,7 @@ class LoginCommand {
     }
 
     private async ask(question : string, defaultAnswer : string) : Promise<string> {
-        if (!process.stdin.isTTY) return defaultAnswer;
-
-        const readline = createInterface({ input: process.stdin, output: process.stdout });
-        const answer = (await readline.question(`${question} ${dim(`(${defaultAnswer})`)}: `)).trim();
-        readline.close();
-        return answer || defaultAnswer;
+        return ask(question, defaultAnswer);
     }
 
 }

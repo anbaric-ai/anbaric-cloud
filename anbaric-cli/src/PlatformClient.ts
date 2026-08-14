@@ -37,13 +37,26 @@ class PlatformClient {
         if (contentType) headers["content-type"] = contentType;
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
 
-        const response = await fetch(`${this.options.platformUrl}${path}`, { method, headers, body });
+        const response = await fetch(`${this.options.platformUrl}${path}`, {
+            method,
+            headers,
+            body,
+            redirect: "manual",
+        });
+        if (this.deniedForAuthentication(response)) {
+            throw new Error(`You're not signed in to ${this.options.platformUrl} - run \`anbaric login\` to authorize this terminal`);
+        }
         if (!response.ok) {
             const problem = await response.json().catch(() => ({}));
             throw new Error(problem.error ?? `${method} ${path} failed with status ${response.status}`);
         }
         if (response.status === 204) return undefined;
         return response.json();
+    }
+
+    private deniedForAuthentication(response : Response) : boolean {
+        if (response.status === 401 || response.status === 403) return true;
+        return response.status >= 300 && response.status < 400;
     }
 
 }

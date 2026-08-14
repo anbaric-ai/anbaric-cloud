@@ -4,6 +4,8 @@ import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from 
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
 import {Authenticator} from "../../src/auth/Authenticator";
+import {CliAuthorizer} from "../../src/auth/CliAuthorizer";
+import {InMemoryCliKeyStore} from "../../src/auth/InMemoryCliKeyStore";
 import {Role} from "../../src/auth/Role";
 import {User} from "../../src/auth/User";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
@@ -305,6 +307,107 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const response = await fetch(`${baseUrl}/whoami`);
 
             expect(response.status).toBe(404);
+        });
+
+    });
+
+    describe("cli authorization", () => {
+
+        class StubAuthenticator extends Authenticator {
+
+            async authenticate(session : string | undefined, _request : import("node:http").IncomingMessage,
+                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                if (session === "valid-session") return new User("user-1");
+                response.writeHead(302, { location: "https://login.example/authorize" });
+                response.end();
+                return undefined;
+            }
+
+        }
+
+        let server : HostingServer;
+        let baseUrl : string;
+
+        beforeEach(async () => {
+            server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new StubAuthenticator(),
+                new CliAuthorizer(new InMemoryCliKeyStore()));
+            baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        });
+
+        afterEach(async () => {
+            await server.close();
+        });
+
+        const approve = (requestId : string, clientName : string) =>
+            fetch(`${baseUrl}/authorize-cli/${requestId}`, {
+                method: "POST",
+                headers: { "content-type": "application/json", cookie: "anbaric_session=valid-session" },
+                body: JSON.stringify({ clientName }),
+            });
+
+        it("polls as pending without any session", async () => {
+            const response = await fetch(`${baseUrl}/authorize-cli/req-1/poll`);
+
+            expect(response.status).toBe(202);
+            expect(await response.json()).toEqual({ status: "pending" });
+        });
+
+        it("delivers the keypair to the polling CLI exactly once after browser approval", async () => {
+            expect((await approve("req-1", "chris laptop")).status).toBe(204);
+
+            const ready = await fetch(`${baseUrl}/authorize-cli/req-1/poll`);
+            expect(ready.status).toBe(200);
+            const issued = await ready.json();
+            expect(issued.clientName).toBe("chris laptop");
+            expect(issued.privateKey).toContain("BEGIN PRIVATE KEY");
+
+            expect((await fetch(`${baseUrl}/authorize-cli/req-1/poll`)).status).toBe(202);
+        });
+
+        it("guards the authorization page behind the session", async () => {
+            const response = await fetch(`${baseUrl}/authorize-cli/req-1`, { redirect: "manual" });
+
+            expect(response.status).toBe(302);
+        });
+
+        it("serves the authorization and manage-keys pages to a session", async () => {
+            for (const path of ["/authorize-cli/req-1", "/manage-keys"]) {
+                const response = await fetch(`${baseUrl}${path}`, {
+                    headers: { cookie: "anbaric_session=valid-session" },
+                });
+                expect(response.status).toBe(200);
+                expect(response.headers.get("content-type")).toBe("text/html");
+            }
+        });
+
+        it("rejects an approval without a client name", async () => {
+            const response = await fetch(`${baseUrl}/authorize-cli/req-1`, {
+                method: "POST",
+                headers: { "content-type": "application/json", cookie: "anbaric_session=valid-session" },
+                body: JSON.stringify({}),
+            });
+
+            expect(response.status).toBe(400);
+        });
+
+        it("lists and revokes the session user's keys", async () => {
+            await approve("req-1", "chris laptop");
+
+            const listed = await (await fetch(`${baseUrl}/keys`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+            })).json();
+            expect(listed).toHaveLength(1);
+            expect(listed[0].clientName).toBe("chris laptop");
+
+            await fetch(`${baseUrl}/keys/${listed[0].id}`, {
+                method: "DELETE",
+                headers: { cookie: "anbaric_session=valid-session" },
+            });
+
+            expect(await (await fetch(`${baseUrl}/keys`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+            })).json()).toEqual([]);
         });
 
     });

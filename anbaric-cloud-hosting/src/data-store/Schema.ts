@@ -1,5 +1,8 @@
 import {Pool} from "pg";
 
+/* Workflow data (jobs, queue, documents) lives in the default public schema;
+   platform system tables are encapsulated in the anbaric_system schema so the
+   two never mix. */
 const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS jobs (
@@ -27,6 +30,16 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             workflow_id  TEXT NOT NULL,
             due          TIMESTAMPTZ,
             leased_until TIMESTAMPTZ
+        )
+    `);
+    await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (
+            id          TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            client_name TEXT NOT NULL,
+            public_key  TEXT NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         )
     `);
 };

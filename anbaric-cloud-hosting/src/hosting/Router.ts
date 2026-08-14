@@ -1,6 +1,8 @@
+import {readFile} from "node:fs/promises";
 import {IncomingMessage, ServerResponse} from "node:http";
 import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
+import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
@@ -24,13 +26,23 @@ class Router {
                 private registry : ConsumerRegistry,
                 private buildLayer? : BuildLayer,
                 private documentStoreFor? : (collection : string) => JsonStore,
-                private secretStore? : SecretStore) {}
+                private secretStore? : SecretStore,
+                private cliAuthorizer? : CliAuthorizer) {}
 
     async route(request : IncomingMessage, response : ServerResponse, user? : User) : Promise<void> {
         const url = new URL(request.url ?? "/", "http://localhost");
         const [resource, id, subresource] = url.pathname.split("/").filter(Boolean);
         const method = request.method ?? "GET";
 
+        if (resource === "authorize-cli" && id && this.cliAuthorizer) {
+            return this.handleAuthorizeCli(method, id, subresource, request, response, user);
+        }
+        if (resource === "manage-keys" && method === "GET" && !id && this.cliAuthorizer) {
+            return this.servePage(response);
+        }
+        if (resource === "keys" && this.cliAuthorizer) {
+            return this.handleKeys(method, id, response, user);
+        }
         if (resource === "whoami" && method === "GET" && !id) {
             if (!user) return this.reply(response, 404, { error: "Not found" });
             return this.reply(response, 200, { id: user.id, roles: user.roles.map(role => role.id) });
@@ -62,6 +74,61 @@ class Router {
         }
 
         this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async handleAuthorizeCli(method : string, requestId : string, subresource : string | undefined,
+                                     request : IncomingMessage, response : ServerResponse, user? : User) : Promise<void> {
+        if (method === "GET" && subresource === "poll") {
+            const keyPair = this.cliAuthorizer!.collect(requestId);
+            if (!keyPair) return this.reply(response, 202, { status: "pending" });
+            return this.reply(response, 200, keyPair);
+        }
+
+        if (method === "GET" && !subresource) {
+            return this.servePage(response);
+        }
+
+        if (method === "POST" && !subresource) {
+            const { clientName } = await readBody(request);
+            if (typeof clientName !== "string" || clientName.trim().length === 0) {
+                return this.reply(response, 400, { error: "Expected a body of { clientName : string }" });
+            }
+            await this.cliAuthorizer!.approve(requestId, clientName.trim(), user ?? new User("local"));
+            return this.reply(response, 204);
+        }
+
+        this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async handleKeys(method : string, id : string | undefined,
+                             response : ServerResponse, user? : User) : Promise<void> {
+        const owner = user ?? new User("local");
+
+        if (method === "GET" && !id) {
+            const keys = await this.cliAuthorizer!.keysFor(owner.id);
+            return this.reply(response, 200, keys.map(key => ({
+                id: key.id,
+                clientName: key.clientName,
+                createdAt: key.createdAt.toISOString(),
+            })));
+        }
+
+        if (method === "DELETE" && id) {
+            await this.cliAuthorizer!.revoke(id, owner.id);
+            return this.reply(response, 204);
+        }
+
+        this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async servePage(response : ServerResponse) : Promise<void> {
+        try {
+            const page = await readFile(new URL("./pages/platform-ui.html", import.meta.url));
+            response.writeHead(200, { "content-type": "text/html" });
+            response.end(page);
+        } catch {
+            this.reply(response, 501, { error: "The platform UI has not been built - run npm run build in anbaric-cloud-hosting/ui" });
+        }
     }
 
     private async forwardToApp(appHost : string, appPort : number, appName : string, method : string, url : URL,

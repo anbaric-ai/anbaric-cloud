@@ -3,6 +3,7 @@ import {AddressInfo} from "node:net";
 import {JobPersistence, JsonStore, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {Authenticator, SESSION_COOKIE} from "../auth/Authenticator";
+import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
@@ -18,8 +19,9 @@ class HostingServer {
                 buildLayer? : BuildLayer,
                 documentStoreFor? : (collection : string) => JsonStore,
                 secretStore? : SecretStore,
-                private authenticator? : Authenticator) {
-        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore);
+                private authenticator? : Authenticator,
+                cliAuthorizer? : CliAuthorizer) {
+        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer);
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
@@ -40,8 +42,12 @@ class HostingServer {
     }
 
     private async handle(request : IncomingMessage, response : ServerResponse) : Promise<void> {
-        if (request.url?.split("?")[0] === "/ping" && request.method === "GET") {
+        const path = request.url?.split("?")[0] ?? "/";
+        if (path === "/ping" && request.method === "GET") {
             return this.reply(response, 200, { status: "ok" });
+        }
+        if (/^\/authorize-cli\/[^/]+\/poll$/.test(path) && request.method === "GET") {
+            return this.router.route(request, response);
         }
 
         const user = await this.authenticateSession(request, response);

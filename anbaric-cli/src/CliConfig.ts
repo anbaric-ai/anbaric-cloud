@@ -12,6 +12,14 @@ type CliFlags = {
     tenant? : string,
 };
 
+type StoredKey = {
+    platformUrl : string,
+    keyId : string,
+    clientName : string,
+    publicKey : string,
+    privateKey : string,
+};
+
 const DEFAULT_PLATFORM_URL = "http://localhost:8787";
 
 const configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
@@ -41,7 +49,22 @@ const CliConfig = {
         };
     },
 
+    async saveKey(key : StoredKey) : Promise<string> {
+        await mkdir(configDir(), { recursive: true });
+        const path = join(configDir(), "key.json");
+        await writeFile(path, JSON.stringify(key, null, 2), { mode: 0o600 });
+        return path;
+    },
+
+    async loadKey() : Promise<StoredKey | undefined> {
+        try {
+            return JSON.parse(await readFile(join(configDir(), "key.json"), "utf8"));
+        } catch {
+            return undefined;
+        }
+    },
+
 };
 
 export { CliConfig, DEFAULT_PLATFORM_URL };
-export type { CliFlags, CliOptions };
+export type { CliFlags, CliOptions, StoredKey };
