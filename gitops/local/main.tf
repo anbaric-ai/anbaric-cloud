@@ -76,10 +76,11 @@ resource "docker_container" "platform" {
   env = concat([
     "ANBARIC_DATABASE_URL=postgres://anbaric:anbaric@anbaric-v2-postgres:5432/anbaric",
     "ANBARIC_HOSTING_PORT=8787",
+    "ANBARIC_INTERNAL_PORT=8788",
     "ANBARIC_BUILD_LAYER=docker",
     "ANBARIC_APP_BASE_IMAGE=anbaric-v2-platform:local",
     "ANBARIC_DOCKER_NETWORK=anbaric-v2-local",
-    "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8787",
+    "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8788",
     ], var.auth0_domain == "" ? [] : [
     "ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0",
     "ANBARIC_AUTH0_DOMAIN=${var.auth0_domain}",

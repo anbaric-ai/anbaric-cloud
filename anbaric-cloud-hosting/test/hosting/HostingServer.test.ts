@@ -492,6 +492,76 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     });
 
+    describe("internal entry point", () => {
+
+        class WallAuthenticator extends Authenticator {
+
+            async authenticate(_session : string | undefined, _request : import("node:http").IncomingMessage,
+                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                response.writeHead(302, { location: "https://login.example/authorize" });
+                response.end();
+                return undefined;
+            }
+
+        }
+
+        let walledServer : HostingServer;
+        let publicUrl : string;
+        let internalUrl : string;
+
+        beforeEach(async () => {
+            walledServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, () => new InMemoryJsonStore(),
+                new InMemorySecretStore(), new WallAuthenticator(),
+                new CliAuthorizer(new InMemoryCliKeyStore()));
+            publicUrl = `http://127.0.0.1:${await walledServer.listen(0)}`;
+            internalUrl = `http://127.0.0.1:${await walledServer.listenInternal(0)}`;
+        });
+
+        afterEach(async () => {
+            await walledServer.close();
+        });
+
+        it("serves workflow resources without any credentials", async () => {
+            const response = await fetch(`${internalUrl}/jobs`);
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual([]);
+        });
+
+        it("answers pings for liveness", async () => {
+            const response = await fetch(`${internalUrl}/ping`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it("never exposes system endpoints", async () => {
+            const systemPaths = ["/apps", "/keys", "/whoami", "/manage-keys",
+                "/authorize-cli/req-1", "/authorize-cli/req-1/poll", "/crm", "/"];
+
+            for (const path of systemPaths) {
+                const response = await fetch(`${internalUrl}${path}`, { redirect: "manual" });
+                expect(response.status, path).toBe(404);
+            }
+        });
+
+        it("refuses deployment uploads", async () => {
+            const response = await fetch(`${internalUrl}/apps/crm/deploy`, {
+                method: "POST",
+                body: new Uint8Array([1]),
+            });
+
+            expect(response.status).toBe(404);
+        });
+
+        it("keeps the public entry point behind authentication", async () => {
+            const response = await fetch(`${publicUrl}/jobs`, { redirect: "manual" });
+
+            expect(response.status).toBe(302);
+        });
+
+    });
+
     it("answers pings", async () => {
         const response = await fetch(`${baseUrl}/ping`);
 

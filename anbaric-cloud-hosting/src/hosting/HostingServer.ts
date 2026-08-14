@@ -10,9 +10,12 @@ import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 import {Router} from "./Router";
 
+const INTERNAL_RESOURCES = new Set(["jobs", "queue", "consumers", "state-machines", "documents", "secrets"]);
+
 class HostingServer {
 
     private server : Server;
+    private internalServer : Server;
     private router : Router;
 
     constructor(persistence : JobPersistence, queue : ConfirmableQueue,
@@ -24,13 +27,8 @@ class HostingServer {
                 cliAuthorizer? : CliAuthorizer,
                 private tokenAuthenticator? : TokenAuthenticator) {
         this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer);
-        this.server = createServer((request, response) => {
-            this.handle(request, response).catch(error => {
-                const message = error instanceof Error ? error.message : "Internal error";
-                const status = /^No .+ found/.test(message) ? 404 : 500;
-                this.reply(response, status, { error: message });
-            });
-        });
+        this.server = this.serverFor((request, response) => this.handle(request, response));
+        this.internalServer = this.serverFor((request, response) => this.handleInternal(request, response));
     }
 
     listen(port : number) : Promise<number> {
@@ -38,9 +36,26 @@ class HostingServer {
             this.server.listen(port, () => resolve((this.server.address() as AddressInfo).port)));
     }
 
+    listenInternal(port : number) : Promise<number> {
+        return new Promise(resolve =>
+            this.internalServer.listen(port, () => resolve((this.internalServer.address() as AddressInfo).port)));
+    }
+
     close() : Promise<void> {
-        return new Promise((resolve, reject) =>
-            this.server.close(error => error ? reject(error) : resolve()));
+        return new Promise((resolve, reject) => {
+            if (this.internalServer.listening) this.internalServer.close();
+            this.server.close(error => error ? reject(error) : resolve());
+        });
+    }
+
+    private serverFor(handle : (request : IncomingMessage, response : ServerResponse) => Promise<void>) : Server {
+        return createServer((request, response) => {
+            handle(request, response).catch(error => {
+                const message = error instanceof Error ? error.message : "Internal error";
+                const status = /^No .+ found/.test(message) ? 404 : 500;
+                this.reply(response, status, { error: message });
+            });
+        });
     }
 
     private async handle(request : IncomingMessage, response : ServerResponse) : Promise<void> {
@@ -63,6 +78,18 @@ class HostingServer {
         if (user) return this.authorizeAndRoute(user, request, response);
 
         await this.router.route(request, response, user);
+    }
+
+    private async handleInternal(request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        const path = request.url?.split("?")[0] ?? "/";
+        if (path === "/ping" && request.method === "GET") {
+            return this.reply(response, 200, { status: "ok" });
+        }
+        const [resource] = path.split("/").filter(Boolean);
+        if (!resource || !INTERNAL_RESOURCES.has(resource)) {
+            return this.reply(response, 404, { error: "Not found" });
+        }
+        await this.router.route(request, response);
     }
 
     private async authorizeAndRoute(user : User, request : IncomingMessage, response : ServerResponse) : Promise<void> {
