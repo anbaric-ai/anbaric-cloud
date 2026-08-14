@@ -81,10 +81,9 @@ resource "aws_ecs_cluster" "anbaric" {
   name = "anbaric-${var.environment}"
 }
 
-/* Fargate offers no docker socket, so no build layer is configured yet: app
-   deployment is unavailable on AWS until the Fargate build layer (CodeBuild
-   image bake, one ECS service per app) lands. The platform APIs, pages and
-   job processing all work. */
+/* The platform deploys apps through the Fargate build layer: CodeBuild bakes
+   each app image and every app becomes its own ECS service in this cluster,
+   reached through Cloud Map DNS. */
 resource "aws_ecs_task_definition" "platform" {
   family                   = "anbaric-${var.environment}-platform"
   requires_compatibilities = ["FARGATE"]
@@ -92,6 +91,7 @@ resource "aws_ecs_task_definition" "platform" {
   cpu                      = var.cpu
   memory                   = var.memory
   execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.platform_task.arn
 
   runtime_platform {
     operating_system_family = "LINUX"
@@ -103,13 +103,28 @@ resource "aws_ecs_task_definition" "platform" {
     image     = "${aws_ecr_repository.platform.repository_url}:latest"
     essential = true
 
-    portMappings = [{ containerPort = var.hosting_port, protocol = "tcp" }]
+    portMappings = [
+      { containerPort = var.hosting_port, protocol = "tcp" },
+      { containerPort = var.internal_port, protocol = "tcp" },
+    ]
 
     environment = concat([
       { name = "ANBARIC_HOSTING_PORT", value = tostring(var.hosting_port) },
       { name = "ANBARIC_INTERNAL_PORT", value = tostring(var.internal_port) },
-      { name = "ANBARIC_PLATFORM_INTERNAL_URL", value = "http://localhost:${var.internal_port}" },
+      { name = "ANBARIC_PLATFORM_INTERNAL_URL", value = "http://platform.${aws_service_discovery_private_dns_namespace.anbaric.name}:${var.internal_port}" },
       { name = "ANBARIC_PLATFORM_PUBLIC_URL", value = local.platform_public_url },
+      { name = "ANBARIC_BUILD_LAYER", value = "fargate" },
+      { name = "ANBARIC_AWS_CLUSTER", value = aws_ecs_cluster.anbaric.name },
+      { name = "ANBARIC_AWS_SUBNETS", value = join(",", aws_subnet.public[*].id) },
+      { name = "ANBARIC_AWS_APP_SECURITY_GROUP", value = aws_security_group.apps.id },
+      { name = "ANBARIC_AWS_NAMESPACE_ID", value = aws_service_discovery_private_dns_namespace.anbaric.id },
+      { name = "ANBARIC_AWS_NAMESPACE_NAME", value = aws_service_discovery_private_dns_namespace.anbaric.name },
+      { name = "ANBARIC_AWS_APPS_REPOSITORY", value = aws_ecr_repository.apps.repository_url },
+      { name = "ANBARIC_AWS_BUILD_BUCKET", value = aws_s3_bucket.app_builds.bucket },
+      { name = "ANBARIC_AWS_BUILD_PROJECT", value = aws_codebuild_project.app_build.name },
+      { name = "ANBARIC_AWS_BASE_IMAGE", value = "${aws_ecr_repository.platform.repository_url}:latest" },
+      { name = "ANBARIC_AWS_APP_EXECUTION_ROLE", value = aws_iam_role.app_execution.arn },
+      { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
     ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
@@ -191,6 +206,10 @@ resource "aws_ecs_service" "platform" {
     target_group_arn = aws_lb_target_group.platform.arn
     container_name   = "platform"
     container_port   = var.hosting_port
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.platform.arn
   }
 
   depends_on = [aws_lb_listener.http, terraform_data.platform_image]

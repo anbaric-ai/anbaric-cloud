@@ -10,6 +10,7 @@ export * from "./auth/Role";
 export * from "./auth/TokenAuthenticator";
 export * from "./auth/User";
 export * from "./app-management/DockerBuildLayer";
+export * from "./app-management/FargateBuildLayer";
 export * from "./data-store/PostgresCliKeyStore";
 export * from "./data-store/PostgresJobPersistence";
 export * from "./data-store/PostgresJsonStore";

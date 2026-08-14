@@ -80,5 +80,5 @@ class DockerBuildLayer extends BaseBuildLayer {
 
 }
 
-export { DockerBuildLayer };
+export { DockerBuildLayer, dockerfileFor };
 export type { CommandRunner, DockerBuildLayerOptions };

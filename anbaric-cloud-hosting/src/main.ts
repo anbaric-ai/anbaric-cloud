@@ -12,6 +12,7 @@ import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
 import {DockerBuildLayer} from "./app-management/DockerBuildLayer";
+import {FargateBuildLayer} from "./app-management/FargateBuildLayer";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -31,6 +32,22 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         baseImage: process.env.ANBARIC_APP_BASE_IMAGE ?? "anbaric-v2-platform:local",
         network: process.env.ANBARIC_DOCKER_NETWORK ?? "anbaric-v2-local",
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL ?? `http://localhost:${internalPort}`,
+    })
+    : process.env.ANBARIC_BUILD_LAYER === "fargate"
+    ? new FargateBuildLayer(appsDir, {
+        awsRegion: process.env.AWS_REGION!,
+        cluster: process.env.ANBARIC_AWS_CLUSTER!,
+        subnets: (process.env.ANBARIC_AWS_SUBNETS ?? "").split(","),
+        appSecurityGroup: process.env.ANBARIC_AWS_APP_SECURITY_GROUP!,
+        namespaceId: process.env.ANBARIC_AWS_NAMESPACE_ID!,
+        namespaceName: process.env.ANBARIC_AWS_NAMESPACE_NAME!,
+        appsRepositoryUrl: process.env.ANBARIC_AWS_APPS_REPOSITORY!,
+        buildBucket: process.env.ANBARIC_AWS_BUILD_BUCKET!,
+        buildProject: process.env.ANBARIC_AWS_BUILD_PROJECT!,
+        baseImage: process.env.ANBARIC_AWS_BASE_IMAGE!,
+        appExecutionRoleArn: process.env.ANBARIC_AWS_APP_EXECUTION_ROLE!,
+        appsLogGroup: process.env.ANBARIC_AWS_APPS_LOG_GROUP!,
+        platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL!,
     })
     : undefined;
 

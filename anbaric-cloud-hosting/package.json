@@ -12,7 +12,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-codebuild": "^3.1110.0",
+    "@aws-sdk/client-ecs": "^3.1110.0",
+    "@aws-sdk/client-s3": "^3.1110.0",
     "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "@aws-sdk/client-servicediscovery": "^3.1110.0",
     "anbaric-data-store": "*",
     "anbaric-tsapi": "*",
     "pg": "^8.16.0"

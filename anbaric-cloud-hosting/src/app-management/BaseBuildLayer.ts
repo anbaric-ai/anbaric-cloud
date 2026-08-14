@@ -35,7 +35,8 @@ abstract class BaseBuildLayer implements BuildLayer {
     private nextAppIndex = 0;
 
     constructor(protected appsDir : string, private consumerPortBase : number = 8800,
-                private probe : Probe = httpProbe) {}
+                private probe : Probe = httpProbe,
+                private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS) {}
 
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary {
         const existing = this.deployments.get(appName);
@@ -105,7 +106,7 @@ abstract class BaseBuildLayer implements BuildLayer {
     }
 
     private async awaitLive(deployment : Deployment) : Promise<void> {
-        const deadline = Date.now() + LIVENESS_TIMEOUT_MS;
+        const deadline = Date.now() + this.livenessTimeoutMs;
 
         while (Date.now() < deadline) {
             if (deployment.status !== "building") return;
@@ -119,7 +120,7 @@ abstract class BaseBuildLayer implements BuildLayer {
 
         await this.stop(deployment);
         deployment.status = "failed";
-        this.log(deployment, `app did not respond at ${deployment.appHost}:${deployment.appPort} within ${LIVENESS_TIMEOUT_MS / 1000}s`);
+        this.log(deployment, `app did not respond at ${deployment.appHost}:${deployment.appPort} within ${this.livenessTimeoutMs / 1000}s`);
     }
 
     private async linkWorkspacePackages(appDir : string, manifest : { dependencies? : Record<string, string> }) : Promise<void> {

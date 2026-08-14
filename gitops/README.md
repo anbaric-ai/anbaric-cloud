@@ -11,7 +11,7 @@ OpenTofu environments for the Anbaric platform (the `anbaric-cloud-hosting` serv
 
 Both AWS environments default to **eu-west-3 (Paris)** — the lowest-latency region for the UK outside eu-west-1/eu-west-2, which host the existing Anbaric v1 estate; a validation rule refuses those two regions outright.
 
-On Fargate there is no docker socket, so no build layer is configured yet and `anbaric deploy` is unavailable on AWS: the platform APIs, pages and job processing all work, and app deployment arrives with the Fargate build layer (CodeBuild image bake, one ECS service per app). Consumer registrations are in-memory, so the service is pinned to a single task until they are persisted.
+On AWS the platform uses its Fargate build layer: `anbaric deploy` uploads the app bundle, the platform ships it to S3 and has CodeBuild bake the image (the same generated Dockerfile as local, from the platform base image) into the apps ECR repository, then runs the app as its own single-task ECS service. Apps get Cloud Map DNS names (`<app>.anbaric-<env>.local`) that the proxy and dispatcher use, and reach the platform's internal entry point at `platform.anbaric-<env>.local:8788` — a port only the app security group can reach. Expect AWS deploys to take a few minutes (CodeBuild spin-up); the CLI polls status as usual. Consumer registrations are in-memory, so the platform is pinned to a single task until they are persisted.
 
 CloudFront terminates TLS at the edge and follows the origin's `Cache-Control` headers — the platform currently marks nothing cacheable (everything sits behind the session/token wall), so requests pass through today, and edge caching switches on per-response as soon as the platform emits `Cache-Control`.
 
