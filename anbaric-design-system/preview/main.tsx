@@ -34,8 +34,8 @@ import { SideNav } from '../components/SideNav'
 
 import logoUrl from '../shared/assets/anbaric-logo.png'
 import identUrl from '../shared/assets/anbaric-ident.png'
-// Ink (dark-text) wordmark, for the light nav and the light logo card.
-import logoInkUrl from '../shared/assets/anbaric-logo-ink.png'
+// Full-colour vector logotype, used by the side nav header.
+import logoSvgUrl from '../shared/assets/anbaric-logo.svg'
 
 const vars = (v: Record<string, string>) => v as CSSProperties
 
@@ -57,15 +57,6 @@ function Logos() {
         <div className="card__meta">
           <span className="card__name">Logotype</span>
           <code className="card__token">shared/assets/anbaric-logo.png</code>
-        </div>
-      </Card>
-      <Card>
-        <div className="logo-stage logo-stage--wordmark logo-stage--light">
-          <img src={logoInkUrl} alt="Anbaric logotype, ink" />
-        </div>
-        <div className="card__meta">
-          <span className="card__name">Logotype · ink</span>
-          <code className="card__token">shared/assets/anbaric-logo-ink.png</code>
         </div>
       </Card>
       <Card>
@@ -1022,8 +1013,7 @@ function Guidance() {
               signature — use it wherever there's room to read it: marketing,
               document headers, the splash. The <strong>ident</strong> (mark
               alone) is for tight or square spaces: the favicon, an app icon, an
-              avatar. The <strong>ink logotype</strong> is the same wordmark drawn
-              in foreground ink for light surfaces — it's what the side nav uses.
+              avatar.
             </p>
           </GuidanceCard>
           <GuidanceCard title="Why">
@@ -1037,9 +1027,9 @@ function Guidance() {
           <GuidanceCard title="Best practices">
             <p className="component-demo__body">
               Give the logo clear space and never recolour, stretch or add effects
-              to it. Use the standard (white) logotype on dark or coloured
-              surfaces and the ink variant on light ones — pick by contrast, not
-              taste. Reach for the ident only when the full wordmark won't read.
+              to it. Use the full colour logo on light, dark or
+              Shadowglass surfaces, and the one colour colourways elsewhere —
+              pick by contrast, not taste. Reach for the ident only when the full wordmark won't read.
             </p>
           </GuidanceCard>
         </div>
@@ -1679,7 +1669,7 @@ function App() {
           <SideNav
             header={
               <img
-                src={logoInkUrl}
+                src={logoSvgUrl}
                 alt="Anbaric"
                 style={{ height: '1.05rem', display: 'block', width: 'auto' }}
               />
