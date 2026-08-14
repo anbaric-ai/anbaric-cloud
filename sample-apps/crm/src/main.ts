@@ -2,6 +2,7 @@ import {createServer, IncomingMessage, ServerResponse} from "node:http";
 import {serializeJob} from "anbaric-tsapi";
 import {JobPersistenceFactory, QueueFactory} from "anbaric-state-machine";
 import {customerWorkflow} from "./customerWorkflow";
+import {indexPage} from "./indexPage";
 
 const persistence = JobPersistenceFactory.instance();
 const queue = QueueFactory.instance();
@@ -34,6 +35,12 @@ const server = createServer((request, response) => {
 const handle = async (request : IncomingMessage, response : ServerResponse) => {
     const url = new URL(request.url ?? "/", "http://localhost");
     const [resource, id] = url.pathname.split("/").filter(Boolean);
+
+    if (!resource && request.method === "GET") {
+        const customers = (await persistence.list()).map(serializeJob);
+        response.writeHead(200, { "content-type": "text/html" });
+        return response.end(indexPage(customers));
+    }
 
     if (resource !== "customers") return reply(response, 404, { error: "Not found" });
 
