@@ -50,6 +50,9 @@ class HostingServer {
         const [resource, id, subresource] = url.pathname.split("/").filter(Boolean);
         const method = request.method ?? "GET";
 
+        if (resource === "ping" && method === "GET") {
+            return this.reply(response, 200, { status: "ok" });
+        }
         if (resource === "jobs") return this.handleJobs(method, id, subresource, url, request, response);
         if (resource === "queue" && method === "POST" && !subresource) return this.handleQueue(id, request, response);
         if (resource === "consumers" && method === "POST" && !id) {

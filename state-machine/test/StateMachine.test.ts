@@ -69,7 +69,7 @@ describe("StateMachine", () => {
         it("progresses a job when the consumer delivers its id", async () => {
             const job = new Job("job-1", new Map(), "start");
             persistence.retrieve.mockResolvedValue(job);
-            machineWith([new State("start", [], [new Transition("done", () => true)])]);
+            machineWith([new State("start", [], [new Transition("done", () => true)]), new State("done")]);
 
             const processJob = consumer.subscribe.mock.calls[0][1];
             await processJob("job-1");
@@ -253,11 +253,14 @@ describe("StateMachine", () => {
             it("applies the first transition whose predicate matches", async () => {
                 const job = jobInState("start");
                 persistence.retrieve.mockResolvedValue(job);
-                const machine = machineWith([new State("start", [], [
-                    new Transition("rejected", () => false),
-                    new Transition("approved", () => true),
-                    new Transition("archived", () => true),
-                ])]);
+                const machine = machineWith([
+                    new State("start", [], [
+                        new Transition("rejected", () => false),
+                        new Transition("approved", () => true),
+                        new Transition("archived", () => true),
+                    ]),
+                    new State("rejected"), new State("approved"), new State("archived"),
+                ]);
 
                 await machine.progressJob("job-1");
 
@@ -267,9 +270,10 @@ describe("StateMachine", () => {
             it("leaves the state unchanged when no transition matches", async () => {
                 const job = jobInState("start");
                 persistence.retrieve.mockResolvedValue(job);
-                const machine = machineWith([new State("start", [], [
-                    new Transition("done", () => false),
-                ])]);
+                const machine = machineWith([
+                    new State("start", [], [new Transition("done", () => false)]),
+                    new State("done"),
+                ]);
 
                 await machine.progressJob("job-1");
 
@@ -297,9 +301,28 @@ describe("StateMachine", () => {
                 };
                 const job = jobInState("start");
                 persistence.retrieve.mockResolvedValue(job);
-                const machine = machineWith([new State("start", [approve], [
-                    new Transition("done", (candidate) => candidate.properties.get("approved") === true),
-                ])]);
+                const machine = machineWith([
+                    new State("start", [approve], [
+                        new Transition("done", (candidate) => candidate.properties.get("approved") === true),
+                    ]),
+                    new State("done"),
+                ]);
+
+                await machine.progressJob("job-1");
+
+                expect(job.stateId).toBe("done");
+            });
+
+            it("skips transitions whose target state is not defined", async () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockResolvedValue(job);
+                const machine = machineWith([
+                    new State("start", [], [
+                        new Transition("nowhere", () => true),
+                        new Transition("done", () => true),
+                    ]),
+                    new State("done"),
+                ]);
 
                 await machine.progressJob("job-1");
 
@@ -309,9 +332,10 @@ describe("StateMachine", () => {
             it("saves the job after transitioning", async () => {
                 const job = jobInState("start");
                 persistence.retrieve.mockResolvedValue(job);
-                const machine = machineWith([new State("start", [], [
-                    new Transition("done", () => true),
-                ])]);
+                const machine = machineWith([
+                    new State("start", [], [new Transition("done", () => true)]),
+                    new State("done"),
+                ]);
 
                 await machine.progressJob("job-1");
 

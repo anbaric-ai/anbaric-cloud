@@ -76,7 +76,10 @@ describe("StateMachine with in-memory collaborators", () => {
         const consumer = new LocalConsumer(queue, 10);
         const automatic = new StateMachine(
             "workflow-auto",
-            [new State("start", [stampingAction("progressed", true)], [new Transition("done", () => true)])],
+            [
+                new State("start", [stampingAction("progressed", true)], [new Transition("done", () => true)]),
+                new State("done"),
+            ],
             "start",
             [],
             new DefaultActionResolver(),

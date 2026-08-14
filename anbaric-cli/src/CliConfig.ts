@@ -36,8 +36,8 @@ const CliConfig = {
     async resolve(flags : CliFlags) : Promise<CliOptions> {
         const stored = await CliConfig.load();
         return {
-            platformUrl: flags.platformUrl ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL,
-            tenant: flags.tenant ?? stored.tenant,
+            platformUrl: flags.platformUrl ?? process.env.ANBARIC_CLOUD_URL ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL,
+            tenant: flags.tenant ?? process.env.ANBARIC_TENANT ?? stored.tenant,
         };
     },
 

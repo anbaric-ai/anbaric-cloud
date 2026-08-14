@@ -75,6 +75,7 @@ class StateMachine {
 
         const transitions = this.states.get(job.stateId!)!.transitions;
         for (const transition of transitions) {
+            if (! this.states.has(transition.to)) continue;
             if (mutableJob.transition(transition)) break;
         }
 

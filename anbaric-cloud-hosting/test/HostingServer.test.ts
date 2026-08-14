@@ -179,6 +179,13 @@ describe("HostingServer round-trip via the cloud clients", () => {
         expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
     });
 
+    it("answers pings", async () => {
+        const response = await fetch(`${baseUrl}/ping`);
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ status: "ok" });
+    });
+
     it("returns 404 for unknown routes", async () => {
         const response = await fetch(`${baseUrl}/unknown`);
 
