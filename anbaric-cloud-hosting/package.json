@@ -19,6 +19,7 @@
     "@types/node": "^26.2.0",
     "@types/pg": "^8.15.0",
     "anbaric-cloud": "*",
+    "anbaric-json-store": "*",
     "anbaric-state-machine": "*",
     "tsx": "^4.20.0",
     "typescript": "^7.0.2"

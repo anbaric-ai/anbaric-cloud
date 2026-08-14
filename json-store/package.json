@@ -1,0 +1,21 @@
+{
+  "name": "anbaric-json-store",
+  "version": "1.0.0",
+  "description": "Simple schema-validated JSON document store, backed in memory locally or by the Anbaric Cloud",
+  "license": "MIT",
+  "author": "chris@anbaric.ai",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "anbaric-cloud": "*",
+    "anbaric-tsapi": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}
