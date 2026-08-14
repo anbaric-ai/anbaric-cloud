@@ -5,19 +5,25 @@ OpenTofu environments for the Anbaric platform (the `anbaric-cloud-hosting` serv
 ## Layout
 
 - `local/` — runs the platform on Docker Desktop: a `postgres:17` container and the platform image built from the monorepo's `anbaric-cloud-hosting/Dockerfile`. The platform listens on `http://localhost:8787`.
-- `staging/` — AWS: Fargate service + RDS Postgres via the shared module, small sizing.
-- `prod/` — AWS: same module, bigger database and two service replicas.
-- `modules/anbaric-platform-aws/` — shared module: RDS Postgres, ECS cluster/task/service on Fargate, security groups, log group. Deliberately basic (default VPC, public service IP, no ALB or per-tenant stacks yet).
+- `staging/` — AWS via the shared module, small sizing.
+- `prod/` — AWS: same module, bigger database and task.
+- `modules/anbaric-platform-aws/` — the full AWS estate, created from nothing: a dedicated VPC (two public subnets, internet gateway), RDS Postgres (private, security-group access only), an ECR repository with the platform image built and pushed on `apply` whenever the source changes, a Fargate service health-checked on `/ping` behind an ALB that only admits CloudFront's origin-facing IPs, secrets in Secrets Manager, CloudWatch logs, and a CloudFront distribution in front of everything.
+
+Both AWS environments default to **eu-west-3 (Paris)** — the lowest-latency region for the UK outside eu-west-1/eu-west-2, which host the existing Anbaric v1 estate; a validation rule refuses those two regions outright.
+
+On Fargate there is no docker socket, so the platform uses its `ProcessBuildLayer`: deployed apps run as child processes inside the platform task and use the internal entry point on `localhost:8788`, which is never exposed. Consumer registrations and running apps are in-memory, so the service is pinned to a single task until they are persisted.
+
+CloudFront terminates TLS at the edge and follows the origin's `Cache-Control` headers — the platform currently marks nothing cacheable (everything sits behind the session/token wall), so requests pass through today, and edge caching switches on per-response as soon as the platform emits `Cache-Control`.
 
 ## Usage
 
 ```sh
 cd gitops/local        # or staging / prod
 tofu init
-tofu apply             # staging/prod need -var image=... and -var db_password=...
+tofu apply
 ```
 
-Local expects Docker Desktop to be running. Staging and prod expect AWS credentials in the environment, an image pushed to ECR, and an S3 state backend configured (see the commented `backend` block) before the first shared apply.
+Local expects Docker Desktop to be running. Staging and prod expect AWS credentials and docker in the environment (the image build/push happens during `apply`), a `db_password` in `terraform.tfvars`, and an S3 state backend configured (see the commented `backend` block) before the first shared apply. The `platform_url` output — the CloudFront domain unless `platform_public_url` overrides it with a custom domain — is the platform address, and with Auth0 enabled `<platform_url>/callback` must be added to the Auth0 application's Allowed Callback URLs.
 
 Environment-specific configuration (Auth0 tenants, AWS settings) is supplied per environment via a gitignored `terraform.tfvars` — never commit tenant ids, domains, or credentials to this repo:
 

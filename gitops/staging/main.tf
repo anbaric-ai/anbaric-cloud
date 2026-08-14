@@ -9,7 +9,7 @@ terraform {
   # backend "s3" {
   #   bucket = "anbaric-tofu-state"
   #   key    = "staging/terraform.tfstate"
-  #   region = "us-east-1"
+  #   region = "eu-west-3"
   # }
 }
 
@@ -17,14 +17,16 @@ provider "aws" {
   region = var.aws_region
 }
 
+/* eu-west-3 (Paris) keeps UK latency low while staying outside the
+   eu-west-1/eu-west-2 regions that host the existing Anbaric estate. */
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
-}
+  default = "eu-west-3"
 
-variable "image" {
-  description = "Container image for the platform service (ECR URI with tag)"
-  type        = string
+  validation {
+    condition     = !contains(["eu-west-1", "eu-west-2"], var.aws_region)
+    error_message = "eu-west-1 and eu-west-2 host the existing Anbaric estate and must not be used."
+  }
 }
 
 variable "db_password" {
@@ -58,13 +60,17 @@ module "platform" {
 
   environment = "staging"
   aws_region  = var.aws_region
-  image       = var.image
+  source_root = "${path.root}/../.."
   db_password = var.db_password
 
   auth0_domain        = var.auth0_domain
   auth0_client_id     = var.auth0_client_id
   auth0_client_secret = var.auth0_client_secret
   platform_public_url = var.platform_public_url
+}
+
+output "platform_url" {
+  value = module.platform.platform_url
 }
 
 output "database_endpoint" {

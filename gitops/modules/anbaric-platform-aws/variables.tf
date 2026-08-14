@@ -6,8 +6,8 @@ variable "aws_region" {
   type = string
 }
 
-variable "image" {
-  description = "Container image for the platform service (ECR URI with tag)"
+variable "source_root" {
+  description = "Path to the monorepo root; the platform image is built from it and pushed on apply"
   type        = string
 }
 
@@ -23,22 +23,22 @@ variable "db_instance_class" {
 
 variable "cpu" {
   type    = number
-  default = 256
+  default = 512
 }
 
 variable "memory" {
   type    = number
-  default = 512
-}
-
-variable "desired_count" {
-  type    = number
-  default = 1
+  default = 1024
 }
 
 variable "hosting_port" {
   type    = number
   default = 8787
+}
+
+variable "internal_port" {
+  type    = number
+  default = 8788
 }
 
 variable "auth0_domain" {
@@ -61,7 +61,7 @@ variable "auth0_client_secret" {
 }
 
 variable "platform_public_url" {
-  description = "Public URL of the platform, used for the login callback"
+  description = "Public URL of the platform, used for the login callback; defaults to the CloudFront domain"
   type        = string
   default     = ""
 }

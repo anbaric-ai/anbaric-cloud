@@ -1,0 +1,4 @@
+db_password         = "generate-a-long-random-password"
+auth0_domain        = "your-tenant.eu.auth0.com"
+auth0_client_id     = "your-auth0-client-id"
+auth0_client_secret = "your-auth0-client-secret"
