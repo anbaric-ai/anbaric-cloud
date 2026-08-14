@@ -16,6 +16,18 @@ class PlatformClient {
         return this.request("GET", path);
     }
 
+    async post(path : string, body : unknown) : Promise<any> {
+        return this.request("POST", path, JSON.stringify(body), "application/json");
+    }
+
+    async put(path : string, body : unknown) : Promise<any> {
+        return this.request("PUT", path, JSON.stringify(body), "application/json");
+    }
+
+    async patch(path : string, body : unknown) : Promise<any> {
+        return this.request("PATCH", path, JSON.stringify(body), "application/json");
+    }
+
     async postBinary(path : string, body : Buffer, contentType : string) : Promise<any> {
         return this.request("POST", path, new Uint8Array(body), contentType);
     }

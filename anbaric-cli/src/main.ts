@@ -6,6 +6,8 @@ import {AppsCommand} from "./commands/AppsCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
+import {JobSetStateCommand} from "./commands/JobSetStateCommand";
+import {JobUpdateCommand} from "./commands/JobUpdateCommand";
 import {LoginCommand} from "./commands/LoginCommand";
 import {StateMachinesCommand} from "./commands/StateMachinesCommand";
 import {WatchCommand} from "./commands/WatchCommand";
@@ -15,18 +17,20 @@ const usage = () => {
     console.log(`${bold("anbaric")} — the Anbaric platform CLI
 
 ${bold("Usage")}
-  anbaric login                        configure platform URL and tenant
-  anbaric configure [dir]              create or update the app's .anbaric/app-config.json
-  anbaric deploy [dir]                 deploy an app (defaults to the current directory)
-  anbaric update [dir]                 deploy, replacing a running app without prompting
-  anbaric apps                         list deployed apps
-  anbaric state-machines               list registered state machines
-  anbaric jobs [state-machine-id]      list jobs, optionally for one state machine
-  anbaric watch <job-id>               follow a job's state live
+  anbaric login                                 configure platform URL and tenant
+  anbaric configure [dir]                       create or update the app's .anbaric/app-config.json
+  anbaric deploy [dir]                          deploy an app (defaults to the current directory)
+  anbaric update [dir]                          deploy, replacing a running app without prompting
+  anbaric apps                                  list deployed apps
+  anbaric state-machines                        list registered state machines
+  anbaric job list [state-machine-id]           list jobs, optionally for one state machine
+  anbaric job watch <job-id>                    follow a job's state live
+  anbaric job set-state <job-id> <state>        move a job to a state and re-queue it
+  anbaric job update <job-id> <key=value ...>   update job properties and re-queue it
 
 ${bold("Options")}
-  --platform-url <url>                 platform to talk to ${dim("(login sets the default)")}
-  --tenant <tenant>                    tenant to act as ${dim("(login sets the default)")}`);
+  --platform-url <url>                          platform to talk to ${dim("(login sets the default)")}
+  --tenant <tenant>                             tenant to act as ${dim("(login sets the default)")}`);
 };
 
 const {values, positionals} = parseArgs({
@@ -38,33 +42,53 @@ const {values, positionals} = parseArgs({
     allowPositionals: true,
 });
 
-const [command, argument] = positionals;
+const [command, ...commandArgs] = positionals;
 const flags = { platformUrl: values["platform-url"], tenant: values.tenant };
 
 const clientFromConfig = async () => new PlatformClient(await CliConfig.resolve(flags));
+
+const fail = (message : string) : number => {
+    console.error(red(message));
+    return 1;
+};
+
+const runJobCommand = async (args : Array<string>) : Promise<number> => {
+    const [subcommand, jobId, ...rest] = args;
+
+    switch (subcommand) {
+        case "list":
+            return new JobsCommand(await clientFromConfig()).run(jobId);
+        case "watch":
+            if (!jobId) return fail("usage: anbaric job watch <job-id>");
+            return new WatchCommand(await clientFromConfig()).run(jobId);
+        case "set-state":
+            if (!jobId || !rest[0]) return fail("usage: anbaric job set-state <job-id> <state>");
+            return new JobSetStateCommand(await clientFromConfig()).run(jobId, rest[0]);
+        case "update":
+            if (!jobId || rest.length === 0) return fail("usage: anbaric job update <job-id> <key=value ...>");
+            return new JobUpdateCommand(await clientFromConfig()).run(jobId, rest);
+        default:
+            usage();
+            return 1;
+    }
+};
 
 try {
     switch (command) {
         case "login":
             process.exit(await new LoginCommand().run(flags));
         case "configure":
-            process.exit(await new ConfigureCommand().run(argument ?? "."));
+            process.exit(await new ConfigureCommand().run(commandArgs[0] ?? "."));
         case "deploy":
-            process.exit(await new DeployCommand(await clientFromConfig()).run(argument ?? "."));
+            process.exit(await new DeployCommand(await clientFromConfig()).run(commandArgs[0] ?? "."));
         case "update":
-            process.exit(await new DeployCommand(await clientFromConfig(), true).run(argument ?? "."));
+            process.exit(await new DeployCommand(await clientFromConfig(), true).run(commandArgs[0] ?? "."));
         case "apps":
             process.exit(await new AppsCommand(await clientFromConfig()).run());
         case "state-machines":
             process.exit(await new StateMachinesCommand(await clientFromConfig()).run());
-        case "jobs":
-            process.exit(await new JobsCommand(await clientFromConfig()).run(argument));
-        case "watch":
-            if (!argument) {
-                console.error(red("watch needs a job id: anbaric watch <job-id>"));
-                process.exit(1);
-            }
-            process.exit(await new WatchCommand(await clientFromConfig()).run(argument));
+        case "job":
+            process.exit(await runJobCommand(commandArgs));
         default:
             usage();
             process.exit(command ? 1 : 0);

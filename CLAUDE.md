@@ -11,7 +11,7 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 - `anbaric-data-store` — JSON document store (schema-validated) and secret store, with in-memory implementations.
 - `anbaric-cloud` — public client library for the hosted API; implements the tsapi interfaces over HTTP.
 - `anbaric-cloud-hosting` — the hosted platform: Postgres/AWS-backed implementations exposed via a `node:http` JSON API, plus the build layer, dispatcher, and app proxy.
-- `anbaric-cli` — standalone `anbaric` CLI (login/configure/deploy/update/apps/state-machines/jobs/watch); dependency-free, hand-rolled terminal UI.
+- `anbaric-cli` — standalone `anbaric` CLI (login/configure/deploy/update/apps/state-machines plus the `job` group: list/watch/set-state/update); dependency-free, hand-rolled terminal UI.
 - `sample-apps/` — deployable demo apps (not workspaces); they consume the packages the way customer code would.
 
 ## Key tenets

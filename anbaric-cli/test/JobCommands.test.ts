@@ -1,0 +1,95 @@
+import {afterEach, beforeEach, describe, expect, it} from "vitest";
+import {createServer, Server} from "node:http";
+import {AddressInfo} from "node:net";
+import {PlatformClient} from "../src/PlatformClient";
+import {JobSetStateCommand} from "../src/commands/JobSetStateCommand";
+import {JobUpdateCommand} from "../src/commands/JobUpdateCommand";
+
+type RecordedRequest = {
+    method : string,
+    path : string,
+    body : any,
+};
+
+const startStubPlatform = (job : Record<string, any>, recorded : Array<RecordedRequest>) :
+    Promise<{ server : Server, baseUrl : string }> =>
+    new Promise(resolve => {
+        const server = createServer((request, response) => {
+            const chunks : Array<Buffer> = [];
+            request.on("data", chunk => chunks.push(chunk));
+            request.on("end", () => {
+                const raw = Buffer.concat(chunks).toString();
+                recorded.push({
+                    method: request.method ?? "",
+                    path: request.url ?? "",
+                    body: raw ? JSON.parse(raw) : undefined,
+                });
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end(JSON.stringify(job));
+            });
+        });
+        server.listen(0, () => resolve({
+            server,
+            baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        }));
+    });
+
+describe("job commands", () => {
+
+    const job = { id: "job-1", state: "review", properties: { name: "Ada" }, workflowId: "onboarding" };
+    let recorded : Array<RecordedRequest>;
+    let platform : Server;
+    let client : PlatformClient;
+
+    beforeEach(async () => {
+        recorded = [];
+        const stub = await startStubPlatform(job, recorded);
+        platform = stub.server;
+        client = new PlatformClient({ platformUrl: stub.baseUrl });
+    });
+
+    afterEach(async () => {
+        await new Promise<void>(resolve => platform.close(() => resolve()));
+    });
+
+    describe("set-state", () => {
+
+        it("saves the job with the new state and re-queues it", async () => {
+            const exitCode = await new JobSetStateCommand(client).run("job-1", "done");
+
+            expect(exitCode).toBe(0);
+            expect(recorded.map(request => [request.method, request.path])).toEqual([
+                ["GET", "/jobs/job-1"],
+                ["PUT", "/jobs/job-1"],
+                ["POST", "/queue/enqueue"],
+            ]);
+            expect(recorded[1].body).toEqual({ ...job, state: "done" });
+            expect(recorded[2].body).toEqual({ jobId: "job-1", workflowId: "onboarding" });
+        });
+
+    });
+
+    describe("update", () => {
+
+        it("patches properties and re-queues the job", async () => {
+            const exitCode = await new JobUpdateCommand(client).run("job-1", ["age=42", "tier=pro"]);
+
+            expect(exitCode).toBe(0);
+            expect(recorded.map(request => [request.method, request.path])).toEqual([
+                ["GET", "/jobs/job-1"],
+                ["PATCH", "/jobs/job-1/properties"],
+                ["POST", "/queue/enqueue"],
+            ]);
+            expect(recorded[1].body).toEqual({ age: 42, tier: "pro" });
+            expect(recorded[2].body).toEqual({ jobId: "job-1", workflowId: "onboarding" });
+        });
+
+        it("rejects malformed property pairs before touching the platform", async () => {
+            await expect(new JobUpdateCommand(client).run("job-1", ["oops"]))
+                .rejects.toThrowError('"oops" is not a property=value pair');
+            expect(recorded).toEqual([]);
+        });
+
+    });
+
+});
