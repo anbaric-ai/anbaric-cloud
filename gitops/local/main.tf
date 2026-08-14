@@ -67,16 +67,6 @@ resource "docker_container" "platform" {
     external = 8787
   }
 
-  ports {
-    internal = 9000
-    external = 9000
-  }
-
-  ports {
-    internal = 9001
-    external = 9001
-  }
-
   restart    = "on-failure"
   depends_on = [docker_container.postgres]
 }

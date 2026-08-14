@@ -1,0 +1,44 @@
+import {mkdir, readFile, writeFile} from "node:fs/promises";
+import {join} from "node:path";
+
+type AppConfigValues = {
+    name : string,
+    internalPort : number,
+};
+
+const APP_NAME_PATTERN = /^[a-z0-9_-]+$/;
+
+const isValidAppName = (name : string) : boolean => APP_NAME_PATTERN.test(name);
+
+const configPath = (appDir : string) => join(appDir, ".anbaric", "app-config.json");
+
+const AppConfig = {
+
+    async load(appDir : string) : Promise<AppConfigValues | undefined> {
+        try {
+            return JSON.parse(await readFile(configPath(appDir), "utf8"));
+        } catch {
+            return undefined;
+        }
+    },
+
+    async save(appDir : string, config : AppConfigValues) : Promise<string> {
+        await mkdir(join(appDir, ".anbaric"), { recursive: true });
+        await writeFile(configPath(appDir), JSON.stringify(config, null, 2));
+        return configPath(appDir);
+    },
+
+    async suggestedName(appDir : string) : Promise<string> {
+        try {
+            const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
+            const sanitized = String(manifest.name).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            return isValidAppName(sanitized) ? sanitized : "app";
+        } catch {
+            return "app";
+        }
+    },
+
+};
+
+export { AppConfig, isValidAppName };
+export type { AppConfigValues };

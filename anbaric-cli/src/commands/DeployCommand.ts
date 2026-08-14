@@ -2,43 +2,73 @@ import {spawn} from "node:child_process";
 import {mkdtemp, readFile, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
+import {AppConfig, AppConfigValues} from "../AppConfig";
 import {PlatformClient} from "../PlatformClient";
-import {bold, check, cross, dim} from "../ui/Ansi";
+import {bold, check, cross, dim, red} from "../ui/Ansi";
+import {confirm} from "../ui/Prompt";
 import {Spinner} from "../ui/Spinner";
+import {ConfigureCommand} from "./ConfigureCommand";
 
 const POLL_INTERVAL_MS = 1000;
-const DEPLOY_TIMEOUT_MS = 60_000;
+const DEPLOY_TIMEOUT_MS = 120_000;
+
+type DeployedApp = {
+    appName : string,
+    status : string,
+    appPort : number,
+};
 
 class DeployCommand {
 
-    constructor(private client : PlatformClient) {}
+    constructor(private client : PlatformClient, private replaceWithoutAsking : boolean = false) {}
 
     async run(appDirectory : string) : Promise<number> {
         const appDir = resolve(appDirectory);
-        const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
-        const appName = manifest.name;
+        const config = await AppConfig.load(appDir) ?? await new ConfigureCommand().configure(appDir);
 
-        console.log(`Deploying ${bold(appName)} to ${bold(this.client.platformUrl)}`);
+        const existingApps = await this.client.get("/apps") as Array<DeployedApp>;
+        if (!await this.clearToDeploy(config, existingApps)) return 1;
+
+        console.log(`Deploying ${bold(config.name)} to ${bold(this.client.platformUrl)}`);
 
         const spinner = new Spinner("packing application").start();
         const tarball = await this.pack(appDir);
 
         spinner.update("uploading bundle");
-        const accepted = await this.client.postBinary(
-            `/apps/${encodeURIComponent(appName)}/deploy`, tarball, "application/gzip");
+        await this.client.postBinary(
+            `/apps/${encodeURIComponent(config.name)}/deploy?port=${config.internalPort}`, tarball, "application/gzip");
 
-        spinner.update(`building (app port ${accepted.appPort})`);
-        const outcome = await this.awaitOutcome(appName, spinner);
+        spinner.update("building");
+        const outcome = await this.awaitLive(config.name, spinner);
         spinner.stop();
 
         for (const line of outcome.log ?? []) console.log(dim(`  ${line}`));
 
         if (outcome.status === "running") {
-            console.log(`${check} ${bold(appName)} is running on port ${bold(String(accepted.appPort))}`);
+            console.log(`${check} ${bold(config.name)} is live at ${bold(`${this.client.platformUrl}/${config.name}`)}`);
             return 0;
         }
-        console.log(`${cross} Deployment of ${bold(appName)} ${outcome.status}`);
+        console.log(`${cross} Deployment of ${bold(config.name)} ${outcome.status}`);
         return 1;
+    }
+
+    private async clearToDeploy(config : AppConfigValues, existingApps : Array<DeployedApp>) : Promise<boolean> {
+        const portClash = existingApps.find(app => app.appPort === config.internalPort && app.appName !== config.name);
+        if (portClash) {
+            console.error(red(`Port ${config.internalPort} is already in use by application ${portClash.appName} - run \`anbaric configure\` to change the app port`));
+            return false;
+        }
+
+        const alreadyDeployed = existingApps.some(app => app.appName === config.name);
+        if (alreadyDeployed && !this.replaceWithoutAsking) {
+            if (!process.stdin.isTTY) {
+                console.error(red(`${config.name} is already running - use \`anbaric update\` to replace it without prompting`));
+                return false;
+            }
+            return confirm(`${config.name} is already running, do you want to replace it?`);
+        }
+
+        return true;
     }
 
     private async pack(appDir : string) : Promise<Buffer> {
@@ -56,7 +86,7 @@ class DeployCommand {
         return tarball;
     }
 
-    private async awaitOutcome(appName : string, spinner : Spinner) : Promise<{ status : string, log? : Array<string> }> {
+    private async awaitLive(appName : string, spinner : Spinner) : Promise<{ status : string, log? : Array<string> }> {
         const deadline = Date.now() + DEPLOY_TIMEOUT_MS;
 
         while (Date.now() < deadline) {

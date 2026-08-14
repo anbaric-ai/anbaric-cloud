@@ -11,9 +11,13 @@ type Deployment = {
     consumerPort : number,
     log : Array<string>,
     process? : ChildProcess,
+    replaces? : Deployment,
 };
 
 const LOG_LIMIT = 200;
+const LIVENESS_TIMEOUT_MS = 30_000;
+const LIVENESS_PROBE_INTERVAL_MS = 250;
+const EXIT_GRACE_MS = 3000;
 
 class BuildLayer {
 
@@ -21,19 +25,19 @@ class BuildLayer {
     private nextAppIndex = 0;
 
     constructor(private appsDir : string, private platformUrl : string,
-                private appPortBase : number = 9000, private consumerPortBase : number = 8800) {}
+                private consumerPortBase : number = 8800) {}
 
-    deploy(appName : string, tarball : Buffer) : { appName : string, status : DeploymentStatus, appPort : number } {
+    deploy(appName : string, appPort : number, tarball : Buffer) : { appName : string, status : DeploymentStatus, appPort : number } {
         const existing = this.deployments.get(appName);
         existing?.process?.kill();
 
-        const index = existing ? this.indexOf(existing) : this.nextAppIndex++;
         const deployment : Deployment = {
             appName,
             status: "building",
-            appPort: this.appPortBase + index,
-            consumerPort: this.consumerPortBase + index,
+            appPort,
+            consumerPort: existing?.consumerPort ?? this.consumerPortBase + this.nextAppIndex++,
             log: [],
+            replaces: existing,
         };
         this.deployments.set(appName, deployment);
 
@@ -55,18 +59,15 @@ class BuildLayer {
     }
 
     async cleanUp() : Promise<void> {
-        for (const deployment of this.deployments.values()) {
-            deployment.process?.kill();
+        await Promise.all(Array.from(this.deployments.values(), deployment => {
             deployment.status = "stopped";
-        }
+            deployment.process?.kill();
+            return this.awaitExit(deployment.process);
+        }));
     }
 
     private statusOf(deployment : Deployment) {
         return { appName: deployment.appName, status: deployment.status, appPort: deployment.appPort };
-    }
-
-    private indexOf(deployment : Deployment) : number {
-        return deployment.appPort - this.appPortBase;
     }
 
     private async build(deployment : Deployment, tarball : Buffer) : Promise<void> {
@@ -83,7 +84,27 @@ class BuildLayer {
         const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
         await this.linkWorkspacePackages(appDir, manifest);
 
-        this.start(deployment, appDir, manifest.main);
+        await this.awaitExit(deployment.replaces?.process);
+
+        if (!this.isCurrent(deployment)) return;
+        await this.start(deployment, appDir, manifest.main);
+    }
+
+    private awaitExit(child? : ChildProcess) : Promise<void> {
+        if (!child || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+
+        return new Promise(resolve => {
+            const forceKill = setTimeout(() => child.kill("SIGKILL"), EXIT_GRACE_MS);
+            forceKill.unref();
+            child.once("exit", () => {
+                clearTimeout(forceKill);
+                resolve();
+            });
+        });
+    }
+
+    private isCurrent(deployment : Deployment) : boolean {
+        return this.deployments.get(deployment.appName) === deployment && deployment.status === "building";
     }
 
     private async linkWorkspacePackages(appDir : string, manifest : { dependencies? : Record<string, string> }) : Promise<void> {
@@ -109,7 +130,7 @@ class BuildLayer {
         return packages;
     }
 
-    private start(deployment : Deployment, appDir : string, entryPoint : string) : void {
+    private async start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void> {
         this.log(deployment, `starting ${entryPoint} on port ${deployment.appPort}`);
 
         const app = spawn(join(process.cwd(), "node_modules", ".bin", "tsx"), [entryPoint], {
@@ -127,7 +148,6 @@ class BuildLayer {
         });
 
         deployment.process = app;
-        deployment.status = "running";
 
         app.stdout.on("data", chunk => this.log(deployment, String(chunk).trimEnd()));
         app.stderr.on("data", chunk => this.log(deployment, String(chunk).trimEnd()));
@@ -135,6 +155,35 @@ class BuildLayer {
             deployment.status = code === 0 || app.killed ? "stopped" : "failed";
             this.log(deployment, `process exited with code ${code}`);
         });
+
+        await this.awaitLive(deployment);
+    }
+
+    private async awaitLive(deployment : Deployment) : Promise<void> {
+        const deadline = Date.now() + LIVENESS_TIMEOUT_MS;
+
+        while (Date.now() < deadline) {
+            if (deployment.status !== "building") return;
+            if (await this.responds(deployment.appPort)) {
+                deployment.status = "running";
+                this.log(deployment, `app is live on port ${deployment.appPort}`);
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, LIVENESS_PROBE_INTERVAL_MS));
+        }
+
+        deployment.process?.kill();
+        deployment.status = "failed";
+        this.log(deployment, `app did not respond on port ${deployment.appPort} within ${LIVENESS_TIMEOUT_MS / 1000}s`);
+    }
+
+    private async responds(port : number) : Promise<boolean> {
+        try {
+            await fetch(`http://localhost:${port}/`, { signal: AbortSignal.timeout(LIVENESS_PROBE_INTERVAL_MS) });
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     private run(deployment : Deployment, command : string, args : Array<string>) : Promise<void> {

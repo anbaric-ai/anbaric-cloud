@@ -61,7 +61,7 @@ class HostingServer {
             return this.reply(response, 204);
         }
         if (resource === "apps" && this.buildLayer) {
-            return this.handleApps(method, id, subresource, request, response);
+            return this.handleApps(method, id, subresource, url, request, response);
         }
         if (resource === "state-machines" && method === "GET" && !id) {
             return this.reply(response, 200, this.registry.list());
@@ -69,8 +69,30 @@ class HostingServer {
         if (resource === "documents" && id && this.documentStoreFor) {
             return this.handleDocuments(method, this.documentStoreFor(id), subresource, url, request, response);
         }
+        if (resource && this.buildLayer) {
+            const app = this.buildLayer.status(resource);
+            if (app && app.status === "running") {
+                return this.forwardToApp(app.appPort, resource, method, url, request, response);
+            }
+        }
 
         this.reply(response, 404, { error: "Not found" });
+    }
+
+    private async forwardToApp(appPort : number, appName : string, method : string, url : URL,
+                               request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        const appPath = url.pathname.slice(`/${appName}`.length) || "/";
+        const body = method === "GET" || method === "HEAD" ? undefined : await readRawBody(request);
+
+        const upstream = await fetch(`http://localhost:${appPort}${appPath}${url.search}`, {
+            method,
+            headers: { "content-type": String(request.headers["content-type"] ?? "application/json") },
+            body: body && body.length > 0 ? new Uint8Array(body) : undefined,
+        });
+
+        const payload = Buffer.from(await upstream.arrayBuffer());
+        response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/octet-stream" });
+        response.end(payload);
     }
 
     private async handleDocuments(method : string, store : JsonStore, documentId : string | undefined,
@@ -99,7 +121,7 @@ class HostingServer {
     }
 
     private async handleApps(method : string, appName : string | undefined, subresource : string | undefined,
-                             request : IncomingMessage, response : ServerResponse) : Promise<void> {
+                             url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
         if (method === "GET" && !appName) {
             return this.reply(response, 200, this.buildLayer!.list());
         }
@@ -107,9 +129,13 @@ class HostingServer {
         if (!appName) return this.reply(response, 404, { error: "Not found" });
 
         if (method === "POST" && subresource === "deploy") {
+            const appPort = Number(url.searchParams.get("port"));
+            if (!Number.isInteger(appPort) || appPort <= 0) {
+                return this.reply(response, 400, { error: "Expected a numeric port query parameter" });
+            }
             const tarball = await readRawBody(request);
             if (tarball.length === 0) return this.reply(response, 400, { error: "Expected a gzipped tarball body" });
-            return this.reply(response, 202, this.buildLayer!.deploy(appName, tarball));
+            return this.reply(response, 202, this.buildLayer!.deploy(appName, appPort, tarball));
         }
 
         if (method === "GET" && !subresource) {

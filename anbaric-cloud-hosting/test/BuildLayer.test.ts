@@ -10,7 +10,7 @@ import {BuildLayer} from "../src/BuildLayer";
 import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {HostingServer} from "../src/HostingServer";
 
-const APP_PORT_BASE = 9100;
+const APP_PORT = 9100;
 const CONSUMER_PORT_BASE = 8900;
 
 class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
@@ -59,7 +59,7 @@ describe("BuildLayer via the hosting API", () => {
 
     beforeEach(async () => {
         workDir = await mkdtemp(join(tmpdir(), "anbaric-build-"));
-        buildLayer = new BuildLayer(join(workDir, "apps"), "http://localhost:0", APP_PORT_BASE, CONSUMER_PORT_BASE);
+        buildLayer = new BuildLayer(join(workDir, "apps"), "http://localhost:0", CONSUMER_PORT_BASE);
         await mkdir(join(workDir, "apps"), { recursive: true });
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, buildLayer);
         baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
@@ -77,7 +77,7 @@ describe("BuildLayer via the hosting API", () => {
         await writeFixtureApp(fixtureDir, greeting);
         const tarball = await packFixture(fixtureDir);
 
-        return fetch(`${baseUrl}/apps/fixture-app/deploy`, {
+        return fetch(`${baseUrl}/apps/fixture-app/deploy?port=${APP_PORT}`, {
             method: "POST",
             headers: { "content-type": "application/gzip" },
             body: new Uint8Array(tarball),
@@ -98,18 +98,25 @@ describe("BuildLayer via the hosting API", () => {
         expect(await response.json()).toEqual({
             appName: "fixture-app",
             status: "building",
-            appPort: APP_PORT_BASE,
+            appPort: APP_PORT,
         });
     });
 
-    it("builds, links workspace packages, and runs the app on its assigned port", async () => {
+    it("only reports running once the app answers on its configured port", async () => {
         await deployFixture("hello");
         await awaitRunning();
 
-        await vi.waitFor(async () => {
-            const body = await (await fetch(`http://127.0.0.1:${APP_PORT_BASE}`)).json();
-            expect(body).toEqual({ greeting: "hello", bootJob: "boot-check" });
-        }, { timeout: 10_000 });
+        const body = await (await fetch(`http://127.0.0.1:${APP_PORT}`)).json();
+        expect(body).toEqual({ greeting: "hello", bootJob: "boot-check" });
+    });
+
+    it("proxies platform traffic under the app's name to the app", async () => {
+        await deployFixture("hello");
+        await awaitRunning();
+
+        const viaProxy = await (await fetch(`${baseUrl}/fixture-app/any/path`)).json();
+
+        expect(viaProxy).toEqual({ greeting: "hello", bootJob: "boot-check" });
     });
 
     it("replaces the running app on redeploy", async () => {
@@ -120,7 +127,7 @@ describe("BuildLayer via the hosting API", () => {
         await awaitRunning();
 
         await vi.waitFor(async () => {
-            const body = await (await fetch(`http://127.0.0.1:${APP_PORT_BASE}`)).json();
+            const body = await (await fetch(`http://127.0.0.1:${APP_PORT}`)).json();
             expect(body.greeting).toBe("second");
         }, { timeout: 10_000 });
     });
@@ -131,11 +138,21 @@ describe("BuildLayer via the hosting API", () => {
 
         const apps = await (await fetch(`${baseUrl}/apps`)).json();
 
-        expect(apps).toEqual([{ appName: "fixture-app", status: "running", appPort: APP_PORT_BASE }]);
+        expect(apps).toEqual([{ appName: "fixture-app", status: "running", appPort: APP_PORT }]);
+    });
+
+    it("rejects a deploy without a port", async () => {
+        const response = await fetch(`${baseUrl}/apps/fixture-app/deploy`, {
+            method: "POST",
+            headers: { "content-type": "application/gzip" },
+            body: new Uint8Array(Buffer.from("stub")),
+        });
+
+        expect(response.status).toBe(400);
     });
 
     it("rejects an empty deploy body", async () => {
-        const response = await fetch(`${baseUrl}/apps/fixture-app/deploy`, { method: "POST" });
+        const response = await fetch(`${baseUrl}/apps/fixture-app/deploy?port=${APP_PORT}`, { method: "POST" });
 
         expect(response.status).toBe(400);
     });

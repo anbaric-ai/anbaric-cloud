@@ -3,6 +3,7 @@ import {parseArgs} from "node:util";
 import {CliConfig} from "./CliConfig";
 import {PlatformClient} from "./PlatformClient";
 import {AppsCommand} from "./commands/AppsCommand";
+import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
 import {LoginCommand} from "./commands/LoginCommand";
@@ -15,7 +16,9 @@ const usage = () => {
 
 ${bold("Usage")}
   anbaric login                        configure platform URL and tenant
+  anbaric configure [dir]              create or update the app's .anbaric/app-config.json
   anbaric deploy [dir]                 deploy an app (defaults to the current directory)
+  anbaric update [dir]                 deploy, replacing a running app without prompting
   anbaric apps                         list deployed apps
   anbaric state-machines               list registered state machines
   anbaric jobs [state-machine-id]      list jobs, optionally for one state machine
@@ -44,8 +47,12 @@ try {
     switch (command) {
         case "login":
             process.exit(await new LoginCommand().run(flags));
+        case "configure":
+            process.exit(await new ConfigureCommand().run(argument ?? "."));
         case "deploy":
             process.exit(await new DeployCommand(await clientFromConfig()).run(argument ?? "."));
+        case "update":
+            process.exit(await new DeployCommand(await clientFromConfig(), true).run(argument ?? "."));
         case "apps":
             process.exit(await new AppsCommand(await clientFromConfig()).run());
         case "state-machines":
