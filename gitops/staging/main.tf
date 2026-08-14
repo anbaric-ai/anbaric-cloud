@@ -17,6 +17,13 @@ provider "aws" {
   region = var.aws_region
 }
 
+/* CloudFront certificates must live in us-east-1 - certificate only, no
+   compute leaves eu-west-3. */
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 /* eu-west-3 (Paris) keeps UK latency low while staying outside the
    eu-west-1/eu-west-2 regions that host the existing Anbaric estate. */
 variable "aws_region" {
@@ -60,8 +67,18 @@ variable "platform_public_url" {
   default = ""
 }
 
+variable "platform_domain" {
+  type    = string
+  default = ""
+}
+
 module "platform" {
   source = "../modules/anbaric-platform-aws"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
 
   environment = "staging"
   aws_region  = var.aws_region
@@ -73,6 +90,7 @@ module "platform" {
   auth0_client_secret = var.auth0_client_secret
   auth0_organization  = var.auth0_organization
   platform_public_url = var.platform_public_url
+  platform_domain     = var.platform_domain
 }
 
 output "platform_url" {

@@ -17,6 +17,7 @@ resource "aws_cloudfront_distribution" "platform" {
   enabled     = true
   comment     = "anbaric-${var.environment}"
   price_class = "PriceClass_100"
+  aliases     = var.platform_domain == "" ? [] : [var.platform_domain]
 
   origin {
     origin_id   = "platform-alb"
@@ -48,10 +49,15 @@ resource "aws_cloudfront_distribution" "platform" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.platform_domain == ""
+    acm_certificate_arn            = var.platform_domain == "" ? null : aws_acm_certificate_validation.platform[0].certificate_arn
+    ssl_support_method             = var.platform_domain == "" ? null : "sni-only"
+    minimum_protocol_version       = var.platform_domain == "" ? "TLSv1" : "TLSv1.2_2021"
   }
 }
 
 locals {
-  platform_public_url = var.platform_public_url != "" ? var.platform_public_url : "https://${aws_cloudfront_distribution.platform.domain_name}"
+  platform_public_url = (var.platform_public_url != "" ? var.platform_public_url
+    : var.platform_domain != "" ? "https://${var.platform_domain}"
+    : "https://${aws_cloudfront_distribution.platform.domain_name}")
 }
