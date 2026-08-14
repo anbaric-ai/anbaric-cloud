@@ -91,6 +91,9 @@ CMD ["/anbaric/node_modules/.bin/tsx", "src/main.ts"]
         expect(run).toContain(`PORT=${APP_PORT}`);
         expect(run).toContain("ANBARIC_CLOUD_URL=http://platform:8787");
         expect(run).toContain("ANBARIC_JOB_PERSISTENCE_TYPE=cloud");
+        expect(run).toContain("ANBARIC_QUEUE_TYPE=cloud");
+        expect(run).toContain("ANBARIC_JSON_STORE_TYPE=cloud");
+        expect(run).toContain("ANBARIC_SECRET_STORE_TYPE=cloud");
         expect(run).toContain(`ANBARIC_CONSUMER_URL=http://anbaric-app-fixture-app:${CONSUMER_PORT_BASE}`);
         expect(run[run.length - 1]).toBe("anbaric-app-fixture-app");
     });
