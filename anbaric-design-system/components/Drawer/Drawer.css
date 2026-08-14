@@ -6,12 +6,19 @@
 .ds-drawer {
   width: min(92vw, 28rem);
   max-width: 92vw;
-  height: 100vh;
-  max-height: 100vh;
-  margin: 0 0 0 auto; /* dock to the right edge */
-  padding: var(--space-md); /* let the Card float off the edges */
+  /* The dialog box IS the card's footprint: margins float it off the edges
+     and the radius matches the Card, so the backdrop blur below hugs the
+     panel exactly. The blur must live on the dialog itself — inside the top
+     layer, a child's backdrop-filter cannot see the page behind the dialog. */
+  height: calc(100vh - 2 * var(--space-md));
+  max-height: calc(100vh - 2 * var(--space-md));
+  margin: var(--space-md) var(--space-md) var(--space-md) auto; /* dock right */
+  padding: 0;
   border: none;
+  border-radius: var(--radius-container);
   background: transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   overflow: visible;
   /* Closed/exit state. The timing is symmetric, so close is the exact reverse
      of open: translate & scale over 400ms, opacity 200ms after a 100ms delay. */

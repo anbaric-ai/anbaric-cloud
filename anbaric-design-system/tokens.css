@@ -73,8 +73,9 @@
   );
 
   /* --- Surfaces -------------------------------------------- */
-  /* Translucent glass surface shared by cards and the side nav. */
-  --surface-glass: radial-gradient(circle at 30% 30%, #ffffff40, #ffffff20);
+  /* Translucent glass surface shared by cards and the side nav: milky
+     enough to read on, with the backdrop blur carrying the glass effect. */
+  --surface-glass: radial-gradient(circle at 30% 30%, #ffffffcc, #ffffff99);
   /* Internal — the Card's 1px frame sheen ONLY. Not a general-purpose
      gradient; the leading underscore marks it private. Do not reuse. */
   --_card-frame-gradient: linear-gradient(170deg, white, transparent, #ffffff60);
