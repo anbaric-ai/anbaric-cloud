@@ -1,7 +1,7 @@
 {
-  "name": "anbaric-json-store",
+  "name": "anbaric-data-store",
   "version": "1.0.0",
-  "description": "Simple schema-validated JSON document store, backed in memory locally or by the Anbaric Cloud",
+  "description": "Data stores for Anbaric apps: schema-validated JSON documents and encrypted secrets, backed in memory locally or by the Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
   "type": "module",

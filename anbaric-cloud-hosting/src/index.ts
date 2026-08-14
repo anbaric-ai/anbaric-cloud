@@ -5,5 +5,6 @@ export * from "./Dispatcher";
 export * from "./HostingServer";
 export * from "./PostgresJobPersistence";
 export * from "./PostgresJsonStore";
+export * from "./SecretsManagerSecretStore";
 export * from "./PostgresQueue";
 export * from "./Schema";

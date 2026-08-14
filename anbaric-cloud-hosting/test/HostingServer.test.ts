@@ -1,8 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
-import {CloudJobPersistence, CloudJsonStore, CloudQueue} from "anbaric-cloud";
+import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
-import {InMemoryJsonStore} from "anbaric-json-store";
+import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
 import {ConfirmableQueue} from "../src/ConfirmableQueue";
 import {HostingServer} from "../src/HostingServer";
 
@@ -33,7 +33,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
             (collection) => {
                 if (!documentStores.has(collection)) documentStores.set(collection, new InMemoryJsonStore());
                 return documentStores.get(collection)!;
-            });
+            },
+            new InMemorySecretStore());
         const port = await server.listen(0);
         baseUrl = `http://127.0.0.1:${port}`;
         persistence = new CloudJobPersistence(baseUrl);
@@ -163,6 +164,46 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await store.delete("ada");
 
             await expect(store.retrieve("ada")).rejects.toThrowError('No document found with id "ada"');
+        });
+
+    });
+
+    describe("secrets", () => {
+
+        it("round-trips a secret through the cloud store", async () => {
+            const secrets = new CloudSecretStore(baseUrl);
+
+            await secrets.save("api-key", "s3cr3t");
+
+            expect(await secrets.retrieve("api-key")).toBe("s3cr3t");
+        });
+
+        it("lists secret names", async () => {
+            const secrets = new CloudSecretStore(baseUrl);
+
+            await secrets.save("api-key", "a");
+            await secrets.save("db-password", "b");
+
+            expect(await secrets.list()).toEqual(["api-key", "db-password"]);
+        });
+
+        it("deletes secrets and 404s unknown names", async () => {
+            const secrets = new CloudSecretStore(baseUrl);
+            await secrets.save("api-key", "s3cr3t");
+
+            await secrets.delete("api-key");
+
+            await expect(secrets.retrieve("api-key")).rejects.toThrowError('No secret found with name "api-key"');
+        });
+
+        it("rejects a non-string secret value", async () => {
+            const response = await fetch(`${baseUrl}/secrets/api-key`, {
+                method: "PUT",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ value: 42 }),
+            });
+
+            expect(response.status).toBe(400);
         });
 
     });

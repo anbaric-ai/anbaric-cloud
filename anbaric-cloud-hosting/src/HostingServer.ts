@@ -1,6 +1,6 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
-import {JobPersistence, JsonStore, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "./BuildLayer";
 import {ConfirmableQueue} from "./ConfirmableQueue";
 import {ConsumerRegistry} from "./ConsumerRegistry";
@@ -25,7 +25,8 @@ class HostingServer {
     constructor(private persistence : JobPersistence, private queue : ConfirmableQueue,
                 private registry : ConsumerRegistry = new ConsumerRegistry(),
                 private buildLayer? : BuildLayer,
-                private documentStoreFor? : (collection : string) => JsonStore) {
+                private documentStoreFor? : (collection : string) => JsonStore,
+                private secretStore? : SecretStore) {
         this.server = createServer((request, response) => {
             this.handle(request, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
@@ -69,6 +70,9 @@ class HostingServer {
         if (resource === "documents" && id && this.documentStoreFor) {
             return this.handleDocuments(method, this.documentStoreFor(id), subresource, url, request, response);
         }
+        if (resource === "secrets" && this.secretStore && !subresource) {
+            return this.handleSecrets(method, id, request, response);
+        }
         if (resource && this.buildLayer) {
             const app = this.buildLayer.status(resource);
             if (app && app.status === "running") {
@@ -93,6 +97,31 @@ class HostingServer {
         const payload = Buffer.from(await upstream.arrayBuffer());
         response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/octet-stream" });
         response.end(payload);
+    }
+
+    private async handleSecrets(method : string, name : string | undefined,
+                                request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (!name && method === "GET") {
+            return this.reply(response, 200, await this.secretStore!.list());
+        }
+
+        if (name) {
+            if (method === "PUT") {
+                const { value } = await readBody(request);
+                if (typeof value !== "string") return this.reply(response, 400, { error: "Expected a body of { value : string }" });
+                await this.secretStore!.save(name, value);
+                return this.reply(response, 204);
+            }
+            if (method === "GET") {
+                return this.reply(response, 200, { value: await this.secretStore!.retrieve(name) });
+            }
+            if (method === "DELETE") {
+                await this.secretStore!.delete(name);
+                return this.reply(response, 204);
+            }
+        }
+
+        this.reply(response, 404, { error: "Not found" });
     }
 
     private async handleDocuments(method : string, store : JsonStore, documentId : string | undefined,
