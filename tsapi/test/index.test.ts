@@ -9,7 +9,6 @@ describe("public api barrel", () => {
         expect(api.State).toBeTypeOf("function");
         expect(api.Action).toBeTypeOf("function");
         expect(api.Transition).toBeTypeOf("function");
-        expect(api.Actor).toBeTypeOf("function");
     });
 
 });

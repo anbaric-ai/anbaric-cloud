@@ -6,14 +6,22 @@ import {Pool} from "pg";
 const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS jobs (
-            id          TEXT PRIMARY KEY,
-            state       TEXT NOT NULL,
-            properties  JSONB NOT NULL DEFAULT '{}',
-            workflow_id TEXT,
-            inserted_at BIGINT GENERATED ALWAYS AS IDENTITY
+            id           TEXT PRIMARY KEY,
+            state        TEXT NOT NULL,
+            properties   JSONB NOT NULL DEFAULT '{}',
+            workflow_id  TEXT,
+            started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+            started_by   TEXT NOT NULL DEFAULT 'system',
+            last_updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+            transitions  JSONB NOT NULL DEFAULT '[]',
+            inserted_at  BIGINT GENERATED ALWAYS AS IDENTITY
         )
     `);
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS workflow_id TEXT");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ NOT NULL DEFAULT now()");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS started_by TEXT NOT NULL DEFAULT 'system'");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS last_updated TIMESTAMPTZ NOT NULL DEFAULT now()");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS transitions JSONB NOT NULL DEFAULT '[]'");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS documents (
             collection  TEXT NOT NULL,

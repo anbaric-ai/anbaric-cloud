@@ -1,3 +1,4 @@
+import {CliConfig} from "../CliConfig";
 import {PlatformClient} from "../PlatformClient";
 import {bold, check, cyan, dim} from "../ui/Ansi";
 
@@ -10,10 +11,17 @@ class JobSetStateCommand {
         const previousState = job.state;
 
         job.state = state;
+        job.transitions = [...(job.transitions ?? []), { from: previousState, to: state, actor: await this.actor() }];
+        job.lastUpdated = new Date().toISOString();
         await this.client.put(`/jobs/${encodeURIComponent(jobId)}`, job);
 
         console.log(`${check} job ${jobId}: state ${dim(previousState)} ${cyan("→")} ${bold(state)}`);
         return this.requeue(jobId, job.workflowId);
+    }
+
+    private async actor() : Promise<string> {
+        const key = await CliConfig.loadKey();
+        return key ? `cli:${key.clientName}` : "anbaric-cli";
     }
 
     private async requeue(jobId : string, workflowId? : string) : Promise<number> {

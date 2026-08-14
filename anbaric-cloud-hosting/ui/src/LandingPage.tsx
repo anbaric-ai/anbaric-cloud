@@ -17,7 +17,22 @@ interface Job {
   state: string
   workflowId?: string
   properties: Record<string, unknown>
+  startedAt?: string
+  startedBy?: string
+  lastUpdated?: string
+  transitions?: Array<{ from: string; to: string; actor: string }>
 }
+
+const formatDate = (iso?: string) =>
+  iso
+    ? new Date(iso).toLocaleString(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : '—'
 
 const machineHeading: CSSProperties = {
   margin: 0,
@@ -45,6 +60,40 @@ const mono: CSSProperties = {
   fontSize: '0.78rem',
 }
 
+const muted: CSSProperties = {
+  color: 'var(--color-foreground-tint-2)',
+}
+
+function PropertyList({ job }: { job: Job }) {
+  const entries: Array<[string, unknown]> = [['id', job.id], ...Object.entries(job.properties)]
+  return (
+    <dl style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      {entries.map(([name, value]) => (
+        <div key={name} style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'baseline' }}>
+          <dt style={{ ...mono, ...muted, flex: 'none' }}>{name}</dt>
+          <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{String(value)}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function TransitionHistory({ transitions }: { transitions: Job['transitions'] }) {
+  if (!transitions || transitions.length === 0) {
+    return <span style={muted}>—</span>
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      {transitions.map((transition, index) => (
+        <div key={index}>
+          {transition.from} → {transition.to}{' '}
+          <span style={{ ...muted, fontSize: '0.78rem' }}>by {transition.actor}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function JobsTable({ jobs }: { jobs: Job[] }) {
   if (jobs.length === 0) {
     return <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>No jobs yet.</p>
@@ -53,22 +102,31 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr>
-          <th style={headerCell}>Job</th>
-          <th style={headerCell}>State</th>
           <th style={headerCell}>Properties</th>
+          <th style={headerCell}>State</th>
+          <th style={headerCell}>Started</th>
+          <th style={headerCell}>Updated</th>
+          <th style={headerCell}>History</th>
         </tr>
       </thead>
       <tbody>
         {jobs.map((job) => (
           <tr key={job.id}>
-            <td style={{ ...cell, ...mono }}>{job.id}</td>
+            <td style={cell}>
+              <PropertyList job={job} />
+            </td>
             <td style={cell}>
               <Badge tone="primary" dot>
                 {job.state}
               </Badge>
             </td>
-            <td style={{ ...cell, ...mono, overflowWrap: 'anywhere' }}>
-              {JSON.stringify(job.properties)}
+            <td style={cell}>
+              {formatDate(job.startedAt)}
+              <div style={{ ...muted, fontSize: '0.78rem' }}>by {job.startedBy ?? 'system'}</div>
+            </td>
+            <td style={cell}>{formatDate(job.lastUpdated)}</td>
+            <td style={cell}>
+              <TransitionHistory transitions={job.transitions} />
             </td>
           </tr>
         ))}
@@ -113,7 +171,7 @@ function LandingPage() {
   const unassigned = (jobs ?? []).filter((job) => !job.workflowId)
 
   return (
-    <PageShell title="Dashboard" width="52rem" nav={<PlatformNav />}>
+    <PageShell title="Dashboard" width="64rem" nav={<PlatformNav />}>
       {failed ? (
         <Alert variant="danger" title="Could not load the platform state">
           The platform rejected the request — try reloading the page.

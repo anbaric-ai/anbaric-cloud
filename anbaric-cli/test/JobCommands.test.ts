@@ -43,12 +43,14 @@ describe("job commands", () => {
 
     beforeEach(async () => {
         recorded = [];
+        process.env.ANBARIC_CONFIG_DIR = "/nonexistent-anbaric-cli-test";
         const stub = await startStubPlatform(job, recorded);
         platform = stub.server;
         client = new PlatformClient({ platformUrl: stub.baseUrl });
     });
 
     afterEach(async () => {
+        delete process.env.ANBARIC_CONFIG_DIR;
         await new Promise<void>(resolve => platform.close(() => resolve()));
     });
 
@@ -63,7 +65,12 @@ describe("job commands", () => {
                 ["PUT", "/jobs/job-1"],
                 ["POST", "/queue/enqueue"],
             ]);
-            expect(recorded[1].body).toEqual({ ...job, state: "done" });
+            expect(recorded[1].body).toMatchObject({
+                ...job,
+                state: "done",
+                transitions: [{ from: "review", to: "done", actor: "anbaric-cli" }],
+            });
+            expect(recorded[1].body.lastUpdated).toBeTypeOf("string");
             expect(recorded[2].body).toEqual({ jobId: "job-1", workflowId: "onboarding" });
         });
 

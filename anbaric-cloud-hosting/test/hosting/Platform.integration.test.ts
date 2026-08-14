@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, QueueMessage, State, Transition} from "anbaric-tsapi";
+import {Action, PropertyDefinition, QueueMessage, State, Transition} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
-import {DefaultActionResolver, InMemoryJobPersistence, InMemoryQueue, StateMachine} from "anbaric-state-machine";
+import {Code, Human, InMemoryJobPersistence, InMemoryQueue, StateMachine} from "anbaric-state-machine";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
 import {Dispatcher} from "../../src/queuing/Dispatcher";
@@ -17,13 +17,13 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue
 
 }
 
-const stampingAction = (key : string) => {
-    const action = new Action();
-    action.run = (job) => {
-        job.properties.set(key, true);
-        return job;
-    };
-    return action;
+const stampingAction = (key : string) =>
+    new Action(key, new Code(key, async () => new Map([[key, true]])));
+
+const optionalFlag = (id : string) => {
+    const definition = new PropertyDefinition(id);
+    definition.validation = (value) => typeof value === "boolean";
+    return definition;
 };
 
 describe("platform end to end", () => {
@@ -55,8 +55,7 @@ describe("platform end to end", () => {
                 new State("done"),
             ],
             "start",
-            [],
-            new DefaultActionResolver(),
+            [optionalFlag("progressed")],
             persistence,
             new CloudQueue(baseUrl),
         );
@@ -79,18 +78,18 @@ describe("platform end to end", () => {
             expect(progressed.stateId).toBe("done");
         }, { timeout: 2000 });
 
-        await vi.waitFor(() => expect(backingQueue.confirmed).toEqual([
+        await vi.waitFor(() => expect(backingQueue.confirmed).toContainEqual(
             { jobId: job.id, workflowId: "workflow-e2e" },
-        ]), { timeout: 2000 });
+        ), { timeout: 2000 });
     });
 
     it("delivers an updated job back through the dispatch loop", async () => {
         const job = await machine.startJob();
-        await vi.waitFor(() => expect(backingQueue.confirmed.length).toBe(1), { timeout: 2000 });
-
-        await machine.updateJob(job.id, new Map());
-
         await vi.waitFor(() => expect(backingQueue.confirmed.length).toBe(2), { timeout: 2000 });
+
+        await machine.updateJob(job.id, new Map(), new Human("chris", "admin"));
+
+        await vi.waitFor(() => expect(backingQueue.confirmed.length).toBe(3), { timeout: 2000 });
     });
 
 });

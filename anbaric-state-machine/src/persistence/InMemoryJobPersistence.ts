@@ -29,6 +29,7 @@ class InMemoryJobPersistence implements JobPersistence {
         for (const [key, value] of properties) {
             job.properties.set(key, value);
         }
+        job.lastUpdated = new Date();
     }
 
 }

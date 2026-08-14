@@ -1,5 +1,11 @@
-class Actor {
+type ActorType = "HUMAN" | "CODE" | "AGENT";
+
+interface Actor {
+
+    type : ActorType;
+    id : string;
+    role : string;
 
 }
 
-export { Actor }
+export type { Actor, ActorType }

@@ -12,6 +12,11 @@ class State {
         this.actions = actions;
         this.transitions = transitions;
     }
+
+    subscribe(action : Action) : void {
+        this.actions.push(action);
+    }
+
 }
 
 export { State }

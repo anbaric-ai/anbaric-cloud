@@ -1,5 +1,5 @@
 import {Action, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
-import {ConsumerFactory, DefaultActionResolver, StateMachine} from "anbaric-state-machine";
+import {Code, StateMachine} from "anbaric-state-machine";
 
 const requiredText = (id : string, validation : (value : any) => boolean) => {
     const property = new PropertyDefinition(id);
@@ -8,15 +8,20 @@ const requiredText = (id : string, validation : (value : any) => boolean) => {
     return property;
 };
 
-const sendWelcome = () => {
-    const action = new Action();
-    action.run = (job) => {
-        console.log(`sending welcome email to ${job.properties.get("email")}`);
-        job.properties.set("welcomeSent", true);
-        return job;
-    };
-    return action;
+const optionalFlag = (id : string) => {
+    const property = new PropertyDefinition(id);
+    property.validation = (value) => typeof value === "boolean";
+    return property;
 };
+
+const sendWelcome = () => new Action(
+    "Send welcome email",
+    new Code("send-welcome-email", async (job) => {
+        console.log(`sending welcome email to ${job.properties.get("email")}`);
+        return new Map([["welcomeSent", true]]);
+    }),
+    "Emails a welcome message to a newly registered customer",
+);
 
 const customerWorkflow = (persistence : JobPersistence, queue : Queue) => new StateMachine(
     "customer-onboarding",
@@ -28,11 +33,10 @@ const customerWorkflow = (persistence : JobPersistence, queue : Queue) => new St
     [
         requiredText("name", (value) => value.length > 0),
         requiredText("email", (value) => value.includes("@")),
+        optionalFlag("welcomeSent"),
     ],
-    new DefaultActionResolver(),
     persistence,
     queue,
-    ConsumerFactory.instance(queue),
 );
 
 export { customerWorkflow }
