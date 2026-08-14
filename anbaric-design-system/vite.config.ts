@@ -13,6 +13,7 @@ export default defineConfig({
   plugins: [react(), viteSingleFile()],
   base: './',
   build: {
+    cssTarget: 'safari18',
     assetsInlineLimit: 100_000_000,
   },
   server: { port: 5190, strictPort: true },

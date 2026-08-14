@@ -18,7 +18,6 @@
   border-radius: var(--radius-container);
   background: transparent;
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   overflow: visible;
   /* Closed/exit state. The timing is symmetric, so close is the exact reverse
      of open: translate & scale over 400ms, opacity 200ms after a 100ms delay. */

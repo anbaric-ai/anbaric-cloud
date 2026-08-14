@@ -36,7 +36,6 @@
 .ds-modal::backdrop {
   background: color-mix(in srgb, var(--color-grey) 50%, transparent);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   opacity: 0;
   transition:
     opacity 160ms ease,

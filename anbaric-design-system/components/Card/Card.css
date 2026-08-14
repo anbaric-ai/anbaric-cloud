@@ -27,7 +27,6 @@
   background: var(--surface-glass);
   box-shadow: var(--elevation-1);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .ds-card > * {

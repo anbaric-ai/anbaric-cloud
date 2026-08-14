@@ -11,7 +11,6 @@
   padding: var(--space-md);
   background: var(--surface-glass);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-background-shade-2);
   border-radius: var(--radius-container);
   box-shadow: var(--elevation-3);
