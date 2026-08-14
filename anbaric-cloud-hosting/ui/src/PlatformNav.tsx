@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
 
-import { SideNav, type NavItem } from '@anbaric/design-system/components/SideNav'
+import { SideNav, type NavEntry } from '@anbaric/design-system/components/SideNav'
+import logoUrl from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 
 interface App {
   appName: string
   status: string
+}
+
+function Sym({ name }: { name: string }) {
+  return (
+    <span className="material-symbols-rounded" aria-hidden="true">
+      {name}
+    </span>
+  )
 }
 
 function PlatformNav() {
@@ -18,26 +27,42 @@ function PlatformNav() {
       .catch(() => {})
   }, [])
 
-  const items: NavItem[] = [
-    { label: 'Dashboard', value: '/' },
-    { label: 'Manage keys', value: '/manage-keys' },
-    ...apps.map((app) => ({
-      label: app.appName,
-      value: `/${app.appName}`,
-      disabled: app.status !== 'running',
-    })),
+  const appEntries: NavEntry[] =
+    apps.length === 0
+      ? []
+      : [
+          { section: 'Apps' },
+          ...apps.map((app) => ({
+            label: app.appName,
+            value: `/${app.appName}`,
+            href: `/${app.appName}`,
+            external: true,
+            icon: <Sym name="deployed_code" />,
+            disabled: app.status !== 'running',
+          })),
+        ]
+
+  const items: NavEntry[] = [
+    { label: 'Dashboard', value: '/', icon: <Sym name="dashboard" /> },
+    { label: 'Manage keys', value: '/manage-keys', icon: <Sym name="key" /> },
+    ...appEntries,
   ]
 
   return (
     <SideNav
-      header="Anbaric"
+      header={
+        <img
+          src={logoUrl}
+          alt="Anbaric"
+          style={{ height: '1.05rem', display: 'block', width: 'auto' }}
+        />
+      }
       items={items}
       active={window.location.pathname}
-      collapsible={false}
       onChange={(value) => {
         window.location.href = value
       }}
-      style={{ position: 'sticky', top: 'var(--space-lg)' }}
+      style={{ position: 'sticky', top: 'var(--space-lg)', flex: 'none' }}
     />
   )
 }

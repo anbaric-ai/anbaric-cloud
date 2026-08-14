@@ -115,9 +115,48 @@
   box-shadow: 0 0 0 3px var(--color-primary-tint);
 }
 
-.ds-sidenav__item:disabled {
+.ds-sidenav__item:disabled,
+.ds-sidenav__item--disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  pointer-events: none;
+}
+
+a.ds-sidenav__item {
+  text-decoration: none;
+}
+
+.ds-sidenav__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.ds-sidenav__rule {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--color-background-shade-2);
+}
+
+.ds-sidenav__section-label {
+  padding: 0 var(--space-md);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-sidenav__external {
+  margin-left: auto;
+  flex: none;
+  opacity: 0.65;
+}
+
+.ds-sidenav__external.material-symbols-rounded {
+  font-size: 1rem;
 }
 
 .ds-sidenav__icon {
@@ -147,7 +186,9 @@
   transform: translate(-100%, -50%);
 }
 
-.ds-sidenav--collapsed .ds-sidenav__label {
+.ds-sidenav--collapsed .ds-sidenav__label,
+.ds-sidenav--collapsed .ds-sidenav__section-label,
+.ds-sidenav--collapsed .ds-sidenav__external {
   display: none;
 }
 

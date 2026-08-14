@@ -4,16 +4,15 @@ const layout: CSSProperties = {
   display: 'flex',
   alignItems: 'flex-start',
   gap: 'var(--space-lg)',
-  margin: '0 auto',
   padding: 'var(--space-lg) var(--space-md)',
 }
 
 const content: CSSProperties = {
-  flex: 1,
-  minWidth: 0,
+  margin: '0 auto',
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--space-lg)',
+  width: '100%',
 }
 
 const heading: CSSProperties = {
@@ -37,12 +36,14 @@ function PageShell({
   children: ReactNode
 }) {
   return (
-    <div style={{ ...layout, maxWidth: nav ? `calc(${width} + 18rem)` : width }}>
+    <div style={layout}>
       {nav}
-      <main style={content}>
-        <h1 style={heading}>{title}</h1>
-        {children}
-      </main>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <main style={{ ...content, maxWidth: width }}>
+          <h1 style={heading}>{title}</h1>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

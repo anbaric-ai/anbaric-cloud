@@ -527,15 +527,20 @@ function ComponentDemos() {
 
       <Card>
         <h3 className="component-demo__title">Left nav</h3>
-        <p className="component-demo__body">A side navigation panel.</p>
+        <p className="component-demo__body">
+          A side navigation panel. <code>{'{ section }'}</code> entries draw a
+          labelled divider; items with <code>href</code> render as links, and{' '}
+          <code>external</code> ones open in a new tab.
+        </p>
         <SideNav
           header="Anbaric"
           defaultActive="jobs"
           items={[
             { label: 'Dashboard', value: 'dashboard', icon: <Sym name="dashboard" /> },
-            { label: 'Apps', value: 'apps', icon: <Sym name="apps" /> },
             { label: 'Jobs', value: 'jobs', icon: <Sym name="account_tree" /> },
             { label: 'Settings', value: 'settings', icon: <Sym name="settings" />, disabled: true },
+            { section: 'Apps' },
+            { label: 'CRM', value: 'crm', href: '#', external: true, icon: <Sym name="deployed_code" /> },
           ]}
         />
       </Card>
