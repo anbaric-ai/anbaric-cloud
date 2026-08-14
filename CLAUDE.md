@@ -12,6 +12,7 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 - `anbaric-cloud` — public client library for the hosted API; implements the tsapi interfaces over HTTP.
 - `anbaric-cloud-hosting` — the hosted platform: Postgres/AWS-backed implementations exposed via a `node:http` JSON API, plus the build layer, dispatcher, and app proxy.
 - `anbaric-cli` — standalone `anbaric` CLI (login/configure/deploy/update/apps/state-machines plus the `job` group: list/watch/set-state/update); dependency-free, hand-rolled terminal UI.
+- `anbaric-design-system` — the Anbaric design system (not a workspace): design tokens, brand assets, and the React component library, with a living style guide (`npm run build` there produces a self-contained `dist/index.html`).
 - `sample-apps/` — deployable demo apps (not workspaces); they consume the packages the way customer code would.
 
 ## Key tenets
@@ -32,6 +33,12 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 - Interfaces whose implementations may cross a process boundary are async: methods return `Promise`, even when an implementation is trivially synchronous.
 - Errors are `throw new Error(...)` with a clear human-readable message quoting the offending id or key, e.g. `No job found with id "x"`.
 - Env vars are prefixed `ANBARIC_`.
+
+## Front-end
+
+- All front-end code is React — no other UI frameworks, and no plain-DOM UIs beyond trivial served pages.
+- Every UI must use and follow the design system (`anbaric-design-system`): import its tokens (`tokens.css`) and build with its tokens for colour, spacing, radius, elevation, and typography — never hardcode values the tokens cover.
+- Strongly favour existing components from the component library over writing new ones. Before creating a component, check the library; if something close exists, extend it via props or tokens rather than forking. New genuinely-reusable components belong in the design system (one folder per component: `<Name>.tsx`, `<Name>.css`, `index.ts`), not in the consuming app.
 
 ## Testing
 
