@@ -350,10 +350,10 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 body: JSON.stringify({ clientName }),
             });
 
-        it("returns the platform's tenant with the issued keypair", async () => {
+        it("returns the session's tenant with the issued keypair, preferring it over the platform's", async () => {
             const tenantServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new StubAuthenticator(),
-                new CliAuthorizer(new InMemoryCliKeyStore()), undefined, "internal");
+                new CliAuthorizer(new InMemoryCliKeyStore()), undefined, "fallback-tenant");
             const tenantUrl = `http://127.0.0.1:${await tenantServer.listen(0)}`;
 
             await approve("req-tenant", "chris laptop", tenantUrl);

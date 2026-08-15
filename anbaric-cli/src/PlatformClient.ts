@@ -29,6 +29,10 @@ class PlatformClient {
         return this.request("PATCH", path, JSON.stringify(body), "application/json");
     }
 
+    async delete(path : string) : Promise<any> {
+        return this.request("DELETE", path);
+    }
+
     async postBinary(path : string, body : Buffer, contentType : string) : Promise<any> {
         return this.request("POST", path, new Uint8Array(body), contentType);
     }

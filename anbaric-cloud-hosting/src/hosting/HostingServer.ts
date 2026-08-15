@@ -72,12 +72,12 @@ class HostingServer {
         if (this.tokenAuthenticator?.handles(request)) {
             const user = await this.tokenAuthenticator.authenticate(request, response);
             if (!user) return;
-            return this.authorizeAndRoute(user, request, response);
+            return this.authorizeAndRoute(user, undefined, request, response);
         }
 
         const authenticated = await this.authenticateSession(request, response);
         if (this.authenticator && !authenticated) return;
-        if (authenticated) return this.authorizeAndRoute(authenticated[0], request, response);
+        if (authenticated) return this.authorizeAndRoute(authenticated[0], authenticated[1], request, response);
 
         await this.router.route(request, response);
     }
@@ -94,7 +94,8 @@ class HostingServer {
         await this.router.route(request, response);
     }
 
-    private async authorizeAndRoute(user : User, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+    private async authorizeAndRoute(user : User, tenant : Tenant | undefined,
+                                    request : IncomingMessage, response : ServerResponse) : Promise<void> {
         if (this.authenticator) {
             const permitted = await this.authenticator.authorize(user, request, response);
             if (!permitted) {
@@ -102,7 +103,7 @@ class HostingServer {
                 return;
             }
         }
-        await this.router.route(request, response, user);
+        await this.router.route(request, response, user, tenant);
     }
 
     private async authenticateSession(request : IncomingMessage, response : ServerResponse) : Promise<[User, Tenant] | undefined> {

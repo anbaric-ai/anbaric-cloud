@@ -3,6 +3,7 @@ import {IncomingMessage, ServerResponse} from "node:http";
 import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
+import {Tenant} from "../auth/Tenant";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
@@ -30,7 +31,7 @@ class Router {
                 private cliAuthorizer? : CliAuthorizer,
                 private tenant? : string) {}
 
-    async route(request : IncomingMessage, response : ServerResponse, user? : User) : Promise<void> {
+    async route(request : IncomingMessage, response : ServerResponse, user? : User, sessionTenant? : Tenant) : Promise<void> {
         const url = new URL(request.url ?? "/", "http://localhost");
         const [resource, id, subresource] = url.pathname.split("/").filter(Boolean);
         const method = request.method ?? "GET";
@@ -39,7 +40,7 @@ class Router {
             return this.servePage(response);
         }
         if (resource === "authorize-cli" && id && this.cliAuthorizer) {
-            return this.handleAuthorizeCli(method, id, subresource, request, response, user);
+            return this.handleAuthorizeCli(method, id, subresource, request, response, user, sessionTenant);
         }
         if (resource === "manage-keys" && method === "GET" && !id && this.cliAuthorizer) {
             return this.servePage(response);
@@ -81,11 +82,12 @@ class Router {
     }
 
     private async handleAuthorizeCli(method : string, requestId : string, subresource : string | undefined,
-                                     request : IncomingMessage, response : ServerResponse, user? : User) : Promise<void> {
+                                     request : IncomingMessage, response : ServerResponse, user? : User,
+                                     sessionTenant? : Tenant) : Promise<void> {
         if (method === "GET" && subresource === "poll") {
             const keyPair = this.cliAuthorizer!.collect(requestId);
             if (!keyPair) return this.reply(response, 202, { status: "pending" });
-            return this.reply(response, 200, this.tenant ? { ...keyPair, tenant: this.tenant } : keyPair);
+            return this.reply(response, 200, keyPair);
         }
 
         if (method === "GET" && !subresource) {
@@ -97,7 +99,8 @@ class Router {
             if (typeof clientName !== "string" || clientName.trim().length === 0) {
                 return this.reply(response, 400, { error: "Expected a body of { clientName : string }" });
             }
-            await this.cliAuthorizer!.approve(requestId, clientName.trim(), user ?? new User("local"));
+            await this.cliAuthorizer!.approve(requestId, clientName.trim(), user ?? new User("local"),
+                sessionTenant?.id ?? this.tenant);
             return this.reply(response, 204);
         }
 

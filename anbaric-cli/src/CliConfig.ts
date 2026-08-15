@@ -1,4 +1,4 @@
-import {mkdir, readFile, writeFile} from "node:fs/promises";
+import {mkdir, readFile, rm, writeFile} from "node:fs/promises";
 import {homedir} from "node:os";
 import {join} from "node:path";
 
@@ -62,6 +62,10 @@ const CliConfig = {
         const path = join(configDir(), "key.json");
         await writeFile(path, JSON.stringify(key, null, 2), { mode: 0o600 });
         return path;
+    },
+
+    async deleteKey() : Promise<void> {
+        await rm(join(configDir(), "key.json"), { force: true });
     },
 
     async loadKey() : Promise<StoredKey | undefined> {

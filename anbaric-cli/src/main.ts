@@ -10,6 +10,7 @@ import {JobsCommand} from "./commands/JobsCommand";
 import {JobSetStateCommand} from "./commands/JobSetStateCommand";
 import {JobUpdateCommand} from "./commands/JobUpdateCommand";
 import {LoginCommand} from "./commands/LoginCommand";
+import {LogoutCommand} from "./commands/LogoutCommand";
 import {StateMachinesCommand} from "./commands/StateMachinesCommand";
 import {WatchCommand} from "./commands/WatchCommand";
 import {bold, dim, red} from "./ui/Ansi";
@@ -18,7 +19,8 @@ const usage = () => {
     console.log(`${bold("anbaric")} — the Anbaric platform CLI
 
 ${bold("Usage")}
-  anbaric login                                 configure platform URL and tenant
+  anbaric login                                 configure platform URL and authorize this terminal
+anbaric logout                                revoke this terminal's key and remove it
   anbaric configure [dir]                       create or update the app's .anbaric/app-config.json
   anbaric deploy [dir]                          deploy an app (defaults to the current directory)
   anbaric update [dir]                          deploy, replacing a running app without prompting
@@ -86,6 +88,8 @@ try {
     switch (command) {
         case "login":
             process.exit(await new LoginCommand().run(flags));
+        case "logout":
+            process.exit(await new LogoutCommand().run());
         case "configure":
             process.exit(await new ConfigureCommand().run(commandArgs[0] ?? "."));
         case "deploy":

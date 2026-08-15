@@ -8,6 +8,7 @@ type IssuedKeyPair = {
     clientName : string,
     publicKey : string,
     privateKey : string,
+    tenant? : string,
 };
 
 class CliAuthorizer {
@@ -16,7 +17,7 @@ class CliAuthorizer {
 
     constructor(private keyStore : CliKeyStore) {}
 
-    async approve(requestId : string, clientName : string, user : User) : Promise<void> {
+    async approve(requestId : string, clientName : string, user : User, tenant? : string) : Promise<void> {
         const { publicKey, privateKey } = generateKeyPairSync("ed25519");
         const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
         const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
@@ -29,6 +30,7 @@ class CliAuthorizer {
             clientName,
             publicKey: publicKeyPem,
             privateKey: privateKeyPem,
+            tenant,
         });
     }
 
