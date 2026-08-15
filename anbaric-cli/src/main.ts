@@ -20,7 +20,7 @@ const usage = () => {
 
 ${bold("Usage")}
   anbaric login                                 configure platform URL and authorize this terminal
-anbaric logout                                revoke this terminal's key and remove it
+  anbaric logout                                revoke this terminal's key and remove it
   anbaric configure [dir]                       create or update the app's .anbaric/app-config.json
   anbaric deploy [dir]                          deploy an app (defaults to the current directory)
   anbaric update [dir]                          deploy, replacing a running app without prompting

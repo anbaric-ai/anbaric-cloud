@@ -7,7 +7,7 @@
   "type": "module",
   "main": "src/main.ts",
   "bin": {
-    "anbaric": "src/main.ts"
+    "anbaric": "bin/anbaric.js"
   },
   "scripts": {
     "test": "vitest run"
