@@ -104,3 +104,11 @@ output "database_endpoint" {
 output "cluster_name" {
   value = module.platform.cluster_name
 }
+
+output "certificate_validation_records" {
+  value = module.platform.certificate_validation_records
+}
+
+output "cloudfront_domain" {
+  value = module.platform.cloudfront_domain
+}

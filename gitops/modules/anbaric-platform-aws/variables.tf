@@ -72,12 +72,6 @@ variable "platform_domain" {
   default     = ""
 }
 
-variable "dns_zone_name" {
-  description = "Delegated Route53 zone holding v2 records"
-  type        = string
-  default     = "cloud.anbaric.ai"
-}
-
 variable "platform_public_url" {
   description = "Public URL of the platform, used for the login callback; defaults to the CloudFront domain"
   type        = string
