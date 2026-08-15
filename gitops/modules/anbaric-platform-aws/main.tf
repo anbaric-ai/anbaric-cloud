@@ -3,9 +3,13 @@ resource "aws_ecr_repository" "platform" {
   force_delete = true
 }
 
+locals {
+  image_sources_hash = sha1(join("", [for file in fileset(var.source_root, "{*/src/**,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")]))
+}
+
 resource "terraform_data" "platform_image" {
   triggers_replace = {
-    sources = sha1(join("", [for file in fileset(var.source_root, "{*/src/**,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")]))
+    sources = local.image_sources_hash
   }
 
   provisioner "local-exec" {
@@ -197,7 +201,7 @@ resource "aws_ecs_service" "platform" {
   force_new_deployment = true
 
   triggers = {
-    redeployment = terraform_data.platform_image.id
+    redeployment = local.image_sources_hash
   }
 
   network_configuration {
