@@ -1,6 +1,6 @@
 {
   "name": "anbaric-cloud-hosting-auth-auth0",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Auth0 implementation of the Anbaric platform's Authenticator",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "anbaric-cloud-hosting": "^1.1.0",
+    "anbaric-cloud-hosting": "^1.1.1",
     "jose": "^6.0.0"
   },
   "devDependencies": {

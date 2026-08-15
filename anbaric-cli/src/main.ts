@@ -1,4 +1,3 @@
-#!/usr/bin/env -S npx tsx
 import {parseArgs} from "node:util";
 import {CliConfig, platformUrlForEnvironment} from "./CliConfig";
 import {PlatformClient} from "./PlatformClient";
@@ -56,15 +55,18 @@ const {values, positionals} = parseArgs({
 const [command, ...commandArgs] = positionals;
 const flags = { platformUrl: values["platform-url"], tenant: values.tenant };
 
-const clientFromConfig = async () => new PlatformClient(await CliConfig.resolve(flags));
-
-const clientForDeploy = async () => {
+const clientFromConfig = async () => {
     const options = await CliConfig.resolve(flags);
-    if (flags.platformUrl) return new PlatformClient(options);
-    if (values.environment) {
+    if (!flags.platformUrl && values.environment) {
         const platformUrl = platformUrlForEnvironment(values.environment, options.tenant);
         return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
     }
+    return new PlatformClient(options);
+};
+
+const clientForDeploy = async () => {
+    const options = await CliConfig.resolve(flags);
+    if (flags.platformUrl || values.environment) return clientFromConfig();
     if (!options.tenant || !process.stdout.isTTY) return new PlatformClient(options);
 
     const platformUrl = await choosePlatformUrl(options.tenant);

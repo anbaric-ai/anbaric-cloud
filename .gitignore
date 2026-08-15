@@ -5,3 +5,4 @@ node_modules/
 *.tfvars
 *.log
 .DS_Store
+anbaric-cli/dist/
