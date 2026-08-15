@@ -1,4 +1,4 @@
-import {CliConfig, CliFlags, DEFAULT_PLATFORM_URL, productionUrlFor, stagingUrlFor} from "../CliConfig";
+import {CliConfig, CliFlags, DEFAULT_PLATFORM_URL, platformUrlForEnvironment, productionUrlFor, stagingUrlFor} from "../CliConfig";
 import {KeyRequest} from "../KeyRequest";
 import {openBrowser} from "../BrowserOpener";
 import {bold, check, dim, green} from "../ui/Ansi";
@@ -12,9 +12,11 @@ const STAGING_CHOICE = "anbaric-cloud-staging";
 
 class LoginCommand {
 
-    async run(flags : CliFlags) : Promise<number> {
+    async run(flags : CliFlags, environment? : string) : Promise<number> {
         const stored = await CliConfig.load();
-        const platformUrl = flags.platformUrl ?? await this.choosePlatformUrl(flags.tenant ?? stored.tenant);
+        const tenant = flags.tenant ?? stored.tenant;
+        const platformUrl = flags.platformUrl
+            ?? (environment ? platformUrlForEnvironment(environment, tenant) : await this.choosePlatformUrl(tenant));
 
         if (!await this.requiresAuthentication(platformUrl)) {
             const path = await CliConfig.save({ platformUrl, tenant: flags.tenant });
@@ -63,6 +65,9 @@ class LoginCommand {
     }
 
     private async choosePlatformUrl(storedTenant? : string) : Promise<string> {
+        if (!process.stdin.isTTY) {
+            throw new Error("No terminal to ask in - pass --platform-url, or --environment local|staging|production (staging and production also need --tenant)");
+        }
         const localDevRunning = await this.ping(DEFAULT_PLATFORM_URL);
 
         const choice = await select("Which platform do you want to use?", [

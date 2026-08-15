@@ -27,6 +27,15 @@ const DEFAULT_PLATFORM_URL = "http://localhost:8787";
 const stagingUrlFor = (tenant : string) => `https://${tenant}.staging.anbaric.ai`;
 const productionUrlFor = (tenant : string) => `https://${tenant}.cloud.anbaric.ai`;
 
+const platformUrlForEnvironment = (environment : string, tenant? : string) : string => {
+    if (environment === "local") return DEFAULT_PLATFORM_URL;
+    if (environment !== "staging" && environment !== "production") {
+        throw new Error(`Unknown environment "${environment}" - expected local, staging or production`);
+    }
+    if (!tenant) throw new Error(`The ${environment} environment needs a tenant - pass --tenant or log in first`);
+    return environment === "staging" ? stagingUrlFor(tenant) : productionUrlFor(tenant);
+};
+
 const configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
 
 const CliConfig = {
@@ -78,5 +87,5 @@ const CliConfig = {
 
 };
 
-export { CliConfig, DEFAULT_PLATFORM_URL, productionUrlFor, stagingUrlFor };
+export { CliConfig, DEFAULT_PLATFORM_URL, platformUrlForEnvironment, productionUrlFor, stagingUrlFor };
 export type { CliFlags, CliOptions, StoredKey };

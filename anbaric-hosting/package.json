@@ -1,6 +1,6 @@
 {
   "name": "anbaric-hosting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run an Anbaric platform: the hosted API, dispatcher, build layers and app proxy, bootable with the anbaric-hosting command",
   "license": "MIT",
   "type": "module",

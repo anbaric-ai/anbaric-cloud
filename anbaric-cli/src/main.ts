@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx tsx
 import {parseArgs} from "node:util";
-import {CliConfig} from "./CliConfig";
+import {CliConfig, platformUrlForEnvironment} from "./CliConfig";
 import {PlatformClient} from "./PlatformClient";
 import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
@@ -31,9 +31,13 @@ ${bold("Usage")}
   anbaric job set-state <job-id> <state>        move a job to a state and re-queue it
   anbaric job update <job-id> <key=value ...>   update job properties and re-queue it
 
-${bold("Options")}
+${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and agents)")}
   --platform-url <url>                          platform to talk to ${dim("(login sets the default)")}
-  --tenant <tenant>                             tenant to act as ${dim("(login sets the default)")}`);
+  --tenant <tenant>                             tenant to act as ${dim("(login sets the default)")}
+  --environment <local|staging|production>      derive the platform URL from the tenant, skipping the picker
+  --yes                                         deploy: replace a running app without asking
+  --name <name>                                 configure: app name, skipping the prompt
+  --port <port>                                 configure: internal port, skipping the prompt`);
 };
 
 const {values, positionals} = parseArgs({
@@ -41,6 +45,10 @@ const {values, positionals} = parseArgs({
     options: {
         "platform-url": { type: "string" },
         "tenant": { type: "string" },
+        "environment": { type: "string" },
+        "yes": { type: "boolean" },
+        "name": { type: "string" },
+        "port": { type: "string" },
     },
     allowPositionals: true,
 });
@@ -52,11 +60,21 @@ const clientFromConfig = async () => new PlatformClient(await CliConfig.resolve(
 
 const clientForDeploy = async () => {
     const options = await CliConfig.resolve(flags);
-    if (flags.platformUrl || !options.tenant || !process.stdout.isTTY) return new PlatformClient(options);
+    if (flags.platformUrl) return new PlatformClient(options);
+    if (values.environment) {
+        const platformUrl = platformUrlForEnvironment(values.environment, options.tenant);
+        return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
+    }
+    if (!options.tenant || !process.stdout.isTTY) return new PlatformClient(options);
 
     const platformUrl = await choosePlatformUrl(options.tenant);
     return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
 };
+
+const configureCommand = () => new ConfigureCommand({
+    name: values.name,
+    port: values.port === undefined ? undefined : Number(values.port),
+});
 
 const fail = (message : string) : number => {
     console.error(red(message));
@@ -87,15 +105,15 @@ const runJobCommand = async (args : Array<string>) : Promise<number> => {
 try {
     switch (command) {
         case "login":
-            process.exit(await new LoginCommand().run(flags));
+            process.exit(await new LoginCommand().run(flags, values.environment));
         case "logout":
             process.exit(await new LogoutCommand().run());
         case "configure":
-            process.exit(await new ConfigureCommand().run(commandArgs[0] ?? "."));
+            process.exit(await configureCommand().run(commandArgs[0] ?? "."));
         case "deploy":
-            process.exit(await new DeployCommand(await clientForDeploy()).run(commandArgs[0] ?? "."));
+            process.exit(await new DeployCommand(await clientForDeploy(), values.yes ?? false, configureCommand()).run(commandArgs[0] ?? "."));
         case "update":
-            process.exit(await new DeployCommand(await clientForDeploy(), true).run(commandArgs[0] ?? "."));
+            process.exit(await new DeployCommand(await clientForDeploy(), true, configureCommand()).run(commandArgs[0] ?? "."));
         case "apps":
             process.exit(await new AppsCommand(await clientFromConfig()).run());
         case "state-machines":

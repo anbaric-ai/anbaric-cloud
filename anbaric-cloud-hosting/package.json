@@ -1,6 +1,6 @@
 {
   "name": "anbaric-cloud-hosting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Anbaric Cloud hosting service: Postgres-backed job persistence and queuing exposed over an HTTP API",
   "license": "MIT",
   "author": "chris@anbaric.ai",

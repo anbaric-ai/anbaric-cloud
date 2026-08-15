@@ -56,4 +56,24 @@ describe("platform url patterns", () => {
         expect(productionUrlFor("internal")).toBe("https://internal.cloud.anbaric.ai");
     });
 
+    it("resolves each environment flag to a platform url", async () => {
+        const {platformUrlForEnvironment, DEFAULT_PLATFORM_URL} = await import("../src/CliConfig");
+
+        expect(platformUrlForEnvironment("local")).toBe(DEFAULT_PLATFORM_URL);
+        expect(platformUrlForEnvironment("staging", "internal")).toBe("https://internal.staging.anbaric.ai");
+        expect(platformUrlForEnvironment("production", "internal")).toBe("https://internal.cloud.anbaric.ai");
+    });
+
+    it("refuses cloud environments without a tenant", async () => {
+        const {platformUrlForEnvironment} = await import("../src/CliConfig");
+
+        expect(() => platformUrlForEnvironment("staging")).toThrowError(/needs a tenant/);
+    });
+
+    it("refuses unknown environments", async () => {
+        const {platformUrlForEnvironment} = await import("../src/CliConfig");
+
+        expect(() => platformUrlForEnvironment("qa", "internal")).toThrowError('Unknown environment "qa" - expected local, staging or production');
+    });
+
 });

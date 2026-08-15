@@ -20,11 +20,12 @@ type DeployedApp = {
 
 class DeployCommand {
 
-    constructor(private client : PlatformClient, private replaceWithoutAsking : boolean = false) {}
+    constructor(private client : PlatformClient, private replaceWithoutAsking : boolean = false,
+                private configureCommand : ConfigureCommand = new ConfigureCommand()) {}
 
     async run(appDirectory : string) : Promise<number> {
         const appDir = resolve(appDirectory);
-        const config = await AppConfig.load(appDir) ?? await new ConfigureCommand().configure(appDir);
+        const config = await AppConfig.load(appDir) ?? await this.configureCommand.configure(appDir);
 
         const existingApps = await this.client.get("/apps") as Array<DeployedApp>;
         if (!await this.clearToDeploy(config, existingApps)) return 1;
