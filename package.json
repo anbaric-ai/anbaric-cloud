@@ -2,13 +2,15 @@
   "name": "anbaric-root",
   "private": true,
   "workspaces": [
-    "anbaric-state-machine",
     "tsapi",
+    "anbaric-state-machine",
+    "anbaric-data-store",
     "anbaric-cloud",
+    "anbaric",
     "anbaric-cloud-hosting",
+    "anbaric-hosting",
     "anbaric-cloud-hosting-auth-auth0",
-    "anbaric-cli",
-    "anbaric-data-store"
+    "anbaric-cli"
   ],
   "scripts": {
     "test": "vitest run"

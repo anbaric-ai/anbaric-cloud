@@ -15,7 +15,10 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "anbaric-cloud": "*",
-    "anbaric-tsapi": "*"
-  }
+    "anbaric-cloud": "^1.0.0",
+    "anbaric-tsapi": "^1.0.0"
+  },
+  "files": [
+    "src"
+  ]
 }

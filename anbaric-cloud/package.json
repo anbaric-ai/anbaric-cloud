@@ -11,10 +11,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "anbaric-tsapi": "*"
+    "anbaric-tsapi": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "files": [
+    "src"
+  ]
 }

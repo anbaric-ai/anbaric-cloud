@@ -1,7 +1,7 @@
 {
   "name": "anbaric-cli",
   "version": "1.0.0",
-  "description": "CLI for the Anbaric platform: deploy apps to an Anbaric Cloud hosting service",
+  "description": "The Anbaric platform CLI: deploy and operate state-machine apps on Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
   "type": "module",
@@ -15,5 +15,12 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "dependencies": {
+    "tsx": "^4.20.0"
   }
 }

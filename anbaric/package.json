@@ -1,0 +1,18 @@
+{
+  "name": "anbaric",
+  "version": "1.0.0",
+  "description": "Everything needed to write an Anbaric app: state machines, jobs, document and secret stores, local in-memory implementations and the Anbaric Cloud clients",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "anbaric-cloud": "^1.0.0",
+    "anbaric-data-store": "^1.0.0",
+    "anbaric-state-machine": "^1.0.0",
+    "anbaric-tsapi": "^1.0.0"
+  }
+}

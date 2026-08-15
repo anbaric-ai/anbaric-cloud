@@ -11,11 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "anbaric-cloud-hosting": "*",
+    "anbaric-cloud-hosting": "^1.0.0",
     "jose": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "private": true
 }

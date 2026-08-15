@@ -11,9 +11,14 @@ start with `CLAUDE.md` and the package READMEs.
 
 ## Write an app
 
+Everything an app needs comes from one install:
+
+```bash
+npm install anbaric
+```
+
 ```ts
-import {Action, PropertyDefinition, State, Transition} from "anbaric-tsapi";
-import {Code, StateMachine} from "anbaric-state-machine";
+import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from "anbaric";
 
 const sendWelcome = new Action("Send welcome email", new Code("send-welcome"));
 sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
@@ -70,6 +75,7 @@ consumer. Nothing to install or configure.
 ## Deploy it
 
 ```bash
+npm install -g anbaric-cli    # once; provides the anbaric command
 anbaric login                 # pick a platform; a browser authorizes this terminal
 anbaric configure             # writes .anbaric/app-config.json (name + internal port)
 anbaric deploy                # packs, uploads, bakes an image, waits until live
@@ -120,6 +126,12 @@ platform URL, consumer ports) — never hardcode these.
 
 All commands accept `--platform-url` and `--tenant`; `login` sets the
 defaults. Manage your CLI keys in the browser at `<platform>/manage-keys`.
+
+## Run your own platform
+
+`npm install -g anbaric-hosting` provides the full hosting service - API,
+dispatcher, build layers and proxy - bootable with the `anbaric-hosting`
+command and configured entirely through `ANBARIC_*` environment variables.
 
 ## Run a platform locally
 
