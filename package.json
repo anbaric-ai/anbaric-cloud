@@ -13,9 +13,12 @@
     "anbaric-cli"
   ],
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "versions": "tsx scripts/set-versions.ts",
+    "release": "npm run versions && npx vitest run && npm publish --workspaces --access public"
   },
   "devDependencies": {
     "vitest": "^4.1.10"
-  }
+  },
+  "version": "1.1.0"
 }

@@ -1,6 +1,6 @@
 {
   "name": "anbaric",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Everything needed to write an Anbaric app: state machines, jobs, document and secret stores, local in-memory implementations and the Anbaric Cloud clients",
   "license": "MIT",
   "type": "module",
@@ -10,9 +10,9 @@
     "src"
   ],
   "dependencies": {
-    "anbaric-cloud": "^1.0.0",
-    "anbaric-data-store": "^1.0.0",
-    "anbaric-state-machine": "^1.0.0",
-    "anbaric-tsapi": "^1.0.0"
+    "anbaric-cloud": "^1.1.0",
+    "anbaric-data-store": "^1.1.0",
+    "anbaric-state-machine": "^1.1.0",
+    "anbaric-tsapi": "^1.1.0"
   }
 }

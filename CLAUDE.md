@@ -50,3 +50,11 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 ## Before finishing any change
 
 Run `npx vitest run` at the root and `npx tsc --noEmit -p <package>` for every package touched; both must be clean.
+
+## Releasing
+
+The root `package.json` `version` is the single source for every workspace:
+`npm run versions` stamps it into all packages and aligns inter-`anbaric`
+dependencies to `^<version>`. To release: bump the root version, then
+`npm run release` (versions → tests → `npm publish --workspaces`, which
+skips the private Auth0 package). Never edit workspace versions by hand.
