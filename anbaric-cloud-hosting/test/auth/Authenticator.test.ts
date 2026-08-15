@@ -3,6 +3,7 @@ import {IncomingMessage, ServerResponse} from "node:http";
 import {Authenticator} from "../../src/auth/Authenticator";
 import {KeyPair} from "../../src/auth/KeyPair";
 import {Role} from "../../src/auth/Role";
+import {Tenant} from "../../src/auth/Tenant";
 import {User} from "../../src/auth/User";
 
 const fakeRequest = (url : string = "/") => ({ url }) as IncomingMessage;
@@ -31,8 +32,8 @@ const asServerResponse = (response : FakeResponse) => response as unknown as Ser
 class StubAuthenticator extends Authenticator {
 
     async authenticate(session : string | undefined, _request : IncomingMessage,
-                       response : ServerResponse) : Promise<User | undefined> {
-        if (session === "valid") return new User("user-1", [new Role("admin")]);
+                       response : ServerResponse) : Promise<[User, Tenant] | undefined> {
+        if (session === "valid") return [new User("user-1", [new Role("admin")]), new Tenant("internal")];
         response.writeHead(302, { location: "https://login.example/" });
         response.end();
         return undefined;
@@ -62,12 +63,13 @@ describe("Authenticator", () => {
 
     const authenticator = new StubAuthenticator();
 
-    it("authenticates a valid session into a user", async () => {
+    it("authenticates a valid session into a user and tenant", async () => {
         const response = fakeResponse();
 
-        const user = await authenticator.authenticate("valid", fakeRequest(), asServerResponse(response));
+        const [user, tenant] = (await authenticator.authenticate("valid", fakeRequest(), asServerResponse(response)))!;
 
-        expect(user?.id).toBe("user-1");
+        expect(user.id).toBe("user-1");
+        expect(tenant.id).toBe("internal");
         expect(response.ended).toBe(false);
     });
 

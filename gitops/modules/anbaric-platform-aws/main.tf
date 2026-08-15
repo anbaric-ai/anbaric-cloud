@@ -125,6 +125,8 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_BASE_IMAGE", value = "${aws_ecr_repository.platform.repository_url}:latest" },
       { name = "ANBARIC_AWS_APP_EXECUTION_ROLE", value = aws_iam_role.app_execution.arn },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
+    ], var.tenant == "" ? [] : [
+      { name = "ANBARIC_TENANT", value = var.tenant },
     ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },

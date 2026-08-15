@@ -28,6 +28,7 @@ class KeyRequest {
                     clientName: issued.clientName,
                     publicKey: issued.publicKey,
                     privateKey: issued.privateKey,
+                    tenant: issued.tenant,
                 };
             }
             await new Promise(resolve => setTimeout(resolve, this.pollIntervalMs));

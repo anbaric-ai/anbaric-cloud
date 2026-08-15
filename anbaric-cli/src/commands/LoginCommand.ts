@@ -2,7 +2,6 @@ import {CliConfig, CliFlags, DEFAULT_PLATFORM_URL} from "../CliConfig";
 import {KeyRequest} from "../KeyRequest";
 import {openBrowser} from "../BrowserOpener";
 import {bold, check, dim, green} from "../ui/Ansi";
-import {ask} from "../ui/Prompt";
 import {select} from "../ui/Select";
 import {Spinner} from "../ui/Spinner";
 
@@ -12,22 +11,19 @@ const PING_TIMEOUT_MS = 1500;
 class LoginCommand {
 
     async run(flags : CliFlags) : Promise<number> {
-        const stored = await CliConfig.load();
         const platformUrl = flags.platformUrl ?? await this.choosePlatformUrl();
-        const tenant = flags.tenant ?? await this.ask("Tenant", stored.tenant ?? "default");
-
-        const path = await CliConfig.save({ platformUrl, tenant });
-        console.log(`${check} Using ${bold(platformUrl)} as tenant ${bold(tenant)} ${dim(`(saved to ${path})`)}`);
 
         if (!await this.requiresAuthentication(platformUrl)) {
+            const path = await CliConfig.save({ platformUrl, tenant: flags.tenant });
+            console.log(`${check} Using ${bold(platformUrl)} ${dim(`(saved to ${path})`)}`);
             console.log(dim("  this platform has authentication disabled, so no key is needed"));
             return 0;
         }
 
-        return this.authorizeTerminal(platformUrl);
+        return this.authorizeTerminal(platformUrl, flags);
     }
 
-    private async authorizeTerminal(platformUrl : string) : Promise<number> {
+    private async authorizeTerminal(platformUrl : string, flags : CliFlags) : Promise<number> {
         const request = new KeyRequest(platformUrl);
 
         console.log(`\nOpening your browser to authorize this terminal. If nothing opens, visit:\n  ${bold(request.authorizeUrl)}\n`);
@@ -38,8 +34,12 @@ class LoginCommand {
             const key = await request.awaitKey();
             spinner.stop();
             const keyPath = await CliConfig.saveKey(key);
+            const tenant = key.tenant ?? flags.tenant;
+            const path = await CliConfig.save({ platformUrl, tenant });
+
             console.log(`${check} This terminal is now authorized as ${bold(key.clientName)}`);
-            console.log(dim(`  keypair saved to ${keyPath}`));
+            if (tenant) console.log(`${check} You are on the ${bold(tenant)} tenant`);
+            console.log(dim(`  keypair saved to ${keyPath}, config to ${path}`));
             return 0;
         } catch (error) {
             spinner.stop();
@@ -86,10 +86,6 @@ class LoginCommand {
         } catch {
             return false;
         }
-    }
-
-    private async ask(question : string, defaultAnswer : string) : Promise<string> {
-        return ask(question, defaultAnswer);
     }
 
 }

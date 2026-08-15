@@ -46,3 +46,14 @@ describe("CliConfig", () => {
     });
 
 });
+
+describe("platform url patterns", () => {
+
+    it("derives the staging and production urls from the tenant", async () => {
+        const {stagingUrlFor, productionUrlFor} = await import("../src/CliConfig");
+
+        expect(stagingUrlFor("internal")).toBe("https://internal.staging.anbaric.ai");
+        expect(productionUrlFor("internal")).toBe("https://internal.cloud.anbaric.ai");
+    });
+
+});

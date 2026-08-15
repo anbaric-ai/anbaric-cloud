@@ -72,6 +72,11 @@ variable "platform_domain" {
   default = ""
 }
 
+variable "tenant" {
+  type    = string
+  default = ""
+}
+
 module "platform" {
   source = "../modules/anbaric-platform-aws"
 
@@ -91,6 +96,7 @@ module "platform" {
   auth0_organization  = var.auth0_organization
   platform_public_url = var.platform_public_url
   platform_domain     = var.platform_domain
+  tenant              = var.tenant
 
   db_instance_class = "db.t4g.small"
   cpu               = 1024

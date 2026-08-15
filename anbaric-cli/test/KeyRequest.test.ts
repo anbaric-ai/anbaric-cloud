@@ -29,6 +29,7 @@ describe("KeyRequest", () => {
                     clientName: "chris laptop",
                     publicKey: "PUBLIC-PEM",
                     privateKey: "PRIVATE-PEM",
+                    tenant: "internal",
                 }));
             });
             server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
@@ -45,6 +46,7 @@ describe("KeyRequest", () => {
             clientName: "chris laptop",
             publicKey: "PUBLIC-PEM",
             privateKey: "PRIVATE-PEM",
+            tenant: "internal",
         });
     });
 

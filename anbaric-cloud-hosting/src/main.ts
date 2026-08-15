@@ -62,7 +62,7 @@ const tokenAuthenticator = new TokenAuthenticator(cliKeyStore);
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer,
-    tokenAuthenticator);
+    tokenAuthenticator, process.env.ANBARIC_TENANT);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

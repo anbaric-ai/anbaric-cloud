@@ -66,10 +66,11 @@ describe("Auth0Authenticator", () => {
         const session = await idTokenWith({ "https://anbaric.ai/roles": ["admin"] });
         const response = new FakeResponse();
 
-        const user = await authenticator().authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+        const [user, tenant] = (await authenticator().authenticate(session, fakeRequest("/jobs"), asServerResponse(response)))!;
 
-        expect(user?.id).toBe("auth0|user-1");
-        expect(user?.hasRole(new Role("admin"))).toBe(true);
+        expect(user.id).toBe("auth0|user-1");
+        expect(user.hasRole(new Role("admin"))).toBe(true);
+        expect(tenant.id).toBe("auth0|user-1");
         expect(response.ended).toBe(false);
     });
 
@@ -120,9 +121,10 @@ describe("Auth0Authenticator", () => {
             const session = await idTokenWith({ org_id: "org_123", org_name: "acme" });
             const response = new FakeResponse();
 
-            const user = await organizationAuthenticator("acme").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+            const [user, tenant] = (await organizationAuthenticator("acme").authenticate(session, fakeRequest("/jobs"), asServerResponse(response)))!;
 
-            expect(user?.id).toBe("auth0|user-1");
+            expect(user.id).toBe("auth0|user-1");
+            expect(tenant.id).toBe("acme");
             expect(response.ended).toBe(false);
         });
 
@@ -130,9 +132,10 @@ describe("Auth0Authenticator", () => {
             const session = await idTokenWith({ org_id: "org_123", org_name: "acme" });
             const response = new FakeResponse();
 
-            const user = await organizationAuthenticator("org_123").authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+            const [user, tenant] = (await organizationAuthenticator("org_123").authenticate(session, fakeRequest("/jobs"), asServerResponse(response)))!;
 
-            expect(user?.id).toBe("auth0|user-1");
+            expect(user.id).toBe("auth0|user-1");
+            expect(tenant.id).toBe("acme");
         });
 
         it("rejects a session from a different organization", async () => {
@@ -159,9 +162,10 @@ describe("Auth0Authenticator", () => {
             const session = await idTokenWith();
             const response = new FakeResponse();
 
-            const user = await authenticator().authenticate(session, fakeRequest("/jobs"), asServerResponse(response));
+            const [user, tenant] = (await authenticator().authenticate(session, fakeRequest("/jobs"), asServerResponse(response)))!;
 
-            expect(user?.id).toBe("auth0|user-1");
+            expect(user.id).toBe("auth0|user-1");
+            expect(tenant.id).toBe("auth0|user-1");
         });
 
     });

@@ -19,9 +19,13 @@ type StoredKey = {
     clientName : string,
     publicKey : string,
     privateKey : string,
+    tenant? : string,
 };
 
 const DEFAULT_PLATFORM_URL = "http://localhost:8787";
+
+const stagingUrlFor = (tenant : string) => `https://${tenant}.staging.anbaric.ai`;
+const productionUrlFor = (tenant : string) => `https://${tenant}.cloud.anbaric.ai`;
 
 const configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
 
@@ -70,5 +74,5 @@ const CliConfig = {
 
 };
 
-export { CliConfig, DEFAULT_PLATFORM_URL };
+export { CliConfig, DEFAULT_PLATFORM_URL, productionUrlFor, stagingUrlFor };
 export type { CliFlags, CliOptions, StoredKey };

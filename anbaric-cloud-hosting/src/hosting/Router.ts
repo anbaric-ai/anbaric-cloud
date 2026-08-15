@@ -27,7 +27,8 @@ class Router {
                 private buildLayer? : BuildLayer,
                 private documentStoreFor? : (collection : string) => JsonStore,
                 private secretStore? : SecretStore,
-                private cliAuthorizer? : CliAuthorizer) {}
+                private cliAuthorizer? : CliAuthorizer,
+                private tenant? : string) {}
 
     async route(request : IncomingMessage, response : ServerResponse, user? : User) : Promise<void> {
         const url = new URL(request.url ?? "/", "http://localhost");
@@ -84,7 +85,7 @@ class Router {
         if (method === "GET" && subresource === "poll") {
             const keyPair = this.cliAuthorizer!.collect(requestId);
             if (!keyPair) return this.reply(response, 202, { status: "pending" });
-            return this.reply(response, 200, keyPair);
+            return this.reply(response, 200, this.tenant ? { ...keyPair, tenant: this.tenant } : keyPair);
         }
 
         if (method === "GET" && !subresource) {

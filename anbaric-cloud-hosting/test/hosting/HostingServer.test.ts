@@ -9,6 +9,7 @@ import {CliAuthorizer} from "../../src/auth/CliAuthorizer";
 import {CliKey} from "../../src/auth/CliKey";
 import {InMemoryCliKeyStore} from "../../src/auth/InMemoryCliKeyStore";
 import {Role} from "../../src/auth/Role";
+import {Tenant} from "../../src/auth/Tenant";
 import {TokenAuthenticator} from "../../src/auth/TokenAuthenticator";
 import {User} from "../../src/auth/User";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
@@ -232,8 +233,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
         class StubAuthenticator extends Authenticator {
 
             async authenticate(session : string | undefined, _request : import("node:http").IncomingMessage,
-                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
-                if (session === "valid-session") return new User("user-1", [new Role("admin")]);
+                               response : import("node:http").ServerResponse) : Promise<[User, Tenant] | undefined> {
+                if (session === "valid-session") return [new User("user-1", [new Role("admin")]), new Tenant("internal")];
                 response.writeHead(302, { location: "https://login.example/authorize" });
                 response.end();
                 return undefined;
@@ -319,8 +320,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
         class StubAuthenticator extends Authenticator {
 
             async authenticate(session : string | undefined, _request : import("node:http").IncomingMessage,
-                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
-                if (session === "valid-session") return new User("user-1");
+                               response : import("node:http").ServerResponse) : Promise<[User, Tenant] | undefined> {
+                if (session === "valid-session") return [new User("user-1"), new Tenant("internal")];
                 response.writeHead(302, { location: "https://login.example/authorize" });
                 response.end();
                 return undefined;
@@ -342,12 +343,26 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await server.close();
         });
 
-        const approve = (requestId : string, clientName : string) =>
-            fetch(`${baseUrl}/authorize-cli/${requestId}`, {
+        const approve = (requestId : string, clientName : string, url : string = baseUrl) =>
+            fetch(`${url}/authorize-cli/${requestId}`, {
                 method: "POST",
                 headers: { "content-type": "application/json", cookie: "anbaric_session=valid-session" },
                 body: JSON.stringify({ clientName }),
             });
+
+        it("returns the platform's tenant with the issued keypair", async () => {
+            const tenantServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new StubAuthenticator(),
+                new CliAuthorizer(new InMemoryCliKeyStore()), undefined, "internal");
+            const tenantUrl = `http://127.0.0.1:${await tenantServer.listen(0)}`;
+
+            await approve("req-tenant", "chris laptop", tenantUrl);
+            const issued = await (await fetch(`${tenantUrl}/authorize-cli/req-tenant/poll`)).json();
+
+            expect(issued.tenant).toBe("internal");
+            expect(issued.privateKey).toContain("PRIVATE KEY");
+            await tenantServer.close();
+        });
 
         it("polls as pending without any session", async () => {
             const response = await fetch(`${baseUrl}/authorize-cli/req-1/poll`);
@@ -420,7 +435,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         class RedirectingAuthenticator extends Authenticator {
 
             async authenticate(_session : string | undefined, _request : import("node:http").IncomingMessage,
-                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                               response : import("node:http").ServerResponse) : Promise<[User, Tenant] | undefined> {
                 response.writeHead(302, { location: "https://login.example/authorize" });
                 response.end();
                 return undefined;
@@ -497,7 +512,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         class WallAuthenticator extends Authenticator {
 
             async authenticate(_session : string | undefined, _request : import("node:http").IncomingMessage,
-                               response : import("node:http").ServerResponse) : Promise<User | undefined> {
+                               response : import("node:http").ServerResponse) : Promise<[User, Tenant] | undefined> {
                 response.writeHead(302, { location: "https://login.example/authorize" });
                 response.end();
                 return undefined;

@@ -2,6 +2,7 @@
 import {parseArgs} from "node:util";
 import {CliConfig} from "./CliConfig";
 import {PlatformClient} from "./PlatformClient";
+import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
@@ -47,6 +48,14 @@ const flags = { platformUrl: values["platform-url"], tenant: values.tenant };
 
 const clientFromConfig = async () => new PlatformClient(await CliConfig.resolve(flags));
 
+const clientForDeploy = async () => {
+    const options = await CliConfig.resolve(flags);
+    if (flags.platformUrl || !options.tenant || !process.stdout.isTTY) return new PlatformClient(options);
+
+    const platformUrl = await choosePlatformUrl(options.tenant);
+    return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
+};
+
 const fail = (message : string) : number => {
     console.error(red(message));
     return 1;
@@ -80,9 +89,9 @@ try {
         case "configure":
             process.exit(await new ConfigureCommand().run(commandArgs[0] ?? "."));
         case "deploy":
-            process.exit(await new DeployCommand(await clientFromConfig()).run(commandArgs[0] ?? "."));
+            process.exit(await new DeployCommand(await clientForDeploy()).run(commandArgs[0] ?? "."));
         case "update":
-            process.exit(await new DeployCommand(await clientFromConfig(), true).run(commandArgs[0] ?? "."));
+            process.exit(await new DeployCommand(await clientForDeploy(), true).run(commandArgs[0] ?? "."));
         case "apps":
             process.exit(await new AppsCommand(await clientFromConfig()).run());
         case "state-machines":

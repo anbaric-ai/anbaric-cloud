@@ -1,5 +1,5 @@
 import {IncomingMessage, ServerResponse} from "node:http";
-import {Authenticator, Role, SESSION_COOKIE, User} from "anbaric-cloud-hosting";
+import {Authenticator, Role, SESSION_COOKIE, Tenant, User} from "anbaric-cloud-hosting";
 import {JWTVerifyGetKey, createRemoteJWKSet, jwtVerify} from "jose";
 
 type Auth0Options = {
@@ -30,7 +30,7 @@ class Auth0Authenticator extends Authenticator {
     }
 
     async authenticate(session : string | undefined, request : IncomingMessage,
-                       response : ServerResponse) : Promise<User | undefined> {
+                       response : ServerResponse) : Promise<[User, Tenant] | undefined> {
         const url = new URL(request.url ?? "/", this.options.publicUrl);
 
         if (url.pathname === CALLBACK_PATH) {
@@ -49,7 +49,7 @@ class Auth0Authenticator extends Authenticator {
         return undefined;
     }
 
-    private async verifySession(idToken : string) : Promise<User> {
+    private async verifySession(idToken : string) : Promise<[User, Tenant]> {
         const { payload } = await jwtVerify(idToken, this.getKey, {
             issuer: this.issuer,
             audience: this.options.clientId,
@@ -61,7 +61,11 @@ class Auth0Authenticator extends Authenticator {
 
         const claimedRoles = payload[this.options.rolesClaim ?? DEFAULT_ROLES_CLAIM];
         const roles = Array.isArray(claimedRoles) ? claimedRoles.map(id => new Role(String(id))) : [];
-        return new User(String(payload.sub), roles);
+        return [new User(String(payload.sub), roles), this.tenantFrom(payload)];
+    }
+
+    private tenantFrom(payload : Record<string, unknown>) : Tenant {
+        return new Tenant(String(payload.org_name ?? payload.org_id ?? payload.sub));
     }
 
     private belongsToOrganization(payload : Record<string, unknown>) : boolean {

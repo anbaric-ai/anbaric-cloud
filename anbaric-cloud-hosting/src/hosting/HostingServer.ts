@@ -4,6 +4,7 @@ import {JobPersistence, JsonStore, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {Authenticator, SESSION_COOKIE} from "../auth/Authenticator";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
+import {Tenant} from "../auth/Tenant";
 import {TokenAuthenticator} from "../auth/TokenAuthenticator";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
@@ -25,8 +26,9 @@ class HostingServer {
                 secretStore? : SecretStore,
                 private authenticator? : Authenticator,
                 cliAuthorizer? : CliAuthorizer,
-                private tokenAuthenticator? : TokenAuthenticator) {
-        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer);
+                private tokenAuthenticator? : TokenAuthenticator,
+                tenant? : string) {
+        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer, tenant);
         this.server = this.serverFor((request, response) => this.handle(request, response));
         this.internalServer = this.serverFor((request, response) => this.handleInternal(request, response));
     }
@@ -73,11 +75,11 @@ class HostingServer {
             return this.authorizeAndRoute(user, request, response);
         }
 
-        const user = await this.authenticateSession(request, response);
-        if (this.authenticator && !user) return;
-        if (user) return this.authorizeAndRoute(user, request, response);
+        const authenticated = await this.authenticateSession(request, response);
+        if (this.authenticator && !authenticated) return;
+        if (authenticated) return this.authorizeAndRoute(authenticated[0], request, response);
 
-        await this.router.route(request, response, user);
+        await this.router.route(request, response);
     }
 
     private async handleInternal(request : IncomingMessage, response : ServerResponse) : Promise<void> {
@@ -103,7 +105,7 @@ class HostingServer {
         await this.router.route(request, response, user);
     }
 
-    private async authenticateSession(request : IncomingMessage, response : ServerResponse) : Promise<User | undefined> {
+    private async authenticateSession(request : IncomingMessage, response : ServerResponse) : Promise<[User, Tenant] | undefined> {
         if (!this.authenticator) return undefined;
         return this.authenticator.authenticate(this.sessionCookie(request), request, response);
     }

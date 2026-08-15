@@ -66,6 +66,12 @@ variable "auth0_organization" {
   default     = ""
 }
 
+variable "tenant" {
+  description = "Tenant this stack serves (returned to the CLI during login)"
+  type        = string
+  default     = ""
+}
+
 variable "platform_domain" {
   description = "Custom domain for the platform (e.g. staging.cloud.anbaric.ai); empty serves from the CloudFront domain"
   type        = string
