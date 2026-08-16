@@ -140,7 +140,7 @@ resource "aws_iam_role_policy" "codebuild" {
           "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage",
           "ecr:PutImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload",
         ]
-        Resource = [aws_ecr_repository.apps.arn, aws_ecr_repository.platform.arn]
+        Resource = concat([aws_ecr_repository.apps.arn, aws_ecr_repository.platform.arn], var.extra_pull_repository_arns)
       },
     ]
   })

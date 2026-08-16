@@ -112,3 +112,9 @@ variable "platform_public_url" {
   type        = string
   default     = ""
 }
+
+variable "extra_pull_repository_arns" {
+  description = "Additional ECR repositories the app build may pull from (e.g. an externally supplied base image)"
+  type        = list(string)
+  default     = []
+}
