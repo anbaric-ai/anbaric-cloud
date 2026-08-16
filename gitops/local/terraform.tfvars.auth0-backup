@@ -1,0 +1,3 @@
+auth0_domain        = "non-prod-anbaric.eu.auth0.com"
+auth0_client_id     = "nFEztIjxa8ywXJu1MnW6aBsA607Brjue"
+auth0_client_secret = "oJalS2ss55-ZFneLqNk9VdeTcHRhFblVksLaJ4qP8sM35jIkIaGj-RbOR1lO9WZo"

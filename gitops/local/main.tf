@@ -9,25 +9,15 @@ terraform {
 
 provider "docker" {}
 
-variable "auth0_domain" {
-  type    = string
-  default = ""
+variable "authenticator" {
+  description = "Authenticator for the local platform: empty (no auth), \"stub\" (fixed local identity), or a module name"
+  type        = string
+  default     = ""
 }
 
-variable "auth0_client_id" {
+variable "tenant" {
   type    = string
-  default = ""
-}
-
-variable "auth0_client_secret" {
-  type      = string
-  default   = ""
-  sensitive = true
-}
-
-variable "auth0_organization" {
-  type    = string
-  default = ""
+  default = "local"
 }
 
 resource "docker_network" "anbaric" {
@@ -86,14 +76,10 @@ resource "docker_container" "platform" {
     "ANBARIC_APP_BASE_IMAGE=anbaric-v2-platform:local",
     "ANBARIC_DOCKER_NETWORK=anbaric-v2-local",
     "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8788",
-    ], var.auth0_domain == "" ? [] : [
-    "ANBARIC_AUTHENTICATOR=anbaric-cloud-hosting-auth-auth0",
-    "ANBARIC_AUTH0_DOMAIN=${var.auth0_domain}",
-    "ANBARIC_AUTH0_CLIENT_ID=${var.auth0_client_id}",
-    "ANBARIC_AUTH0_CLIENT_SECRET=${var.auth0_client_secret}",
+    ], var.authenticator == "" ? [] : [
+    "ANBARIC_AUTHENTICATOR=${var.authenticator}",
+    "ANBARIC_TENANT=${var.tenant}",
     "ANBARIC_PLATFORM_PUBLIC_URL=http://localhost:8787",
-    ], var.auth0_organization == "" ? [] : [
-    "ANBARIC_AUTH0_ORGANIZATION=${var.auth0_organization}",
   ])
 
   volumes {

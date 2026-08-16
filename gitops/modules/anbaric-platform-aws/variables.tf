@@ -66,6 +66,29 @@ variable "auth0_organization" {
   default     = ""
 }
 
+variable "edge" {
+  description = "own: this stack runs its own CloudFront distribution (self-host default). shared: a central distribution routes to this stack's ALB, so no CloudFront/ACM/domain resources are created."
+  type        = string
+  default     = "own"
+
+  validation {
+    condition     = contains(["own", "shared"], var.edge)
+    error_message = "edge must be \"own\" or \"shared\"."
+  }
+}
+
+variable "platform_image" {
+  description = "Externally built platform image URI; empty builds the image from source_root"
+  type        = string
+  default     = ""
+}
+
+variable "extra_environment" {
+  description = "Additional environment variables for the platform task"
+  type        = map(string)
+  default     = {}
+}
+
 variable "tenant" {
   description = "Tenant this stack serves (returned to the CLI during login)"
   type        = string

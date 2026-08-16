@@ -4,10 +4,13 @@ resource "aws_ecr_repository" "platform" {
 }
 
 locals {
-  image_sources_hash = sha1(join("", [for file in fileset(var.source_root, "{*/src/**,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")]))
+  image_sources_hash = var.platform_image != "" ? sha1(var.platform_image) : sha1(join("", [for file in fileset(var.source_root, "{*/src/**,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")]))
+  platform_image     = var.platform_image != "" ? var.platform_image : "${aws_ecr_repository.platform.repository_url}:latest"
 }
 
 resource "terraform_data" "platform_image" {
+  count = var.platform_image == "" ? 1 : 0
+
   triggers_replace = {
     sources = local.image_sources_hash
   }
@@ -104,7 +107,7 @@ resource "aws_ecs_task_definition" "platform" {
 
   container_definitions = jsonencode([{
     name      = "platform"
-    image     = "${aws_ecr_repository.platform.repository_url}:latest"
+    image     = local.platform_image
     essential = true
 
     portMappings = [
@@ -126,10 +129,10 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_APPS_REPOSITORY", value = aws_ecr_repository.apps.repository_url },
       { name = "ANBARIC_AWS_BUILD_BUCKET", value = aws_s3_bucket.app_builds.bucket },
       { name = "ANBARIC_AWS_BUILD_PROJECT", value = aws_codebuild_project.app_build.name },
-      { name = "ANBARIC_AWS_BASE_IMAGE", value = "${aws_ecr_repository.platform.repository_url}:latest" },
+      { name = "ANBARIC_AWS_BASE_IMAGE", value = local.platform_image },
       { name = "ANBARIC_AWS_APP_EXECUTION_ROLE", value = aws_iam_role.app_execution.arn },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
-    ], var.tenant == "" ? [] : [
+    ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
       { name = "ANBARIC_TENANT", value = var.tenant },
     ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },

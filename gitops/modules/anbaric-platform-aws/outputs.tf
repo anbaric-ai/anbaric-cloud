@@ -29,5 +29,6 @@ output "certificate_validation_records" {
 }
 
 output "cloudfront_domain" {
-  value = aws_cloudfront_distribution.platform.domain_name
+  value = var.edge == "own" ? aws_cloudfront_distribution.platform[0].domain_name : ""
 }
+

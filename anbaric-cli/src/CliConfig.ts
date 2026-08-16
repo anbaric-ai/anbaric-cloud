@@ -24,16 +24,14 @@ type StoredKey = {
 
 const DEFAULT_PLATFORM_URL = "http://localhost:8787";
 
-const stagingUrlFor = (tenant : string) => `https://${tenant}.staging.anbaric.ai`;
-const productionUrlFor = (tenant : string) => `https://${tenant}.cloud.anbaric.ai`;
+const STAGING_PLATFORM_URL = "https://staging.cloud.anbaric.ai";
+const PRODUCTION_PLATFORM_URL = "https://cloud.anbaric.ai";
 
-const platformUrlForEnvironment = (environment : string, tenant? : string) : string => {
+const platformUrlForEnvironment = (environment : string) : string => {
     if (environment === "local") return DEFAULT_PLATFORM_URL;
-    if (environment !== "staging" && environment !== "production") {
-        throw new Error(`Unknown environment "${environment}" - expected local, staging or production`);
-    }
-    if (!tenant) throw new Error(`The ${environment} environment needs a tenant - pass --tenant or log in first`);
-    return environment === "staging" ? stagingUrlFor(tenant) : productionUrlFor(tenant);
+    if (environment === "staging") return STAGING_PLATFORM_URL;
+    if (environment === "production") return PRODUCTION_PLATFORM_URL;
+    throw new Error(`Unknown environment "${environment}" - expected local, staging or production`);
 };
 
 const configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
@@ -59,10 +57,11 @@ const CliConfig = {
         const stored = await CliConfig.load();
         const platformUrl = flags.platformUrl ?? process.env.ANBARIC_CLOUD_URL ?? stored.platformUrl ?? DEFAULT_PLATFORM_URL;
         const key = await CliConfig.loadKey();
+        const usableKey = key?.platformUrl === platformUrl ? key : undefined;
         return {
             platformUrl,
-            tenant: flags.tenant ?? process.env.ANBARIC_TENANT ?? stored.tenant,
-            key: key?.platformUrl === platformUrl ? key : undefined,
+            tenant: flags.tenant ?? process.env.ANBARIC_TENANT ?? stored.tenant ?? usableKey?.tenant,
+            key: usableKey,
         };
     },
 
@@ -87,5 +86,5 @@ const CliConfig = {
 
 };
 
-export { CliConfig, DEFAULT_PLATFORM_URL, platformUrlForEnvironment, productionUrlFor, stagingUrlFor };
+export { CliConfig, DEFAULT_PLATFORM_URL, PRODUCTION_PLATFORM_URL, STAGING_PLATFORM_URL, platformUrlForEnvironment };
 export type { CliFlags, CliOptions, StoredKey };

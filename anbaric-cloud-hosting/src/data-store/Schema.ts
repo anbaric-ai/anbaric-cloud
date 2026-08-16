@@ -47,9 +47,11 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             user_id     TEXT NOT NULL,
             client_name TEXT NOT NULL,
             public_key  TEXT NOT NULL,
+            tenant      TEXT,
             created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         )
     `);
+    await pool.query("ALTER TABLE anbaric_system.cli_keys ADD COLUMN IF NOT EXISTS tenant TEXT");
 };
 
 export { ensureSchema }

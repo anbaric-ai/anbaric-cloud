@@ -32,8 +32,8 @@ ${bold("Usage")}
 
 ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and agents)")}
   --platform-url <url>                          platform to talk to ${dim("(login sets the default)")}
-  --tenant <tenant>                             tenant to act as ${dim("(login sets the default)")}
-  --environment <local|staging|production>      derive the platform URL from the tenant, skipping the picker
+  --tenant <tenant>                             tenant to route to ${dim("(login learns it from your session)")}
+  --environment <local|staging|production>      pick the platform without the interactive picker
   --yes                                         deploy: replace a running app without asking
   --name <name>                                 configure: app name, skipping the prompt
   --port <port>                                 configure: internal port, skipping the prompt`);
@@ -56,20 +56,17 @@ const [command, ...commandArgs] = positionals;
 const flags = { platformUrl: values["platform-url"], tenant: values.tenant };
 
 const clientFromConfig = async () => {
-    const options = await CliConfig.resolve(flags);
     if (!flags.platformUrl && values.environment) {
-        const platformUrl = platformUrlForEnvironment(values.environment, options.tenant);
+        const platformUrl = platformUrlForEnvironment(values.environment);
         return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
     }
-    return new PlatformClient(options);
+    return new PlatformClient(await CliConfig.resolve(flags));
 };
 
 const clientForDeploy = async () => {
-    const options = await CliConfig.resolve(flags);
-    if (flags.platformUrl || values.environment) return clientFromConfig();
-    if (!options.tenant || !process.stdout.isTTY) return new PlatformClient(options);
+    if (flags.platformUrl || values.environment || !process.stdout.isTTY) return clientFromConfig();
 
-    const platformUrl = await choosePlatformUrl(options.tenant);
+    const platformUrl = await choosePlatformUrl();
     return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
 };
 

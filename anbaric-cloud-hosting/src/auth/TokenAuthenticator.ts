@@ -7,7 +7,7 @@ const BEARER_PREFIX = "Bearer ";
 
 class TokenAuthenticator {
 
-    constructor(private keyStore : CliKeyStore) {}
+    constructor(private keyStore : CliKeyStore, private tenant? : string) {}
 
     handles(request : IncomingMessage) : boolean {
         return String(request.headers.authorization ?? "").startsWith(BEARER_PREFIX);
@@ -34,6 +34,7 @@ class TokenAuthenticator {
 
         const key = await this.keyStore.find(header.kid);
         if (!key) return undefined;
+        if (this.tenant && key.tenant && key.tenant !== this.tenant) return undefined;
         if (!this.signatureValid(headerPart, payloadPart, signaturePart, key.publicKey)) return undefined;
 
         return new User(key.userId);

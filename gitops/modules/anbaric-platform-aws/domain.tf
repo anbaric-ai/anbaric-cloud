@@ -6,7 +6,7 @@
    output, and a CNAME from the platform domain to the CloudFront domain. */
 
 resource "aws_acm_certificate" "platform" {
-  count             = var.platform_domain == "" ? 0 : 1
+  count             = var.edge == "own" && var.platform_domain != "" ? 1 : 0
   provider          = aws.us_east_1
   domain_name       = var.platform_domain
   validation_method = "DNS"
@@ -17,7 +17,7 @@ resource "aws_acm_certificate" "platform" {
 }
 
 resource "aws_acm_certificate_validation" "platform" {
-  count           = var.platform_domain == "" ? 0 : 1
+  count           = var.edge == "own" && var.platform_domain != "" ? 1 : 0
   provider        = aws.us_east_1
   certificate_arn = aws_acm_certificate.platform[0].arn
 }

@@ -1,6 +1,6 @@
 {
   "name": "anbaric-data-store",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Data stores for Anbaric apps: schema-validated JSON documents and encrypted secrets, backed in memory locally or by the Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -11,8 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "anbaric-cloud": "^1.1.1",
-    "anbaric-tsapi": "^1.1.1"
+    "anbaric-cloud": "^1.2.0",
+    "anbaric-tsapi": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

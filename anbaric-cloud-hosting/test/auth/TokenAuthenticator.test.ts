@@ -19,10 +19,10 @@ const token = (kid : string, expiresInSeconds : number = 60, privateKey = keyPai
     return `${header}.${payload}.${signature}`;
 };
 
-const authenticatorWithKey = async () => {
+const authenticatorWithKey = async (keyTenant? : string, platformTenant? : string) => {
     const store = new InMemoryCliKeyStore();
-    await store.save(new CliKey("key-1", "user-1", "chris laptop", publicKeyPem));
-    return new TokenAuthenticator(store);
+    await store.save(new CliKey("key-1", "user-1", "chris laptop", publicKeyPem, keyTenant));
+    return new TokenAuthenticator(store, platformTenant);
 };
 
 const request = (authorization? : string) =>
@@ -87,6 +87,34 @@ describe("TokenAuthenticator", () => {
 
         expect(user).toBeUndefined();
         expect(written.status).toBe(401);
+    });
+
+    it("rejects a key bound to a different tenant", async () => {
+        const authenticator = await authenticatorWithKey("rivals", "internal");
+        const { response, written } = recordingResponse();
+
+        const user = await authenticator.authenticate(request(`Bearer ${token("key-1")}`), response);
+
+        expect(user).toBeUndefined();
+        expect(written.status).toBe(401);
+    });
+
+    it("accepts a key bound to this platform's tenant", async () => {
+        const authenticator = await authenticatorWithKey("internal", "internal");
+        const { response } = recordingResponse();
+
+        const user = await authenticator.authenticate(request(`Bearer ${token("key-1")}`), response);
+
+        expect(user?.id).toBe("user-1");
+    });
+
+    it("accepts a legacy key with no tenant on a tenanted platform", async () => {
+        const authenticator = await authenticatorWithKey(undefined, "internal");
+        const { response } = recordingResponse();
+
+        const user = await authenticator.authenticate(request(`Bearer ${token("key-1")}`), response);
+
+        expect(user?.id).toBe("user-1");
     });
 
     it("rejects garbage that is not a jwt", async () => {

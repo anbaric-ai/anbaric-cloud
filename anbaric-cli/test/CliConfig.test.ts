@@ -47,33 +47,20 @@ describe("CliConfig", () => {
 
 });
 
-describe("platform url patterns", () => {
+describe("platform environments", () => {
 
-    it("derives the staging and production urls from the tenant", async () => {
-        const {stagingUrlFor, productionUrlFor} = await import("../src/CliConfig");
-
-        expect(stagingUrlFor("internal")).toBe("https://internal.staging.anbaric.ai");
-        expect(productionUrlFor("internal")).toBe("https://internal.cloud.anbaric.ai");
-    });
-
-    it("resolves each environment flag to a platform url", async () => {
+    it("resolves each environment to its fixed platform url", async () => {
         const {platformUrlForEnvironment, DEFAULT_PLATFORM_URL} = await import("../src/CliConfig");
 
         expect(platformUrlForEnvironment("local")).toBe(DEFAULT_PLATFORM_URL);
-        expect(platformUrlForEnvironment("staging", "internal")).toBe("https://internal.staging.anbaric.ai");
-        expect(platformUrlForEnvironment("production", "internal")).toBe("https://internal.cloud.anbaric.ai");
-    });
-
-    it("refuses cloud environments without a tenant", async () => {
-        const {platformUrlForEnvironment} = await import("../src/CliConfig");
-
-        expect(() => platformUrlForEnvironment("staging")).toThrowError(/needs a tenant/);
+        expect(platformUrlForEnvironment("staging")).toBe("https://staging.cloud.anbaric.ai");
+        expect(platformUrlForEnvironment("production")).toBe("https://cloud.anbaric.ai");
     });
 
     it("refuses unknown environments", async () => {
         const {platformUrlForEnvironment} = await import("../src/CliConfig");
 
-        expect(() => platformUrlForEnvironment("qa", "internal")).toThrowError('Unknown environment "qa" - expected local, staging or production');
+        expect(() => platformUrlForEnvironment("qa")).toThrowError('Unknown environment "qa" - expected local, staging or production');
     });
 
 });

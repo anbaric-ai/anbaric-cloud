@@ -22,7 +22,7 @@ class CliAuthorizer {
         const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
         const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 
-        const key = new CliKey(randomUUID(), user.id, clientName, publicKeyPem);
+        const key = new CliKey(randomUUID(), user.id, clientName, publicKeyPem, tenant);
         await this.keyStore.save(key);
 
         this.issued.set(requestId, {

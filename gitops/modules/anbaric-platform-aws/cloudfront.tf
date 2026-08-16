@@ -6,14 +6,17 @@
    Auth0 session flow and signed CLI tokens work unchanged. */
 
 data "aws_cloudfront_cache_policy" "use_origin_cache_control" {
-  name = "UseOriginCacheControlHeaders-QueryStrings"
+  count = var.edge == "own" ? 1 : 0
+  name  = "UseOriginCacheControlHeaders-QueryStrings"
 }
 
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
-  name = "Managed-AllViewerExceptHostHeader"
+  count = var.edge == "own" ? 1 : 0
+  name  = "Managed-AllViewerExceptHostHeader"
 }
 
 resource "aws_cloudfront_distribution" "platform" {
+  count       = var.edge == "own" ? 1 : 0
   enabled     = true
   comment     = "anbaric-${var.environment}"
   price_class = "PriceClass_100"
@@ -38,8 +41,8 @@ resource "aws_cloudfront_distribution" "platform" {
     viewer_protocol_policy   = "redirect-to-https"
     allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods           = ["GET", "HEAD"]
-    cache_policy_id          = data.aws_cloudfront_cache_policy.use_origin_cache_control.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+    cache_policy_id          = data.aws_cloudfront_cache_policy.use_origin_cache_control[0].id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host[0].id
   }
 
   restrictions {
@@ -59,5 +62,6 @@ resource "aws_cloudfront_distribution" "platform" {
 locals {
   platform_public_url = (var.platform_public_url != "" ? var.platform_public_url
     : var.platform_domain != "" ? "https://${var.platform_domain}"
-    : "https://${aws_cloudfront_distribution.platform.domain_name}")
+    : var.edge == "own" ? "https://${aws_cloudfront_distribution.platform[0].domain_name}"
+    : "http://${aws_lb.platform.dns_name}")
 }
