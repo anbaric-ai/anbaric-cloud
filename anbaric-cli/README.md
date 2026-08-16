@@ -29,8 +29,8 @@ npm install -g anbaric-cli
 | Flag | Overrides | Notes |
 | --- | --- | --- |
 | `--platform-url <url>` | the platform picker | exact URL, highest precedence |
-| `--environment <local\|staging\|production>` | the platform picker | derives the URL from the tenant: `local` → `http://localhost:8787`, `staging` → `https://<tenant>.staging.anbaric.ai`, `production` → `https://<tenant>.cloud.anbaric.ai` |
-| `--tenant <tenant>` | the tenant prompt | needed with `--environment staging\|production` unless a login already saved one |
+| `--environment <local\|staging\|production>` | the platform picker | fixed domains: `local` → `http://localhost:8787`, `staging` → `https://staging.cloud.anbaric.ai`, `production` → `https://cloud.anbaric.ai` |
+| `--tenant <tenant>` | nothing (no prompt asks for a tenant) | overrides the tenant the CLI routes to; normally learned automatically at login |
 | `--yes` | deploy's replace confirmation | equivalent to `update` |
 | `--name <name>` | configure's app-name prompt | lowercase letters, numbers, `-`, `_` |
 | `--port <port>` | configure's internal-port prompt | 1–65535 |
@@ -51,15 +51,18 @@ every command authenticates non-interactively.
 
 ## How authentication works
 
-`login` opens `<platform>/authorize-cli/<uuid>`; approving in the browser
-makes the platform mint an Ed25519 keypair, store the public key, and hand
-the private key to the CLI exactly once, together with the **tenant** the
-approving session belongs to. Both are saved under `~/.anbaric/`
+`login` opens `<platform>/authorize-cli/<uuid>`; you complete the
+platform's login in the browser (on Anbaric Cloud that includes picking
+your organization) and approve the terminal. The platform mints an Ed25519
+keypair, stores the public key, and hands the private key to the CLI
+exactly once, together with the **tenant** your session belongs to — the
+CLI reports "Logged into tenant X" and saves both under `~/.anbaric/`
 (`key.json`, mode 600, and `config.json`). Every subsequent request carries
-a fresh 60-second EdDSA JWT signed with that key. `logout` revokes the key
-server-side and deletes it locally. Keys can also be reviewed and revoked in
-the browser at `<platform>/manage-keys`.
+a fresh 60-second EdDSA JWT signed with that key, plus an
+`x-anbaric-tenant` header that routes it to your tenant's install.
+`logout` revokes the key server-side and deletes it locally; keys can also
+be reviewed and revoked in the browser at `<platform>/manage-keys`.
 
-The saved tenant is what `--environment` uses to derive platform URLs, so a
-typical session is: `anbaric login` once, then plain
-`anbaric deploy --environment staging` forever after.
+A typical session is: `anbaric login` once, then plain
+`anbaric deploy --environment staging` forever after — the tenant travels
+with the key, never with the URL.

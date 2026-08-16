@@ -83,6 +83,12 @@ variable "platform_image" {
   default     = ""
 }
 
+variable "build_image" {
+  description = "Build and push the platform image from source_root on apply; set false when platform_image is supplied"
+  type        = bool
+  default     = true
+}
+
 variable "extra_environment" {
   description = "Additional environment variables for the platform task"
   type        = map(string)
