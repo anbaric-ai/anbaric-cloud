@@ -204,7 +204,7 @@ resource "aws_ecs_service" "platform" {
   force_new_deployment = true
 
   triggers = {
-    redeployment = local.image_sources_hash
+    redeployment = var.redeployment_trigger != "" ? var.redeployment_trigger : local.image_sources_hash
   }
 
   network_configuration {

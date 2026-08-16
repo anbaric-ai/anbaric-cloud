@@ -118,3 +118,9 @@ variable "extra_pull_repository_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "redeployment_trigger" {
+  description = "Changing this value rolls the platform service; used when the image is built externally"
+  type        = string
+  default     = ""
+}
