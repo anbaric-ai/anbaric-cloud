@@ -52,6 +52,18 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
         )
     `);
     await pool.query("ALTER TABLE anbaric_system.cli_keys ADD COLUMN IF NOT EXISTS tenant TEXT");
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS anbaric_system.audit_records (
+            id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            job_id      TEXT NOT NULL,
+            actor_id    TEXT,
+            actor_type  TEXT,
+            description TEXT NOT NULL,
+            details     JSONB,
+            at          TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    `);
+    await pool.query("CREATE INDEX IF NOT EXISTS audit_records_job_id ON anbaric_system.audit_records (job_id)");
 };
 
 export { ensureSchema }

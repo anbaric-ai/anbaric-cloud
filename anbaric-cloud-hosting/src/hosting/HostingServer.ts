@@ -2,6 +2,7 @@ import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
 import {JobPersistence, JsonStore, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
+import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator, SESSION_COOKIE} from "../auth/Authenticator";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {Tenant} from "../auth/Tenant";
@@ -11,7 +12,7 @@ import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 import {Router} from "./Router";
 
-const INTERNAL_RESOURCES = new Set(["jobs", "queue", "consumers", "state-machines", "documents", "secrets"]);
+const INTERNAL_RESOURCES = new Set(["jobs", "queue", "consumers", "state-machines", "documents", "secrets", "audits"]);
 
 class HostingServer {
 
@@ -27,8 +28,9 @@ class HostingServer {
                 private authenticator? : Authenticator,
                 cliAuthorizer? : CliAuthorizer,
                 private tokenAuthenticator? : TokenAuthenticator,
-                private tenant? : string) {
-        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer, tenant);
+                private tenant? : string,
+                auditRecords? : AuditRecordStore) {
+        this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer, tenant, auditRecords);
         this.server = this.serverFor((request, response) => this.handle(request, response));
         this.internalServer = this.serverFor((request, response) => this.handleInternal(request, response));
     }

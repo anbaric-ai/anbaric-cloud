@@ -12,6 +12,7 @@ import {Role} from "../../src/auth/Role";
 import {Tenant} from "../../src/auth/Tenant";
 import {TokenAuthenticator} from "../../src/auth/TokenAuthenticator";
 import {User} from "../../src/auth/User";
+import {InMemoryAuditRecordStore} from "../../src/auditing/InMemoryAuditRecordStore";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
 
@@ -573,6 +574,51 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const response = await fetch(`${publicUrl}/jobs`, { redirect: "manual" });
 
             expect(response.status).toBe(302);
+        });
+
+    });
+
+    describe("audits", () => {
+
+        it("accepts audit records through the internal entry point and lists them publicly", async () => {
+            const audits = new InMemoryAuditRecordStore();
+            const audited = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, audits);
+            const publicUrl = `http://127.0.0.1:${await audited.listen(0)}`;
+            const internalUrl = `http://127.0.0.1:${await audited.listenInternal(0)}`;
+
+            const posted = await fetch(`${internalUrl}/audits`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", description: "Properties updated", details: { age: 42 } }),
+            });
+            expect(posted.status).toBe(204);
+
+            const listed = await (await fetch(`${publicUrl}/audits?jobId=job-1`)).json();
+            expect(listed).toHaveLength(1);
+            expect(listed[0].description).toBe("Properties updated");
+            expect(listed[0].actorId).toBe("chris");
+
+            expect(await (await fetch(`${publicUrl}/audits?jobId=other`)).json()).toEqual([]);
+            expect(await (await fetch(`${publicUrl}/audits?search=updated`)).json()).toHaveLength(1);
+
+            const rejected = await fetch(`${internalUrl}/audits`, { method: "POST", body: "{}" });
+            expect(rejected.status).toBe(400);
+
+            await audited.close();
+        });
+
+        it("serves the audit page", async () => {
+            const audits = new InMemoryAuditRecordStore();
+            const audited = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, audits);
+            const url = `http://127.0.0.1:${await audited.listen(0)}`;
+
+            const response = await fetch(`${url}/audit`);
+            expect(response.status).toBe(200);
+            expect(response.headers.get("content-type")).toContain("text/html");
+
+            await audited.close();
         });
 
     });

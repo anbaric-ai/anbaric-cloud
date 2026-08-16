@@ -6,6 +6,7 @@ import {loadAuthenticator} from "./auth/AuthenticatorLoader";
 import {CliAuthorizer} from "./auth/CliAuthorizer";
 import {HttpCliKeyStore} from "./auth/HttpCliKeyStore";
 import {TokenAuthenticator} from "./auth/TokenAuthenticator";
+import {PostgresAuditRecordStore} from "./data-store/PostgresAuditRecordStore";
 import {PostgresCliKeyStore} from "./data-store/PostgresCliKeyStore";
 import {ensureSchema} from "./data-store/Schema";
 import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore";
@@ -65,7 +66,7 @@ const tokenAuthenticator = new TokenAuthenticator(cliKeyStore, process.env.ANBAR
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer,
-    tokenAuthenticator, process.env.ANBARIC_TENANT);
+    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

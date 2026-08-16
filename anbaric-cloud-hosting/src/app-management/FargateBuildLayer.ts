@@ -148,6 +148,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                     { name: "ANBARIC_QUEUE_TYPE", value: "cloud" },
                     { name: "ANBARIC_JSON_STORE_TYPE", value: "cloud" },
                     { name: "ANBARIC_SECRET_STORE_TYPE", value: "cloud" },
+                    { name: "ANBARIC_AUDITOR_TYPE", value: "cloud" },
                     { name: "ANBARIC_CONSUMER_PORT", value: String(deployment.consumerPort) },
                     { name: "ANBARIC_CONSUMER_URL", value: `http://${deployment.appHost}:${deployment.consumerPort}` },
                 ],

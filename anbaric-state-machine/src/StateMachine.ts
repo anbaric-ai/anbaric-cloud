@@ -1,8 +1,9 @@
-import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
+import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
 import {QueueFactory} from "./scheduling/QueueFactory";
 import {ConsumerFactory} from "./scheduling/ConsumerFactory";
-import {Auditor} from "./auditing/Auditor";
+import {AuditorFactory} from "./auditing/AuditorFactory";
+import {AuditorTransaction} from "./auditing/AuditorTransaction";
 
 class StateMachine {
 
@@ -13,8 +14,9 @@ class StateMachine {
     private persistence: JobPersistence;
     private queue: Queue;
     private consumer: Consumer;
+    private auditor: Auditor;
 
-    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance()) {
+    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), auditor : Auditor = AuditorFactory.instance()) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
@@ -22,6 +24,7 @@ class StateMachine {
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
+        this.auditor = auditor;
 
         this.consumer = ConsumerFactory.instance(queue)
         this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
@@ -35,7 +38,7 @@ class StateMachine {
         if (! this.validateProperties(properties ?? new Map(), true)) throw new Error("Invalid properties");
 
         if (! this.authorizeActor(actor, job)) {
-            Auditor.instance().audit(job.id, actor, "Unauthorized start", null);
+            await this.auditor.audit(job.id, actor, "Unauthorized start", null);
             throw new Error("Unauthorized");
         }
 
@@ -49,14 +52,14 @@ class StateMachine {
     async updateJob(jobId : string, properties : Map<string, any>, actor : Actor) : Promise<void> {
 
         if (! this.authorizeActor(actor, await this.persistence.retrieve(jobId))) {
-            Auditor.instance().audit(jobId, actor, "Unauthorized update", null);
+            await this.auditor.audit(jobId, actor, "Unauthorized update", null);
             throw new Error("Unauthorized");
         }
 
         if (! this.validateProperties(properties, false)) throw new Error("Invalid properties");
 
         await this.persistence.updateProperties(jobId, properties);
-        Auditor.instance().audit(jobId, actor, "Properties updated", Object.fromEntries(properties));
+        await this.auditor.audit(jobId, actor, "Properties updated", Object.fromEntries(properties));
 
         await this.queue.enqueue(jobId, this.workflowId);
     }
@@ -67,19 +70,19 @@ class StateMachine {
         if (! action.predicate(job)) throw new Error("Action predicate unmet");
 
         if (! this.authorizeActor(action.actor, job)) {
-            Auditor.instance().audit(jobId, action.actor, "Unauthorized update", null);
+            await this.auditor.audit(jobId, action.actor, "Unauthorized update", null);
             throw new Error("Actor not authorized to execute action");
         }
 
         const newProperties = await action.run(job);
 
         if (! this.validateProperties(newProperties, false)) {
-            Auditor.instance().audit(jobId, action.actor, "Invalid properties", Object.fromEntries(newProperties));
+            await this.auditor.audit(jobId, action.actor, "Invalid properties", Object.fromEntries(newProperties));
             throw new Error("The action generated invalid properties");
         }
 
         await this.persistence.updateProperties(jobId, newProperties);
-        Auditor.instance().audit(jobId, action.actor, "Properties updated", Object.fromEntries(newProperties));
+        await this.auditor.audit(jobId, action.actor, "Properties updated", Object.fromEntries(newProperties));
 
         await this.queue.enqueue(jobId, this.workflowId);
     }
@@ -100,7 +103,7 @@ class StateMachine {
     }
 
     private async progressJob(jobId : string) : Promise<void> {
-        const auditTransaction = Auditor.instance().transaction();
+        const auditTransaction = new AuditorTransaction(this.auditor);
         let pristine = true;
 
         const job = await this.persistence.retrieve(jobId);
@@ -142,7 +145,7 @@ class StateMachine {
             await this.queue.enqueue(job.id, this.workflowId);
         }
 
-        auditTransaction.flush();
+        await auditTransaction.flush();
     }
 
     async cleanUp() : Promise<void> {

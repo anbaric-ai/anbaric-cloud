@@ -2,6 +2,7 @@ import {readFile} from "node:fs/promises";
 import {IncomingMessage, ServerResponse} from "node:http";
 import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
+import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {Tenant} from "../auth/Tenant";
 import {User} from "../auth/User";
@@ -29,7 +30,8 @@ class Router {
                 private documentStoreFor? : (collection : string) => JsonStore,
                 private secretStore? : SecretStore,
                 private cliAuthorizer? : CliAuthorizer,
-                private tenant? : string) {}
+                private tenant? : string,
+                private auditRecords? : AuditRecordStore) {}
 
     async route(request : IncomingMessage, response : ServerResponse, user? : User, sessionTenant? : Tenant) : Promise<void> {
         const url = new URL(request.url ?? "/", "http://localhost");
@@ -51,6 +53,29 @@ class Router {
         if (resource === "whoami" && method === "GET" && !id) {
             if (!user) return this.reply(response, 404, { error: "Not found" });
             return this.reply(response, 200, { id: user.id, roles: user.roles.map(role => role.id) });
+        }
+        if (resource === "audits" && this.auditRecords && !id) {
+            if (method === "POST") {
+                const record = await readBody(request);
+                if (typeof record?.jobId !== "string" || typeof record?.description !== "string") {
+                    return this.reply(response, 400, { error: "Expected a body of { jobId, description, ... }" });
+                }
+                await this.auditRecords.save(record);
+                return this.reply(response, 204);
+            }
+            if (method === "GET") {
+                const records = await this.auditRecords.list({
+                    jobId: url.searchParams.get("jobId") ?? undefined,
+                    actorId: url.searchParams.get("actorId") ?? undefined,
+                    search: url.searchParams.get("search") ?? undefined,
+                    pageSize: url.searchParams.has("pageSize") ? Number(url.searchParams.get("pageSize")) : undefined,
+                    page: url.searchParams.has("page") ? Number(url.searchParams.get("page")) : undefined,
+                });
+                return this.reply(response, 200, records);
+            }
+        }
+        if (resource === "audit" && method === "GET" && !id) {
+            return this.servePage(response);
         }
         if (resource === "jobs") return this.handleJobs(method, id, subresource, url, request, response);
         if (resource === "queue" && method === "POST" && !subresource) return this.handleQueue(id, request, response);

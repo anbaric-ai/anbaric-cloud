@@ -1,7 +1,6 @@
-import {Actor} from "anbaric-tsapi";
-import type {Auditor} from "./Auditor";
+import {Actor, Auditor} from "anbaric-tsapi";
 
-type AuditEntry = {
+type BufferedEntry = {
     jobId : string,
     actor : Actor | undefined,
     changeDescription : string,
@@ -10,7 +9,7 @@ type AuditEntry = {
 
 class AuditorTransaction {
 
-    private entries = new Array<AuditEntry>();
+    private entries = new Array<BufferedEntry>();
 
     constructor(private auditor : Auditor) {}
 
@@ -18,10 +17,12 @@ class AuditorTransaction {
         this.entries.push({ jobId, actor, changeDescription, details });
     }
 
-    flush() : void {
-        this.entries.forEach(entry =>
-            this.auditor.audit(entry.jobId, entry.actor, entry.changeDescription, entry.details));
+    async flush() : Promise<void> {
+        const flushing = this.entries;
         this.entries = [];
+        for (const entry of flushing) {
+            await this.auditor.audit(entry.jobId, entry.actor, entry.changeDescription, entry.details);
+        }
     }
 
 }

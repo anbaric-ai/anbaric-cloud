@@ -1,2 +1,2 @@
 export { SideNav } from './SideNav'
-export type { NavItem, SideNavProps } from './SideNav'
+export type { NavEntry, NavItem, NavSection, SideNavProps } from './SideNav'

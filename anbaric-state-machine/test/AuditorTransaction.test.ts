@@ -1,11 +1,11 @@
 import {describe, expect, it, vi} from "vitest";
-import {Auditor} from "../src/auditing/Auditor";
+import {Auditor} from "anbaric-tsapi";
 import {AuditorTransaction} from "../src/auditing/AuditorTransaction";
 import {Human} from "../src/actors/Human";
 
 const mockAuditor = () => ({
-    audit: vi.fn(),
-}) as unknown as Auditor;
+    audit: vi.fn(async () => {}),
+}) satisfies Auditor;
 
 describe("AuditorTransaction", () => {
 
@@ -18,14 +18,14 @@ describe("AuditorTransaction", () => {
         expect(auditor.audit).not.toHaveBeenCalled();
     });
 
-    it("flushes entries to the auditor in order", () => {
+    it("flushes entries to the auditor in order", async () => {
         const auditor = mockAuditor();
         const transaction = new AuditorTransaction(auditor);
         const actor = new Human("chris", "admin");
 
         transaction.audit("job-1", actor, "first", null);
         transaction.audit("job-1", actor, "second", null);
-        transaction.flush();
+        await transaction.flush();
 
         expect(vi.mocked(auditor.audit).mock.calls).toEqual([
             ["job-1", actor, "first", null],
@@ -33,13 +33,13 @@ describe("AuditorTransaction", () => {
         ]);
     });
 
-    it("does not replay entries on a second flush", () => {
+    it("does not replay entries on a second flush", async () => {
         const auditor = mockAuditor();
         const transaction = new AuditorTransaction(auditor);
 
         transaction.audit("job-1", undefined, "once", null);
-        transaction.flush();
-        transaction.flush();
+        await transaction.flush();
+        await transaction.flush();
 
         expect(auditor.audit).toHaveBeenCalledOnce();
     });

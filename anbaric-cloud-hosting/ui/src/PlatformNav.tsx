@@ -44,6 +44,7 @@ function PlatformNav() {
 
   const items: NavEntry[] = [
     { label: 'Dashboard', value: '/', icon: <Sym name="dashboard" /> },
+    { label: 'Audit', value: '/audit', icon: <Sym name="history" /> },
     { label: 'Manage keys', value: '/manage-keys', icon: <Sym name="key" /> },
     ...appEntries,
   ]

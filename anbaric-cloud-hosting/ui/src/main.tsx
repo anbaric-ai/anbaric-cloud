@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 
 import '@anbaric/design-system/tokens.css'
 
+import { AuditPage } from './AuditPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
 import { LandingPage } from './LandingPage'
 import { ManageKeysPage } from './ManageKeysPage'
@@ -14,6 +15,9 @@ function App() {
   }
   if (path === '/manage-keys') {
     return <ManageKeysPage />
+  }
+  if (path === '/audit') {
+    return <AuditPage />
   }
   return <LandingPage />
 }
