@@ -1,7 +1,7 @@
 import {CliConfig, CliFlags, DEFAULT_PLATFORM_URL, PRODUCTION_PLATFORM_URL, STAGING_PLATFORM_URL, platformUrlForEnvironment} from "../CliConfig";
 import {KeyRequest} from "../KeyRequest";
 import {openBrowser} from "../BrowserOpener";
-import {bold, check, dim, green} from "../ui/Ansi";
+import {bold, check, cross, dim, green} from "../ui/Ansi";
 import {select} from "../ui/Select";
 import {Spinner} from "../ui/Spinner";
 
@@ -40,6 +40,12 @@ class LoginCommand {
             console.log(`${check} This terminal is now authorized as ${bold(key.clientName)}`);
             if (tenant) console.log(`${check} Logged into tenant ${bold(tenant)}`);
             console.log(dim(`  keypair saved to ${keyPath}, config to ${path}`));
+
+            if (tenant) {
+                console.log(await this.tenantReachable(platformUrl, tenant)
+                    ? `${check} Connected to tenant ${bold(tenant)} successfully`
+                    : `${cross} No infra is provisioned for ${bold(tenant)}`);
+            }
             return 0;
         } catch (error) {
             spinner.stop();
@@ -75,6 +81,19 @@ class LoginCommand {
             { label: "Anbaric Cloud (Staging)", value: STAGING_PLATFORM_URL },
             { label: "Other:", editable: true },
         ]);
+    }
+
+    private async tenantReachable(platformUrl : string, tenant : string) : Promise<boolean> {
+        try {
+            const response = await fetch(`${platformUrl}/ping`, {
+                headers: { "x-anbaric-tenant": tenant },
+                signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+            });
+            const body = await response.json();
+            return response.ok && body.tenant === tenant;
+        } catch {
+            return false;
+        }
     }
 
     private async ping(url : string) : Promise<boolean> {

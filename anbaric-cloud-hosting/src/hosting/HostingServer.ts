@@ -27,7 +27,7 @@ class HostingServer {
                 private authenticator? : Authenticator,
                 cliAuthorizer? : CliAuthorizer,
                 private tokenAuthenticator? : TokenAuthenticator,
-                tenant? : string) {
+                private tenant? : string) {
         this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer, tenant);
         this.server = this.serverFor((request, response) => this.handle(request, response));
         this.internalServer = this.serverFor((request, response) => this.handleInternal(request, response));
@@ -63,7 +63,7 @@ class HostingServer {
     private async handle(request : IncomingMessage, response : ServerResponse) : Promise<void> {
         const path = request.url?.split("?")[0] ?? "/";
         if (path === "/ping" && request.method === "GET") {
-            return this.reply(response, 200, { status: "ok" });
+            return this.reply(response, 200, this.tenant ? { status: "ok", tenant: this.tenant } : { status: "ok" });
         }
         if (/^\/authorize-cli\/[^/]+\/poll$/.test(path) && request.method === "GET") {
             return this.router.route(request, response);
@@ -85,7 +85,7 @@ class HostingServer {
     private async handleInternal(request : IncomingMessage, response : ServerResponse) : Promise<void> {
         const path = request.url?.split("?")[0] ?? "/";
         if (path === "/ping" && request.method === "GET") {
-            return this.reply(response, 200, { status: "ok" });
+            return this.reply(response, 200, this.tenant ? { status: "ok", tenant: this.tenant } : { status: "ok" });
         }
         const [resource] = path.split("/").filter(Boolean);
         if (!resource || !INTERNAL_RESOURCES.has(resource)) {

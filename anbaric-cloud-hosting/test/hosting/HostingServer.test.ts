@@ -591,6 +591,15 @@ describe("HostingServer round-trip via the cloud clients", () => {
         expect(await response.json()).toEqual({ status: "ok" });
     });
 
+    it("identifies its tenant in the ping when configured", async () => {
+        const tenanted = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+            undefined, undefined, undefined, undefined, undefined, undefined, undefined, "internal");
+        const url = `http://127.0.0.1:${await tenanted.listen(0)}`;
+
+        expect(await (await fetch(`${url}/ping`)).json()).toEqual({ status: "ok", tenant: "internal" });
+        await tenanted.close();
+    });
+
     it("returns 404 for unknown routes", async () => {
         const response = await fetch(`${baseUrl}/unknown`);
 
