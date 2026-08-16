@@ -40,7 +40,7 @@ const defaultClients = (region : string) : AwsClients => ({
 });
 
 const BUILD_TIMEOUT_MS = 900_000;
-const FARGATE_LIVENESS_TIMEOUT_MS = 180_000;
+const FARGATE_LIVENESS_TIMEOUT_MS = 420_000;
 
 class FargateBuildLayer extends BaseBuildLayer {
 

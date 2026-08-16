@@ -10,7 +10,7 @@ import {Spinner} from "../ui/Spinner";
 import {ConfigureCommand} from "./ConfigureCommand";
 
 const POLL_INTERVAL_MS = 1000;
-const DEPLOY_TIMEOUT_MS = 120_000;
+const DEPLOY_TIMEOUT_MS = 600_000;
 
 type DeployedApp = {
     appName : string,
