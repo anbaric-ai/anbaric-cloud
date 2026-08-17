@@ -3,13 +3,13 @@ import {IncomingMessage, ServerResponse} from "node:http";
 import {AuditChange, JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
-
-const AUDIT_CHANGES = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE"]);
 import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {Tenant} from "../auth/Tenant";
 import {User} from "../auth/User";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
+
+const AUDIT_CHANGES = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE"]);
 
 const readRawBody = (request : IncomingMessage) : Promise<Buffer> =>
     new Promise((resolve, reject) => {
@@ -24,6 +24,10 @@ const readBody = async (request : IncomingMessage) : Promise<any> => {
     return raw.length === 0 ? undefined : JSON.parse(raw);
 };
 
+/* Routing is a tree: route() dispatches on the resource family (or the few
+   specific resources that fit no family), each family handler switches on
+   the specific resource shape, and the method switch sits underneath.
+   Unmatched requests fall through to the app proxy, then 404. */
 class Router {
 
     constructor(private persistence : JobPersistence, private queue : ConfirmableQueue,
@@ -40,36 +44,141 @@ class Router {
         const [resource, id, subresource] = url.pathname.split("/").filter(Boolean);
         const method = request.method ?? "GET";
 
-        if (!resource && method === "GET") {
-            return this.servePage(response);
+        switch (resource) {
+            case undefined:
+                if (method === "GET") return this.servePage(response);
+                break;
+            case "audit":
+                if (method === "GET" && !id) return this.servePage(response);
+                break;
+            case "manage-keys":
+                if (method === "GET" && !id && this.cliAuthorizer) return this.servePage(response);
+                break;
+            case "whoami":
+                if (method === "GET" && !id && user) {
+                    return this.reply(response, 200, { id: user.id, roles: user.roles.map(role => role.id) });
+                }
+                break;
+            case "state-machines":
+                if (method === "GET" && !id) return this.reply(response, 200, this.registry.list());
+                break;
+            case "authorize-cli":
+                if (this.cliAuthorizer && id) {
+                    return this.handleAuthorizeCli(method, id, subresource, request, response, user, sessionTenant);
+                }
+                break;
+            case "keys":
+                if (this.cliAuthorizer) return this.handleKeys(method, id, response, user);
+                break;
+            case "audits":
+                if (this.auditRecords && !id) return this.handleAudits(method, url, request, response);
+                break;
+            case "jobs":
+                return this.handleJobs(method, id, subresource, url, request, response);
+            case "queue":
+                if (id && !subresource) return this.handleQueue(method, id, request, response);
+                break;
+            case "consumers":
+                if (!id) return this.handleConsumers(method, request, response);
+                break;
+            case "apps":
+                if (this.buildLayer) return this.handleApps(method, id, subresource, url, request, response);
+                break;
+            case "documents":
+                if (id && this.documentStoreFor) {
+                    return this.handleDocuments(method, this.documentStoreFor(id), subresource, url, request, response);
+                }
+                break;
+            case "secrets":
+                if (!subresource && this.secretStore) return this.handleSecrets(method, id, request, response);
+                break;
         }
-        if (resource === "authorize-cli" && id && this.cliAuthorizer) {
-            return this.handleAuthorizeCli(method, id, subresource, request, response, user, sessionTenant);
+
+        if (resource && this.buildLayer) {
+            const app = this.buildLayer.status(resource);
+            if (app && app.status === "running") {
+                return this.forwardToApp(app.appHost, app.appPort, resource, method, url, request, response);
+            }
         }
-        if (resource === "manage-keys" && method === "GET" && !id && this.cliAuthorizer) {
-            return this.servePage(response);
+
+        this.notFound(response);
+    }
+
+    private async handleAuthorizeCli(method : string, requestId : string, subresource : string | undefined,
+                                     request : IncomingMessage, response : ServerResponse, user? : User,
+                                     sessionTenant? : Tenant) : Promise<void> {
+        switch (subresource) {
+            case "poll":
+                switch (method) {
+                    case "GET": {
+                        const keyPair = this.cliAuthorizer!.collect(requestId);
+                        if (!keyPair) return this.reply(response, 202, { status: "pending" });
+                        return this.reply(response, 200, keyPair);
+                    }
+                }
+                break;
+            case undefined:
+                switch (method) {
+                    case "GET":
+                        return this.servePage(response);
+                    case "POST": {
+                        const { clientName } = await readBody(request);
+                        if (typeof clientName !== "string" || clientName.trim().length === 0) {
+                            return this.reply(response, 400, { error: "Expected a body of { clientName : string }" });
+                        }
+                        await this.cliAuthorizer!.approve(requestId, clientName.trim(), user ?? new User("local"),
+                            sessionTenant?.id ?? this.tenant);
+                        return this.reply(response, 204);
+                    }
+                }
+                break;
         }
-        if (resource === "keys" && this.cliAuthorizer) {
-            return this.handleKeys(method, id, response, user);
+
+        this.notFound(response);
+    }
+
+    private async handleKeys(method : string, id : string | undefined,
+                             response : ServerResponse, user? : User) : Promise<void> {
+        const owner = user ?? new User("local");
+
+        if (id) {
+            switch (method) {
+                case "DELETE":
+                    await this.cliAuthorizer!.revoke(id, owner.id);
+                    return this.reply(response, 204);
+            }
+        } else {
+            switch (method) {
+                case "GET": {
+                    const keys = await this.cliAuthorizer!.keysFor(owner.id);
+                    return this.reply(response, 200, keys.map(key => ({
+                        id: key.id,
+                        clientName: key.clientName,
+                        createdAt: key.createdAt.toISOString(),
+                    })));
+                }
+            }
         }
-        if (resource === "whoami" && method === "GET" && !id) {
-            if (!user) return this.reply(response, 404, { error: "Not found" });
-            return this.reply(response, 200, { id: user.id, roles: user.roles.map(role => role.id) });
-        }
-        if (resource === "audits" && this.auditRecords && !id) {
-            if (method === "POST") {
+
+        this.notFound(response);
+    }
+
+    private async handleAudits(method : string, url : URL,
+                               request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        switch (method) {
+            case "POST": {
                 const record = await readBody(request);
                 if (typeof record?.jobId !== "string" || typeof record?.description !== "string"
                     || typeof record?.actorId !== "string" || typeof record?.actorType !== "string"
                     || !AUDIT_CHANGES.has(record?.change)) {
                     return this.reply(response, 400, { error: "Expected a body of { jobId, actorId, actorType, change, description, ... }" });
                 }
-                await this.auditRecords.save(record);
+                await this.auditRecords!.save(record);
                 return this.reply(response, 204);
             }
-            if (method === "GET") {
+            case "GET": {
                 const change = url.searchParams.get("change");
-                const records = await this.auditRecords.list({
+                const records = await this.auditRecords!.list({
                     jobId: url.searchParams.get("jobId") ?? undefined,
                     actorId: url.searchParams.get("actorId") ?? undefined,
                     change: change && AUDIT_CHANGES.has(change) ? change as AuditChange : undefined,
@@ -80,83 +189,195 @@ class Router {
                 return this.reply(response, 200, records);
             }
         }
-        if (resource === "audit" && method === "GET" && !id) {
-            return this.servePage(response);
+
+        this.notFound(response);
+    }
+
+    private async handleJobs(method : string, id : string | undefined, subresource : string | undefined,
+                             url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        switch (subresource) {
+            case "properties":
+                if (id) {
+                    switch (method) {
+                        case "PATCH": {
+                            const properties = new Map<string, any>(Object.entries(await readBody(request)));
+                            await this.persistence.updateProperties(id, properties);
+                            return this.reply(response, 204);
+                        }
+                    }
+                }
+                break;
+            case undefined:
+                if (id) {
+                    switch (method) {
+                        case "PUT":
+                            await this.persistence.save(deserializeJob(await readBody(request)));
+                            return this.reply(response, 204);
+                        case "GET":
+                            return this.reply(response, 200, serializeJob(await this.persistence.retrieve(id)));
+                        case "DELETE":
+                            await this.persistence.delete(id);
+                            return this.reply(response, 204);
+                    }
+                } else {
+                    switch (method) {
+                        case "GET": {
+                            const pageSize = Number(url.searchParams.get("pageSize") ?? 100);
+                            const page = Number(url.searchParams.get("page") ?? 0);
+                            const jobs = await this.persistence.list(pageSize, page);
+                            return this.reply(response, 200, jobs.map(serializeJob));
+                        }
+                    }
+                }
+                break;
         }
-        if (resource === "jobs") return this.handleJobs(method, id, subresource, url, request, response);
-        if (resource === "queue" && method === "POST" && !subresource) return this.handleQueue(id, request, response);
-        if (resource === "consumers" && method === "POST" && !id) {
-            const { workflowId, url: consumerUrl } = await readBody(request);
-            this.registry.register(workflowId, consumerUrl);
-            return this.reply(response, 204);
+
+        this.notFound(response);
+    }
+
+    private async handleQueue(method : string, operation : string,
+                              request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        switch (operation) {
+            case "enqueue":
+                switch (method) {
+                    case "POST": {
+                        const { jobId, workflowId } = await readBody(request);
+                        await this.queue.enqueue(jobId, workflowId);
+                        return this.reply(response, 204);
+                    }
+                }
+                break;
+            case "schedule":
+                switch (method) {
+                    case "POST": {
+                        const { jobId, workflowId, due } = await readBody(request);
+                        await this.queue.schedule(jobId, workflowId, new Date(due));
+                        return this.reply(response, 204);
+                    }
+                }
+                break;
+            case "dequeue":
+                switch (method) {
+                    case "POST":
+                        return this.reply(response, 200, { messages: await this.queue.dequeueSome() });
+                }
+                break;
+            case "confirm":
+                switch (method) {
+                    case "POST": {
+                        const { jobId, workflowId } = await readBody(request);
+                        await this.queue.confirm({ jobId, workflowId });
+                        return this.reply(response, 204);
+                    }
+                }
+                break;
         }
-        if (resource === "apps" && this.buildLayer) {
-            return this.handleApps(method, id, subresource, url, request, response);
-        }
-        if (resource === "state-machines" && method === "GET" && !id) {
-            return this.reply(response, 200, this.registry.list());
-        }
-        if (resource === "documents" && id && this.documentStoreFor) {
-            return this.handleDocuments(method, this.documentStoreFor(id), subresource, url, request, response);
-        }
-        if (resource === "secrets" && this.secretStore && !subresource) {
-            return this.handleSecrets(method, id, request, response);
-        }
-        if (resource && this.buildLayer) {
-            const app = this.buildLayer.status(resource);
-            if (app && app.status === "running") {
-                return this.forwardToApp(app.appHost, app.appPort, resource, method, url, request, response);
+
+        this.notFound(response);
+    }
+
+    private async handleConsumers(method : string, request : IncomingMessage,
+                                  response : ServerResponse) : Promise<void> {
+        switch (method) {
+            case "POST": {
+                const { workflowId, url: consumerUrl } = await readBody(request);
+                this.registry.register(workflowId, consumerUrl);
+                return this.reply(response, 204);
             }
         }
 
-        this.reply(response, 404, { error: "Not found" });
+        this.notFound(response);
     }
 
-    private async handleAuthorizeCli(method : string, requestId : string, subresource : string | undefined,
-                                     request : IncomingMessage, response : ServerResponse, user? : User,
-                                     sessionTenant? : Tenant) : Promise<void> {
-        if (method === "GET" && subresource === "poll") {
-            const keyPair = this.cliAuthorizer!.collect(requestId);
-            if (!keyPair) return this.reply(response, 202, { status: "pending" });
-            return this.reply(response, 200, keyPair);
+    private async handleApps(method : string, appName : string | undefined, subresource : string | undefined,
+                             url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        switch (subresource) {
+            case "deploy":
+                if (appName) {
+                    switch (method) {
+                        case "POST": {
+                            const appPort = Number(url.searchParams.get("port"));
+                            if (!Number.isInteger(appPort) || appPort <= 0) {
+                                return this.reply(response, 400, { error: "Expected a numeric port query parameter" });
+                            }
+                            const tarball = await readRawBody(request);
+                            if (tarball.length === 0) return this.reply(response, 400, { error: "Expected a gzipped tarball body" });
+                            return this.reply(response, 202, this.buildLayer!.deploy(appName, appPort, tarball));
+                        }
+                    }
+                }
+                break;
+            case undefined:
+                if (appName) {
+                    switch (method) {
+                        case "GET": {
+                            const status = this.buildLayer!.status(appName);
+                            if (!status) return this.reply(response, 404, { error: `No app named "${appName}"` });
+                            return this.reply(response, 200, status);
+                        }
+                    }
+                } else {
+                    switch (method) {
+                        case "GET":
+                            return this.reply(response, 200, this.buildLayer!.list());
+                    }
+                }
+                break;
         }
 
-        if (method === "GET" && !subresource) {
-            return this.servePage(response);
-        }
+        this.notFound(response);
+    }
 
-        if (method === "POST" && !subresource) {
-            const { clientName } = await readBody(request);
-            if (typeof clientName !== "string" || clientName.trim().length === 0) {
-                return this.reply(response, 400, { error: "Expected a body of { clientName : string }" });
+    private async handleDocuments(method : string, store : JsonStore, documentId : string | undefined,
+                                  url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (documentId) {
+            switch (method) {
+                case "PUT":
+                    await store.save(documentId, await readBody(request));
+                    return this.reply(response, 204);
+                case "GET":
+                    return this.reply(response, 200, await store.retrieve(documentId));
+                case "DELETE":
+                    await store.delete(documentId);
+                    return this.reply(response, 204);
             }
-            await this.cliAuthorizer!.approve(requestId, clientName.trim(), user ?? new User("local"),
-                sessionTenant?.id ?? this.tenant);
-            return this.reply(response, 204);
+        } else {
+            switch (method) {
+                case "GET": {
+                    const pageSize = Number(url.searchParams.get("pageSize") ?? 100);
+                    const page = Number(url.searchParams.get("page") ?? 0);
+                    return this.reply(response, 200, await store.list(pageSize, page));
+                }
+            }
         }
 
-        this.reply(response, 404, { error: "Not found" });
+        this.notFound(response);
     }
 
-    private async handleKeys(method : string, id : string | undefined,
-                             response : ServerResponse, user? : User) : Promise<void> {
-        const owner = user ?? new User("local");
-
-        if (method === "GET" && !id) {
-            const keys = await this.cliAuthorizer!.keysFor(owner.id);
-            return this.reply(response, 200, keys.map(key => ({
-                id: key.id,
-                clientName: key.clientName,
-                createdAt: key.createdAt.toISOString(),
-            })));
+    private async handleSecrets(method : string, name : string | undefined,
+                                request : IncomingMessage, response : ServerResponse) : Promise<void> {
+        if (name) {
+            switch (method) {
+                case "PUT": {
+                    const { value } = await readBody(request);
+                    if (typeof value !== "string") return this.reply(response, 400, { error: "Expected a body of { value : string }" });
+                    await this.secretStore!.save(name, value);
+                    return this.reply(response, 204);
+                }
+                case "GET":
+                    return this.reply(response, 200, { value: await this.secretStore!.retrieve(name) });
+                case "DELETE":
+                    await this.secretStore!.delete(name);
+                    return this.reply(response, 204);
+            }
+        } else {
+            switch (method) {
+                case "GET":
+                    return this.reply(response, 200, await this.secretStore!.list());
+            }
         }
 
-        if (method === "DELETE" && id) {
-            await this.cliAuthorizer!.revoke(id, owner.id);
-            return this.reply(response, 204);
-        }
-
-        this.reply(response, 404, { error: "Not found" });
+        this.notFound(response);
     }
 
     private async servePage(response : ServerResponse) : Promise<void> {
@@ -185,140 +406,7 @@ class Router {
         response.end(payload);
     }
 
-    private async handleSecrets(method : string, name : string | undefined,
-                                request : IncomingMessage, response : ServerResponse) : Promise<void> {
-        if (!name && method === "GET") {
-            return this.reply(response, 200, await this.secretStore!.list());
-        }
-
-        if (name) {
-            if (method === "PUT") {
-                const { value } = await readBody(request);
-                if (typeof value !== "string") return this.reply(response, 400, { error: "Expected a body of { value : string }" });
-                await this.secretStore!.save(name, value);
-                return this.reply(response, 204);
-            }
-            if (method === "GET") {
-                return this.reply(response, 200, { value: await this.secretStore!.retrieve(name) });
-            }
-            if (method === "DELETE") {
-                await this.secretStore!.delete(name);
-                return this.reply(response, 204);
-            }
-        }
-
-        this.reply(response, 404, { error: "Not found" });
-    }
-
-    private async handleDocuments(method : string, store : JsonStore, documentId : string | undefined,
-                                  url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
-        if (!documentId && method === "GET") {
-            const pageSize = Number(url.searchParams.get("pageSize") ?? 100);
-            const page = Number(url.searchParams.get("page") ?? 0);
-            return this.reply(response, 200, await store.list(pageSize, page));
-        }
-
-        if (documentId) {
-            if (method === "PUT") {
-                await store.save(documentId, await readBody(request));
-                return this.reply(response, 204);
-            }
-            if (method === "GET") {
-                return this.reply(response, 200, await store.retrieve(documentId));
-            }
-            if (method === "DELETE") {
-                await store.delete(documentId);
-                return this.reply(response, 204);
-            }
-        }
-
-        this.reply(response, 404, { error: "Not found" });
-    }
-
-    private async handleApps(method : string, appName : string | undefined, subresource : string | undefined,
-                             url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
-        if (method === "GET" && !appName) {
-            return this.reply(response, 200, this.buildLayer!.list());
-        }
-
-        if (!appName) return this.reply(response, 404, { error: "Not found" });
-
-        if (method === "POST" && subresource === "deploy") {
-            const appPort = Number(url.searchParams.get("port"));
-            if (!Number.isInteger(appPort) || appPort <= 0) {
-                return this.reply(response, 400, { error: "Expected a numeric port query parameter" });
-            }
-            const tarball = await readRawBody(request);
-            if (tarball.length === 0) return this.reply(response, 400, { error: "Expected a gzipped tarball body" });
-            return this.reply(response, 202, this.buildLayer!.deploy(appName, appPort, tarball));
-        }
-
-        if (method === "GET" && !subresource) {
-            const status = this.buildLayer!.status(appName);
-            if (!status) return this.reply(response, 404, { error: `No app named "${appName}"` });
-            return this.reply(response, 200, status);
-        }
-
-        this.reply(response, 404, { error: "Not found" });
-    }
-
-    private async handleJobs(method : string, id : string | undefined, subresource : string | undefined,
-                             url : URL, request : IncomingMessage, response : ServerResponse) : Promise<void> {
-        if (!id && method === "GET") {
-            const pageSize = Number(url.searchParams.get("pageSize") ?? 100);
-            const page = Number(url.searchParams.get("page") ?? 0);
-            const jobs = await this.persistence.list(pageSize, page);
-            return this.reply(response, 200, jobs.map(serializeJob));
-        }
-
-        if (id && !subresource) {
-            if (method === "PUT") {
-                await this.persistence.save(deserializeJob(await readBody(request)));
-                return this.reply(response, 204);
-            }
-            if (method === "GET") {
-                const job = await this.persistence.retrieve(id);
-                return this.reply(response, 200, serializeJob(job));
-            }
-            if (method === "DELETE") {
-                await this.persistence.delete(id);
-                return this.reply(response, 204);
-            }
-        }
-
-        if (id && subresource === "properties" && method === "PATCH") {
-            const properties = new Map<string, any>(Object.entries(await readBody(request)));
-            await this.persistence.updateProperties(id, properties);
-            return this.reply(response, 204);
-        }
-
-        this.reply(response, 404, { error: "Not found" });
-    }
-
-    private async handleQueue(operation : string | undefined, request : IncomingMessage,
-                              response : ServerResponse) : Promise<void> {
-        if (operation === "enqueue") {
-            const { jobId, workflowId } = await readBody(request);
-            await this.queue.enqueue(jobId, workflowId);
-            return this.reply(response, 204);
-        }
-
-        if (operation === "schedule") {
-            const { jobId, workflowId, due } = await readBody(request);
-            await this.queue.schedule(jobId, workflowId, new Date(due));
-            return this.reply(response, 204);
-        }
-
-        if (operation === "dequeue") {
-            return this.reply(response, 200, { messages: await this.queue.dequeueSome() });
-        }
-
-        if (operation === "confirm") {
-            const { jobId, workflowId } = await readBody(request);
-            await this.queue.confirm({ jobId, workflowId });
-            return this.reply(response, 204);
-        }
-
+    private notFound(response : ServerResponse) : void {
         this.reply(response, 404, { error: "Not found" });
     }
 

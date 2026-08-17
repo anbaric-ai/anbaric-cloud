@@ -1,5 +1,5 @@
 import {Queue} from "anbaric-tsapi";
-import {CloudQueue} from "anbaric-cloud";
+import {CloudQueue} from "anbaric-impl-cloud";
 import {InMemoryQueue} from "./InMemoryQueue";
 
 const QueueFactory = {

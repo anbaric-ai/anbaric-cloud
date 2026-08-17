@@ -1,5 +1,5 @@
 import {SecretStore} from "anbaric-tsapi";
-import {CloudSecretStore} from "anbaric-cloud";
+import {CloudSecretStore} from "anbaric-impl-cloud";
 import {InMemorySecretStore} from "./InMemorySecretStore";
 
 const SecretStoreFactory = {

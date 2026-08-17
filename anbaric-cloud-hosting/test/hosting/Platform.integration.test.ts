@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, PropertyDefinition, QueueMessage, State, Transition} from "anbaric-tsapi";
-import {CloudJobPersistence, CloudQueue} from "anbaric-cloud";
+import {CloudJobPersistence, CloudQueue} from "anbaric-impl-cloud";
 import {Code, Human, InMemoryJobPersistence, InMemoryQueue, StateMachine} from "anbaric-state-machine";
 import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";

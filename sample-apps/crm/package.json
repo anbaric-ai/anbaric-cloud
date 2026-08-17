@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/main.ts",
   "dependencies": {
-    "anbaric-cloud": "*",
+    "anbaric-impl-cloud": "*",
     "anbaric-state-machine": "*",
     "anbaric-tsapi": "*"
   }

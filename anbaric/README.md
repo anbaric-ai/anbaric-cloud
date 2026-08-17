@@ -5,7 +5,7 @@ full app-facing surface of [`anbaric-tsapi`](https://npmjs.com/package/anbaric-t
 (contracts and value classes), [`anbaric-state-machine`](https://npmjs.com/package/anbaric-state-machine)
 (the state machine and in-memory implementations),
 [`anbaric-data-store`](https://npmjs.com/package/anbaric-data-store)
-(document and secret stores) and [`anbaric-cloud`](https://npmjs.com/package/anbaric-cloud)
+(document and secret stores) and [`anbaric-impl-cloud`](https://npmjs.com/package/anbaric-impl-cloud)
 (the clients the factories switch to when deployed).
 
 ```bash

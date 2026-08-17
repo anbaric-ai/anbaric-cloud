@@ -1,7 +1,7 @@
 import {generateKeyPairSync, sign} from "node:crypto";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
-import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-cloud";
+import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-impl-cloud";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
 import {Authenticator} from "../../src/auth/Authenticator";

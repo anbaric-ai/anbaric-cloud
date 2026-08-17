@@ -1,5 +1,5 @@
 import {Consumer, Dequeue, Queue} from "anbaric-tsapi";
-import {PushConsumer} from "anbaric-cloud";
+import {PushConsumer} from "anbaric-impl-cloud";
 import {PullConsumer} from "./PullConsumer";
 
 const ConsumerFactory = {

@@ -1,5 +1,5 @@
 import {JsonSchema, JsonStore} from "anbaric-tsapi";
-import {CloudJsonStore} from "anbaric-cloud";
+import {CloudJsonStore} from "anbaric-impl-cloud";
 import {InMemoryJsonStore} from "./InMemoryJsonStore";
 
 const JsonStoreFactory = {

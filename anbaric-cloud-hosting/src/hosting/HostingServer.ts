@@ -30,6 +30,7 @@ class HostingServer {
                 private tokenAuthenticator? : TokenAuthenticator,
                 private tenant? : string,
                 auditRecords? : AuditRecordStore) {
+
         this.router = new Router(persistence, queue, registry, buildLayer, documentStoreFor, secretStore, cliAuthorizer, tenant, auditRecords);
         this.server = this.serverFor((request, response) => this.handle(request, response));
         this.internalServer = this.serverFor((request, response) => this.handleInternal(request, response));

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import {CloudJsonStore} from "anbaric-cloud";
+import {CloudJsonStore} from "anbaric-impl-cloud";
 import {InMemoryJsonStore} from "../src/InMemoryJsonStore";
 import {JsonStoreFactory} from "../src/JsonStoreFactory";
 

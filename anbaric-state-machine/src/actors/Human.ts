@@ -11,6 +11,10 @@ class Human implements Actor {
         this.role = role;
     }
 
+    static createFromSession() {
+
+    }
+
 }
 
 export { Human }

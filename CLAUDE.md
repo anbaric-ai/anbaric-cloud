@@ -9,7 +9,7 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 - `tsapi` — shared contracts and value classes (interfaces like `JobPersistence`, `Queue`, `Consumer`, `JsonStore`, `SecretStore`; classes like `Job`, `State`, `Transition`). Nothing here depends on the other packages.
 - `anbaric-state-machine` — the public state machine library, with in-memory implementations.
 - `anbaric-data-store` — JSON document store (schema-validated) and secret store, with in-memory implementations.
-- `anbaric-cloud` — public client library for the hosted API; implements the tsapi interfaces over HTTP.
+- `anbaric-impl-cloud` — public client library for the hosted API; implements the tsapi interfaces over HTTP.
 - `anbaric-cloud-hosting` — the hosted platform: Postgres/AWS-backed implementations exposed via a `node:http` JSON API, plus the build layer, dispatcher, and app proxy.
 - `anbaric-cli` — standalone `anbaric` CLI (login/configure/deploy/update/apps/state-machines plus the `job` group: list/watch/set-state/update); dependency-free, hand-rolled terminal UI.
 - `anbaric-design-system` — the Anbaric design system (not a workspace): design tokens, brand assets, and the React component library, with a living style guide (`npm run build` there produces a self-contained `dist/index.html`).

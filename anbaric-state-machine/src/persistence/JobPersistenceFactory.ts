@@ -1,5 +1,5 @@
 import {JobPersistence} from "anbaric-tsapi";
-import {CloudJobPersistence} from "anbaric-cloud";
+import {CloudJobPersistence} from "anbaric-impl-cloud";
 import {InMemoryJobPersistence} from "./InMemoryJobPersistence";
 
 const JobPersistenceFactory = {

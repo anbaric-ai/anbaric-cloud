@@ -1,4 +1,4 @@
-# anbaric-cloud
+# anbaric-impl-cloud
 
 The client library for a hosted Anbaric platform: HTTP implementations of
 the [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi) contracts.

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import {CloudQueue} from "anbaric-cloud";
+import {CloudQueue} from "anbaric-impl-cloud";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
 import {QueueFactory} from "../src/scheduling/QueueFactory";
 

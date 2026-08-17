@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import {CloudSecretStore} from "anbaric-cloud";
+import {CloudSecretStore} from "anbaric-impl-cloud";
 import {InMemorySecretStore} from "../src/InMemorySecretStore";
 import {SecretStoreFactory} from "../src/SecretStoreFactory";
 

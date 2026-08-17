@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {CloudQueue, PushConsumer} from "anbaric-cloud";
+import {CloudQueue, PushConsumer} from "anbaric-impl-cloud";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
 import {PullConsumer} from "../src/scheduling/PullConsumer";
 import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
