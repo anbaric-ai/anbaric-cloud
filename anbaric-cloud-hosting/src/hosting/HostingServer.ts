@@ -20,8 +20,11 @@ import {PingHandler} from "./handlers/PingHandler";
 import {QueueHandler} from "./handlers/QueueHandler";
 import {SecretsHandler} from "./handlers/SecretsHandler";
 import {StateMachinesHandler} from "./handlers/StateMachinesHandler";
+import {PluginsHandler} from "./handlers/PluginsHandler";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
+import {PageDirectory} from "../plugins/PageDirectory";
+import {LoadedPlugin} from "../plugins/Plugin";
 import {Request} from "./Request";
 import {Router} from "./Router";
 import {Server} from "./Server";
@@ -47,7 +50,8 @@ class HostingServer {
                 cliAuthorizer? : CliAuthorizer,
                 tokenAuthenticator? : TokenAuthenticator,
                 tenant? : string,
-                auditRecords? : AuditRecordStore) {
+                auditRecords? : AuditRecordStore,
+                plugins : Array<LoadedPlugin> = []) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -60,6 +64,12 @@ class HostingServer {
 
         const publicRouter = new Router();
         publicRouter.registerRoot(pages);
+        if (plugins.length > 0) {
+            for (const segment of new PageDirectory(plugins).topLevelSegments) {
+                publicRouter.register(segment, pages);
+            }
+            publicRouter.register("plugins", new PluginsHandler(plugins));
+        }
         publicRouter.register("ping", ping);
         publicRouter.register("audit", pages);
         publicRouter.register("whoami", new WhoamiHandler());

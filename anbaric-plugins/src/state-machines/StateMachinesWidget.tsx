@@ -4,9 +4,6 @@ import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
 
-import { PageShell } from './PageShell'
-import { PlatformNav } from './PlatformNav'
-
 interface StateMachine {
   workflowId: string
   url: string
@@ -135,7 +132,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
   )
 }
 
-function LandingPage() {
+function StateMachinesWidget() {
   const [machines, setMachines] = useState<StateMachine[] | undefined>(undefined)
   const [jobs, setJobs] = useState<Job[] | undefined>(undefined)
   const [failed, setFailed] = useState(false)
@@ -171,7 +168,7 @@ function LandingPage() {
   const unassigned = (jobs ?? []).filter((job) => !job.workflowId)
 
   return (
-    <PageShell title="Dashboard" width="64rem" nav={<PlatformNav />}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       {failed ? (
         <Alert variant="danger" title="Could not load the platform state">
           The platform rejected the request — try reloading the page.
@@ -226,8 +223,8 @@ function LandingPage() {
           <JobsTable jobs={unassigned} />
         </Card>
       ) : null}
-    </PageShell>
+    </div>
   )
 }
 
-export { LandingPage }
+export { StateMachinesWidget }

@@ -8,7 +8,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
   type FormHTMLAttributes,
   type ReactElement,
   type ReactNode,
@@ -82,7 +81,7 @@ export function Form({
     [refreshValidity],
   )
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: Parameters<NonNullable<FormProps['onSubmit']>>[0]) => {
     const form = formRef.current
     if (form && !form.checkValidity()) {
       event.preventDefault()

@@ -18,6 +18,7 @@ import {FargateBuildLayer} from "./app-management/FargateBuildLayer";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
+import {PluginLoader} from "./plugins/PluginLoader";
 
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);
@@ -64,9 +65,11 @@ const cliKeyStore = process.env.ANBARIC_CLI_KEY_LOOKUP_URL
 const cliAuthorizer = new CliAuthorizer(cliKeyStore);
 const tokenAuthenticator = new TokenAuthenticator(cliKeyStore, process.env.ANBARIC_TENANT);
 
+const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "anbaric-plugins/state-machines");
+
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer,
-    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool));
+    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

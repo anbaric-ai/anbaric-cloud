@@ -20,6 +20,10 @@ COPY anbaric-cli/package.json anbaric-cli/
 COPY anbaric-data-store/package.json anbaric-data-store/
 COPY anbaric/package.json anbaric/
 COPY anbaric-hosting/package.json anbaric-hosting/
+COPY anbaric-plugins/package.json anbaric-plugins/
+# The design system is a file: devDependency of anbaric-plugins, so npm ci
+# needs it present; it is aliased away when plugins are bundled, never run.
+COPY anbaric-design-system anbaric-design-system
 RUN npm ci
 
 COPY tsapi tsapi
@@ -30,6 +34,7 @@ COPY anbaric-cli anbaric-cli
 COPY anbaric-data-store anbaric-data-store
 COPY anbaric anbaric
 COPY anbaric-hosting anbaric-hosting
+COPY anbaric-plugins anbaric-plugins
 
 EXPOSE 8787
 CMD ["npx", "tsx", "anbaric-cloud-hosting/src/main.ts"]

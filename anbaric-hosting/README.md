@@ -23,6 +23,7 @@ The platform is configured entirely through environment variables:
 | `ANBARIC_TENANT` | tenant this platform serves (returned to the CLI on login) | — |
 | `ANBARIC_BUILD_LAYER` | `docker` (needs a docker socket) or `fargate` (AWS); unset disables app deployment | unset |
 | `ANBARIC_AUTHENTICATOR` | `stub`, or the module name of an auth plugin exposing `createAuthenticator()` | unset (auth disabled) |
+| `ANBARIC_PLUGINS` | comma-separated plugin module names providing the dashboard's pages and widgets | `anbaric-plugins/state-machines` |
 | `ANBARIC_STUB_USER` | the fixed identity the stub authenticator signs everyone in as | `local-admin` |
 | `ANBARIC_CLI_KEY_LOOKUP_URL` / `_SECRET` | verify CLI keys against a central key registry instead of the local database (hosted-platform feature; self-hosts leave unset) | unset (keys local) |
 | `ANBARIC_APPS_DIR` | working directory for app bundles | `/tmp/anbaric-apps` |
@@ -43,6 +44,32 @@ it must only ever be reachable by deployed apps (same docker network, same
 task, or a security-group rule).
 
 Health check: `GET /ping` → `{"status":"ok"}` on both ports.
+
+## The dashboard and plugins
+
+The root dashboard is assembled from **plugins** — the platform loads the
+modules named in `ANBARIC_PLUGINS`, and every page (including the homepage)
+comes from one of them. Left unset, the platform loads
+`anbaric-plugins/state-machines`, which registers the `/` Dashboard with the
+state-machines and jobs overview.
+
+A plugin is a small source package exporting a `plugin` object with `pages`
+(nav-visible containers, keyed by path — plugin paths win over deployed apps
+of the same name) and `widgets` (React components rendered into a page, each
+optionally backed by a server-side `data` function). To add one, install it
+and name it alongside the default:
+
+```bash
+npm install some-plugin-package
+ANBARIC_PLUGINS=some-plugin-package,anbaric-plugins/state-machines anbaric-hosting
+```
+
+The platform compiles each plugin's components at boot and serves them to the
+dashboard, which renders them with the platform's own React and design
+system — the dashboard build itself is plugin-agnostic, so adding a plugin is
+configuration only, never a rebuild. See the
+[`anbaric-plugins`](https://npmjs.com/package/anbaric-plugins) README for the
+full contract and how to write one.
 
 ## The self-host flow
 

@@ -1,0 +1,6 @@
+{
+  "name": "test-plugin-fixture",
+  "private": true,
+  "type": "module",
+  "main": "src/index.tsx"
+}

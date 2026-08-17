@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { SideNav, type NavEntry } from '@anbaric/design-system/components/SideNav'
 import logoUrl from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 
+import { registry } from './plugins/PluginRegistry'
+
 interface App {
   appName: string
   status: string
@@ -42,8 +44,14 @@ function PlatformNav() {
           })),
         ]
 
+  const pageEntries: NavEntry[] = registry().pages.map((page) => ({
+    label: page.title,
+    value: page.path,
+    icon: <Sym name={page.icon ?? 'widgets'} />,
+  }))
+
   const items: NavEntry[] = [
-    { label: 'Dashboard', value: '/', icon: <Sym name="dashboard" /> },
+    ...pageEntries,
     { label: 'Audit', value: '/audit', icon: <Sym name="history" /> },
     { label: 'Manage keys', value: '/manage-keys', icon: <Sym name="key" /> },
     ...appEntries,

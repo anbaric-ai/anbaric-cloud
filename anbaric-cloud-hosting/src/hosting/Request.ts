@@ -94,6 +94,11 @@ class Request {
         this.response.end(page);
     }
 
+    replyJavaScript(script : string) : void {
+        this.response.writeHead(200, { "content-type": "text/javascript" });
+        this.response.end(script);
+    }
+
     notFound() : void {
         this.reply(404, { error: "Not found" });
     }
