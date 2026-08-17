@@ -1,8 +1,10 @@
 import {readFile} from "node:fs/promises";
 import {IncomingMessage, ServerResponse} from "node:http";
-import {JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {AuditChange, JobPersistence, JsonStore, SecretStore, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
+
+const AUDIT_CHANGES = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE"]);
 import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {Tenant} from "../auth/Tenant";
 import {User} from "../auth/User";
@@ -57,16 +59,20 @@ class Router {
         if (resource === "audits" && this.auditRecords && !id) {
             if (method === "POST") {
                 const record = await readBody(request);
-                if (typeof record?.jobId !== "string" || typeof record?.description !== "string") {
-                    return this.reply(response, 400, { error: "Expected a body of { jobId, description, ... }" });
+                if (typeof record?.jobId !== "string" || typeof record?.description !== "string"
+                    || typeof record?.actorId !== "string" || typeof record?.actorType !== "string"
+                    || !AUDIT_CHANGES.has(record?.change)) {
+                    return this.reply(response, 400, { error: "Expected a body of { jobId, actorId, actorType, change, description, ... }" });
                 }
                 await this.auditRecords.save(record);
                 return this.reply(response, 204);
             }
             if (method === "GET") {
+                const change = url.searchParams.get("change");
                 const records = await this.auditRecords.list({
                     jobId: url.searchParams.get("jobId") ?? undefined,
                     actorId: url.searchParams.get("actorId") ?? undefined,
+                    change: change && AUDIT_CHANGES.has(change) ? change as AuditChange : undefined,
                     search: url.searchParams.get("search") ?? undefined,
                     pageSize: url.searchParams.has("pageSize") ? Number(url.searchParams.get("pageSize")) : undefined,
                     page: url.searchParams.has("page") ? Number(url.searchParams.get("page")) : undefined,

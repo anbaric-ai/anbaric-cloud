@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
 import {CloudAuditor} from "../src/CloudAuditor";
-import {Human} from "anbaric-state-machine";
+import {Code, Human} from "anbaric-state-machine";
 
 describe("CloudAuditor", () => {
 
@@ -31,7 +31,7 @@ describe("CloudAuditor", () => {
         const received : Array<{ url? : string, body : any }> = [];
         const auditor = new CloudAuditor(await startPlatform(received));
 
-        await auditor.audit("job-1", new Human("chris", "admin"), "Properties updated", { age: 42 });
+        await auditor.audit("job-1", new Human("chris", "admin"), "UPDATE_PROPERTIES", "Properties updated", { age: 42 });
 
         expect(received).toHaveLength(1);
         expect(received[0].url).toBe("/audits");
@@ -39,18 +39,20 @@ describe("CloudAuditor", () => {
             jobId: "job-1",
             actorId: "chris",
             actorType: "HUMAN",
+            change: "UPDATE_PROPERTIES",
             description: "Properties updated",
             details: { age: 42 },
         });
     });
 
-    it("records system changes without an actor", async () => {
+    it("records machine-made state changes", async () => {
         const received : Array<{ url? : string, body : any }> = [];
         const auditor = new CloudAuditor(await startPlatform(received));
 
-        await auditor.audit("job-1", undefined, 'Transitioned to "done"', null);
+        await auditor.audit("job-1", new Code("workflow-1", "state-machine"), "CHANGE_STATE", 'Transitioned to "done"', null);
 
-        expect(received[0].body.actorId).toBeUndefined();
+        expect(received[0].body.actorId).toBe("workflow-1");
+        expect(received[0].body.change).toBe("CHANGE_STATE");
         expect(received[0].body.details).toBeNull();
     });
 

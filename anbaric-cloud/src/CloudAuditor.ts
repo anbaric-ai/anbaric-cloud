@@ -1,4 +1,4 @@
-import {Actor, Auditor} from "anbaric-tsapi";
+import {Actor, AuditChange, Auditor} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient";
 
 class CloudAuditor implements Auditor {
@@ -9,11 +9,13 @@ class CloudAuditor implements Auditor {
         this.client = new CloudApiClient(baseUrl);
     }
 
-    async audit(jobId : string, actor : Actor | undefined, changeDescription : string, details : any) : Promise<void> {
+    async audit(jobId : string, actor : Actor, change : AuditChange,
+                changeDescription : string, details : any) : Promise<void> {
         await this.client.request("POST", "/audits", {
             jobId,
-            actorId: actor?.id,
-            actorType: actor?.type,
+            actorId: actor.id,
+            actorType: actor.type,
+            change,
             description: changeDescription,
             details: details ?? null,
         });

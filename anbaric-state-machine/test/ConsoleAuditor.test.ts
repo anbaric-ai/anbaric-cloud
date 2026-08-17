@@ -1,5 +1,6 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {ConsoleAuditor} from "../src/auditing/ConsoleAuditor";
+import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
 
 describe("ConsoleAuditor", () => {
@@ -8,20 +9,20 @@ describe("ConsoleAuditor", () => {
         vi.restoreAllMocks();
     });
 
-    it("logs the job, actor and change", async () => {
+    it("logs the job, actor, change and description", async () => {
         const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-        await new ConsoleAuditor().audit("job-1", new Human("chris", "admin"), "Properties updated", { age: 42 });
+        await new ConsoleAuditor().audit("job-1", new Human("chris", "admin"), "UPDATE_PROPERTIES", "Properties updated", { age: 42 });
 
-        expect(log).toHaveBeenCalledExactlyOnceWith('[job-1] chris Properties updated {"age":42}');
+        expect(log).toHaveBeenCalledExactlyOnceWith('[job-1] chris UPDATE_PROPERTIES Properties updated {"age":42}');
     });
 
-    it("logs anonymous when no actor is known", async () => {
+    it("logs state changes made by the machine", async () => {
         const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-        await new ConsoleAuditor().audit("job-1", undefined, "Unauthorized update", null);
+        await new ConsoleAuditor().audit("job-1", new Code("workflow-1", "state-machine"), "CHANGE_STATE", 'Transitioned to "done"', null);
 
-        expect(log).toHaveBeenCalledExactlyOnceWith("[job-1] anonymous Unauthorized update null");
+        expect(log).toHaveBeenCalledExactlyOnceWith('[job-1] workflow-1 CHANGE_STATE Transitioned to "done" null');
     });
 
 });

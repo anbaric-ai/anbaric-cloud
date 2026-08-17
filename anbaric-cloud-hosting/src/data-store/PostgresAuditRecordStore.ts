@@ -8,9 +8,9 @@ class PostgresAuditRecordStore implements AuditRecordStore {
 
     async save(record : AuditRecord) : Promise<void> {
         await this.pool.query(
-            `INSERT INTO anbaric_system.audit_records (job_id, actor_id, actor_type, description, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [record.jobId, record.actorId ?? null, record.actorType ?? null,
+            `INSERT INTO anbaric_system.audit_records (job_id, actor_id, actor_type, change, description, details)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [record.jobId, record.actorId, record.actorType, record.change,
                 record.description, JSON.stringify(record.details ?? null)],
         );
     }
@@ -27,6 +27,10 @@ class PostgresAuditRecordStore implements AuditRecordStore {
             parameters.push(filter.actorId);
             conditions.push(`actor_id = $${parameters.length}`);
         }
+        if (filter.change) {
+            parameters.push(filter.change);
+            conditions.push(`change = $${parameters.length}::anbaric_system.audit_change`);
+        }
         if (filter.search) {
             parameters.push(`%${filter.search}%`);
             conditions.push(`description ILIKE $${parameters.length}`);
@@ -39,7 +43,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         const offset = `OFFSET $${parameters.length}`;
 
         const result = await this.pool.query(
-            `SELECT id, job_id, actor_id, actor_type, description, details, at
+            `SELECT id, job_id, actor_id, actor_type, change, description, details, at
              FROM anbaric_system.audit_records ${where}
              ORDER BY at DESC, id DESC ${limit} ${offset}`,
             parameters,
@@ -48,8 +52,9 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         return result.rows.map(row => ({
             id: String(row.id),
             jobId: row.job_id,
-            actorId: row.actor_id ?? undefined,
-            actorType: row.actor_type ?? undefined,
+            actorId: row.actor_id,
+            actorType: row.actor_type,
+            change: row.change,
             description: row.description,
             details: row.details,
             at: row.at.toISOString(),

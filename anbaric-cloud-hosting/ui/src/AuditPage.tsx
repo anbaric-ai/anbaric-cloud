@@ -10,12 +10,18 @@ import { PlatformNav } from './PlatformNav'
 interface AuditRecord {
   id: string
   jobId: string
-  actorId?: string
-  actorType?: string
+  actorId: string
+  actorType: string
+  change: string
   description: string
   details: unknown
   at: string
 }
+
+const CHANGES = ['CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE']
+
+const changeTone = (change: string) =>
+  change === 'CREATE' ? 'success' : change === 'DELETE' ? 'danger' : change === 'CHANGE_STATE' ? 'primary' : 'neutral'
 
 const cell: CSSProperties = {
   textAlign: 'left',
@@ -64,12 +70,14 @@ function AuditPage() {
   const [failed, setFailed] = useState(false)
   const [jobId, setJobId] = useState('')
   const [actorId, setActorId] = useState('')
+  const [change, setChange] = useState('')
   const [search, setSearch] = useState('')
 
   const load = async () => {
     const query = new URLSearchParams()
     if (jobId.trim()) query.set('jobId', jobId.trim())
     if (actorId.trim()) query.set('actorId', actorId.trim())
+    if (change) query.set('change', change)
     if (search.trim()) query.set('search', search.trim())
     try {
       const response = await fetch(`/audits?${query}`)
@@ -110,6 +118,18 @@ function AuditPage() {
             value={actorId}
             onChange={(event) => setActorId(event.target.value)}
           />
+          <select
+            style={filterInput}
+            value={change}
+            onChange={(event) => setChange(event.target.value)}
+          >
+            <option value="">Any change</option>
+            {CHANGES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
           <input
             style={filterInput}
             placeholder="Description contains…"
@@ -151,6 +171,7 @@ function AuditPage() {
                 <th style={headerCell}>Job</th>
                 <th style={headerCell}>Actor</th>
                 <th style={headerCell}>Change</th>
+                <th style={headerCell}>Description</th>
                 <th style={headerCell}>Details</th>
               </tr>
             </thead>
@@ -160,13 +181,12 @@ function AuditPage() {
                   <td style={{ ...cell, whiteSpace: 'nowrap' }}>{formatDate(record.at)}</td>
                   <td style={{ ...cell, ...mono }}>{record.jobId.slice(0, 8)}</td>
                   <td style={cell}>
-                    {record.actorId ? (
-                      <Badge tone={actorTone(record.actorType)} dot>
-                        {record.actorId}
-                      </Badge>
-                    ) : (
-                      <span style={{ color: 'var(--color-foreground-tint-2)' }}>system</span>
-                    )}
+                    <Badge tone={actorTone(record.actorType)} dot>
+                      {record.actorId}
+                    </Badge>
+                  </td>
+                  <td style={cell}>
+                    <Badge tone={changeTone(record.change)}>{record.change}</Badge>
                   </td>
                   <td style={cell}>{record.description}</td>
                   <td style={{ ...cell, ...mono, overflowWrap: 'anywhere' }}>

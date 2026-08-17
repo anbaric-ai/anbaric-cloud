@@ -590,7 +590,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const posted = await fetch(`${internalUrl}/audits`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", description: "Properties updated", details: { age: 42 } }),
+                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", change: "UPDATE_PROPERTIES", description: "Properties updated", details: { age: 42 } }),
             });
             expect(posted.status).toBe(204);
 
@@ -601,9 +601,17 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
             expect(await (await fetch(`${publicUrl}/audits?jobId=other`)).json()).toEqual([]);
             expect(await (await fetch(`${publicUrl}/audits?search=updated`)).json()).toHaveLength(1);
+            expect(await (await fetch(`${publicUrl}/audits?change=UPDATE_PROPERTIES`)).json()).toHaveLength(1);
+            expect(await (await fetch(`${publicUrl}/audits?change=DELETE`)).json()).toEqual([]);
 
             const rejected = await fetch(`${internalUrl}/audits`, { method: "POST", body: "{}" });
             expect(rejected.status).toBe(400);
+
+            const badChange = await fetch(`${internalUrl}/audits`, {
+                method: "POST",
+                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", change: "RENAME", description: "x" }),
+            });
+            expect(badChange.status).toBe(400);
 
             await audited.close();
         });

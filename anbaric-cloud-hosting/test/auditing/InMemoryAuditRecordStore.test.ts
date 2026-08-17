@@ -7,9 +7,9 @@ describe("InMemoryAuditRecordStore", () => {
 
     beforeEach(async () => {
         store = new InMemoryAuditRecordStore();
-        await store.save({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", description: "Properties updated", details: { age: 42 } });
-        await store.save({ jobId: "job-2", actorId: "bot", actorType: "CODE", description: "Properties updated", details: null });
-        await store.save({ jobId: "job-1", description: 'Transitioned to "done"', details: null });
+        await store.save({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", change: "UPDATE_PROPERTIES", description: "Properties updated", details: { age: 42 } });
+        await store.save({ jobId: "job-2", actorId: "bot", actorType: "CODE", change: "UPDATE_PROPERTIES", description: "Properties updated", details: null });
+        await store.save({ jobId: "job-1", actorId: "workflow-1", actorType: "CODE", change: "CHANGE_STATE", description: 'Transitioned to "done"', details: null });
     });
 
     it("lists newest first with generated ids and timestamps", async () => {
@@ -30,6 +30,13 @@ describe("InMemoryAuditRecordStore", () => {
 
         expect(records).toHaveLength(1);
         expect(records[0].jobId).toBe("job-2");
+    });
+
+    it("filters by change", async () => {
+        const records = await store.list({ change: "CHANGE_STATE" });
+
+        expect(records).toHaveLength(1);
+        expect(records[0].description).toBe('Transitioned to "done"');
     });
 
     it("searches descriptions case-insensitively", async () => {

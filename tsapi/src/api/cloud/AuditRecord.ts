@@ -1,8 +1,11 @@
+import {AuditChange} from "../auditing/Auditor";
+
 type AuditRecord = {
     id? : string,
     jobId : string,
-    actorId? : string,
-    actorType? : string,
+    actorId : string,
+    actorType : string,
+    change : AuditChange,
     description : string,
     details : any,
     at? : string,

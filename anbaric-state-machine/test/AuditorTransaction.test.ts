@@ -13,7 +13,7 @@ describe("AuditorTransaction", () => {
         const auditor = mockAuditor();
         const transaction = new AuditorTransaction(auditor);
 
-        transaction.audit("job-1", new Human("chris", "admin"), "Properties updated", { age: 42 });
+        transaction.audit("job-1", new Human("chris", "admin"), "UPDATE_PROPERTIES", "Properties updated", { age: 42 });
 
         expect(auditor.audit).not.toHaveBeenCalled();
     });
@@ -23,13 +23,13 @@ describe("AuditorTransaction", () => {
         const transaction = new AuditorTransaction(auditor);
         const actor = new Human("chris", "admin");
 
-        transaction.audit("job-1", actor, "first", null);
-        transaction.audit("job-1", actor, "second", null);
+        transaction.audit("job-1", actor, "UPDATE_PROPERTIES", "first", null);
+        transaction.audit("job-1", actor, "CHANGE_STATE", "second", null);
         await transaction.flush();
 
         expect(vi.mocked(auditor.audit).mock.calls).toEqual([
-            ["job-1", actor, "first", null],
-            ["job-1", actor, "second", null],
+            ["job-1", actor, "UPDATE_PROPERTIES", "first", null],
+            ["job-1", actor, "CHANGE_STATE", "second", null],
         ]);
     });
 
@@ -37,7 +37,7 @@ describe("AuditorTransaction", () => {
         const auditor = mockAuditor();
         const transaction = new AuditorTransaction(auditor);
 
-        transaction.audit("job-1", undefined, "once", null);
+        transaction.audit("job-1", new Human("chris", "admin"), "CREATE", "once", null);
         await transaction.flush();
         await transaction.flush();
 
