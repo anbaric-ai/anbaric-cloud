@@ -11,12 +11,10 @@ synchronous.
 
 ## Value classes
 
-**`Job`** — a unit of work moving through a workflow.
-`new Job(id, properties = new Map(), initialState, workflowId?, startedBy = "system", startedAt = new Date(), lastUpdated = startedAt, transitions = [])`.
-`stateId` is a getter; state only changes through
-`transition(transition, actor = workflowId ?? "state-machine")`, which
-records `{from, to, actor}` into `transitions` and bumps `lastUpdated` when
-the transition's predicate accepts the job.
+**`Job`** — a unit of work moving through a workflow. Immutable.
+`new Job(id, properties = new Map(), state, workflowId?, startedBy = "system", startedAt = new Date(), lastUpdated = startedAt)`.
+`state` is a readonly string; a job never changes in place — `JobPersistence.save`
+constructs a new `Job` at the target `state` and stamps `lastUpdated`.
 
 **`State`** — `new State(id, actions = [], transitions = [])`, plus
 `subscribe(action)` to add an action later.
@@ -27,7 +25,7 @@ accept) gates whether the action runs, and
 `run : (job) => Promise<Map<string, any>>` (defaults to an empty map)
 returns the property changes the action wants. `run` never mutates the job.
 
-**`Actor`** — an interface, pure identity: `{ type : "HUMAN" | "CODE" | "AGENT", id : string, role : string }`.
+**`Actor`** — an interface, pure identity: `{ type : "HUMAN" | "CODE" | "AGENT" | "SYSTEM", id : string, role : string }`.
 Concrete `Human`, `Code`, `Agent` classes live in `anbaric-state-machine`.
 
 **`Transition`** — `new Transition(to, predicate)`; the first accepting
@@ -37,18 +35,18 @@ transition in a state wins.
 `required : boolean` (default false) and `validation : (value) => boolean`
 (default accept).
 
-**`JobTransition`** — `{ from : string, to : string, actor : string }`.
-
 **Serialization** — `serializeJob(job) : SerializedJob` and
 `deserializeJob(serialized) : Job` define the wire shape used by the cloud
 clients and platform (dates as ISO strings, properties as a plain object).
 
 ## Contracts
 
-**`JobPersistence`** — `save(job)`, `retrieve(id)` (throws
-`No job found with id "x"`), `delete(id)`, `list(pageSize = 100, page = 0)`,
-`updateProperties(id, properties)` (merge; implementations stamp
-`lastUpdated`).
+**`JobPersistence`** — an abstract class taking an `Auditor`; every method takes
+the acting `Actor` and audits before deferring to an abstract `…Internal`.
+`create(actor, job)`, `save(actor, changeDescription, job, properties?, state?)`
+(applies the property/state change and stamps `lastUpdated`),
+`retrieve(id, actor)` (throws `No job found with id "x"`), `delete(id, actor)`,
+`list(actor, pageSize?, page?)`.
 
 **`Queue`** — `enqueue(jobId, workflowId)`, `schedule(jobId, workflowId, due)`.
 **`Dequeue extends Queue`** adds `dequeueSome() : Promise<Array<QueueMessage>>`;
@@ -58,10 +56,15 @@ Delivery is at-least-once: consumers must tolerate redelivery.
 **`Consumer`** — `subscribe(workflowId, processJob)` routes deliveries for
 one workflow to a callback; `cleanUp()` releases resources.
 
-**`JsonStore`** — `save(id, document)`, `retrieve(id)`, `delete(id)`,
-`list()`; implementations validate against a `JsonSchema` when one is given.
+**`JsonStore`** — abstract, `Auditor`-backed and actor-audited like
+`JobPersistence`: `create(actor, id, document)`,
+`save(actor, changeDescription, id, document)`, `retrieve(id, actor)`,
+`delete(id, actor)`, `list(actor, pageSize?, page?)` (returns the document
+values, not ids); implementations validate against a `JsonSchema` when one is given.
 
-**`SecretStore`** — `save(name, value)`, `retrieve(name)`, `list()`.
+**`SecretStore`** — abstract, `Auditor`-backed: `create(actor, name, value)`,
+`save(actor, changeDescription, name, value)`, `retrieve(name, actor)`,
+`delete(name, actor)`, `list(actor)`. Secret values never appear in audit details.
 
 **`QueueMessage`** — `{ jobId, workflowId }`; part of the platform's private
 wire protocol (in `api/cloud/`), exported because `Dequeue` returns it.

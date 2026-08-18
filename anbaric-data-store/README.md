@@ -9,6 +9,7 @@ re-exports this package.
 
 ```ts
 import {JsonStoreFactory} from "anbaric-data-store";
+import type {Actor} from "anbaric-tsapi";
 
 const customers = JsonStoreFactory.instance("customers", {
     type: "object",
@@ -16,15 +17,19 @@ const customers = JsonStoreFactory.instance("customers", {
     properties: { name: { type: "string" }, email: { type: "string" } },
 });
 
-await customers.save("ada", { name: "Ada", email: "ada@example.com" });
-const ada = await customers.retrieve("ada");   // throws No document found with id "x" when absent
-const all = await customers.list();
-await customers.delete("ada");
+// Every store call records the acting actor for the audit trail.
+const actor : Actor = { type: "CODE", id: "seed-script", role: "admin" };
+
+await customers.create(actor, "ada", { name: "Ada", email: "ada@example.com" });
+await customers.save(actor, "corrected email", "ada", { name: "Ada", email: "ada@corp.example" });
+const ada = await customers.retrieve("ada", actor);   // throws No document found with id "x" when absent
+const all = await customers.list(actor);              // returns document values, not ids
+await customers.delete("ada", actor);
 ```
 
 The first argument is the collection name; collections are independent. The
 optional second argument is a `JsonSchema` (subset: `type`, `properties`,
-`required`, `items`, `enum`) — documents failing it are rejected on `save`
+`required`, `items`, `enum`) — documents failing it are rejected on `create`/`save`
 with a `failed schema validation` error before anything is stored.
 
 ## Secrets
@@ -33,8 +38,8 @@ with a `failed schema validation` error before anything is stored.
 import {SecretStoreFactory} from "anbaric-data-store";
 
 const secrets = SecretStoreFactory.instance();
-await secrets.save("api-key", "s3cr3t");
-const key = await secrets.retrieve("api-key");
+await secrets.create(actor, "api-key", "s3cr3t");
+const key = await secrets.retrieve("api-key", actor);
 ```
 
 ## Factories

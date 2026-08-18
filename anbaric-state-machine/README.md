@@ -26,8 +26,8 @@ Throws `Invalid properties` / `Unauthorized`.
 
 **`updateJob(jobId, properties, actor) : Promise<void>`** — explicit change
 with a declared actor. Validates (required-ness is not re-checked on
-update), merges via `updateProperties`, audits `Properties updated`,
-re-enqueues.
+update), merges the changed properties through `save` (which audits
+`Properties updated`), re-enqueues.
 
 **`executeAction(jobId, action) : Promise<void>`** — runs one action now,
 its embedded actor as the responsible party. Refuses when the action's
@@ -48,17 +48,20 @@ audited through a transaction flushed at the end.
 
 ## Actors
 
-`Code`, `Human` and `Agent` implement the `Actor` interface as pure identity
-objects: `new Code(id, role = "code")`, `new Human(id, role)`,
-`new Agent(id, role)`. Behaviour never lives on an actor — an `Action`'s
+`Code` and `Human` implement the `Actor` interface as pure identity objects:
+`new Code(id, role = "code")`, `new Human(id, role)`. An `Agent` is an actor
+too, but carries a `Client` for its model calls — construct a concrete
+`OpenAIAgent` (or `AnbaricServicesAgent` from `anbaric-services-client`) rather
+than a bare agent. Behaviour never lives on a plain actor — an `Action`'s
 `run` field carries the code, the actor says who is responsible.
 
 ## Auditing
 
-`Auditor.instance()` is a singleton logging
-`[jobId] actorId description details`. `audit(jobId, actor, description, details)`
-logs immediately; `transaction()` returns an `AuditorTransaction` that
-collects entries and `flush()`es them in order, once.
+`AuditorFactory.instance()` returns the configured `Auditor` (a `ConsoleAuditor`
+by default, a `CloudAuditor` when `ANBARIC_AUDITOR_TYPE=cloud`). Its
+`audit(resourceType, resourceId, actor, interactions, description, details)`
+records who did what to which resource; the persistence bases call it for you,
+so app code rarely calls it directly.
 
 ## In-memory implementations and factories
 
