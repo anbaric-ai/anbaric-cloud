@@ -76,10 +76,10 @@ resource "aws_iam_role_policy" "read_secrets" {
     Statement = [{
       Effect = "Allow"
       Action = "secretsmanager:GetSecretValue"
-      Resource = [
+      Resource = concat([
         aws_secretsmanager_secret.database_url.arn,
         aws_secretsmanager_secret.auth0_client_secret.arn,
-      ]
+      ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [])
     }]
   })
 }
@@ -140,13 +140,17 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AUTH0_CLIENT_ID", value = var.auth0_client_id },
     ], var.auth0_organization == "" ? [] : [
       { name = "ANBARIC_AUTH0_ORGANIZATION", value = var.auth0_organization },
-    ])
+    ], var.deploy_additional_services ? [
+      { name = "ANBARIC_SERVICES_URL", value = "http://additional-services.${aws_service_discovery_private_dns_namespace.anbaric.name}:8790" },
+    ] : [])
 
     secrets = concat([
       { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
     ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
-    ])
+    ], var.deploy_additional_services ? [
+      { name = "ANBARIC_SERVICES_API_KEY", valueFrom = var.additional_services_api_key_secret_arn },
+    ] : [])
 
     logConfiguration = {
       logDriver = "awslogs"

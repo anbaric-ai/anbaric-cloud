@@ -124,3 +124,27 @@ variable "redeployment_trigger" {
   type        = string
   default     = ""
 }
+
+variable "additional_services_image" {
+  description = "Container image for the shared additional-services instance in this cluster; empty disables it"
+  type        = string
+  default     = ""
+}
+
+variable "additional_services_api_key_secret_arn" {
+  description = "Secrets Manager ARN of the additional-services bearer API key (shared by the platform and the service)"
+  type        = string
+  default     = ""
+}
+
+variable "additional_services_anthropic_secret_arn" {
+  description = "Secrets Manager ARN of the Anthropic API key used by additional-services"
+  type        = string
+  default     = ""
+}
+
+variable "deploy_additional_services" {
+  description = "Whether to run the shared additional-services instance in this cluster"
+  type        = bool
+  default     = false
+}
