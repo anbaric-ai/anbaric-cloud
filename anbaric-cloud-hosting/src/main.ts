@@ -51,6 +51,8 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         appExecutionRoleArn: process.env.ANBARIC_AWS_APP_EXECUTION_ROLE!,
         appsLogGroup: process.env.ANBARIC_AWS_APPS_LOG_GROUP!,
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL!,
+        servicesUrl: process.env.ANBARIC_SERVICES_URL,
+        servicesApiKey: process.env.ANBARIC_SERVICES_API_KEY,
     })
     : undefined;
 

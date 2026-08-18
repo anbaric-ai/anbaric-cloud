@@ -6,7 +6,7 @@ states, driven by actions and transitions, with their data validated against a
 schema and every change recorded in an audit trail. Alongside the state machine
 the framework provides schema-validated document storage and secret storage.
 
-Anbaric is also a platform-as-a-service. The same application runs unchanged on
+Anbaric also provides a platform-as-a-service to easily deploy stateful apps built on Anbaric. The same application runs unchanged on
 a developer's machine, on a server you operate, or on Anbaric Cloud, where a
 single CLI command deploys it. Application code depends only on the interfaces
 in this package; the framework selects in-memory or platform-backed

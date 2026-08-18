@@ -23,6 +23,8 @@ type FargateBuildLayerOptions = {
     appExecutionRoleArn : string,
     appsLogGroup : string,
     platformUrl : string,
+    servicesUrl? : string,
+    servicesApiKey? : string,
 };
 
 type AwsClients = {
@@ -151,6 +153,8 @@ class FargateBuildLayer extends BaseBuildLayer {
                     { name: "ANBARIC_AUDITOR_TYPE", value: "cloud" },
                     { name: "ANBARIC_CONSUMER_PORT", value: String(deployment.consumerPort) },
                     { name: "ANBARIC_CONSUMER_URL", value: `http://${deployment.appHost}:${deployment.consumerPort}` },
+                    ...(this.options.servicesUrl ? [{ name: "ANBARIC_SERVICES_URL", value: this.options.servicesUrl }] : []),
+                    ...(this.options.servicesApiKey ? [{ name: "ANBARIC_SERVICES_API_KEY", value: this.options.servicesApiKey }] : []),
                 ],
                 logConfiguration: {
                     logDriver: "awslogs",
