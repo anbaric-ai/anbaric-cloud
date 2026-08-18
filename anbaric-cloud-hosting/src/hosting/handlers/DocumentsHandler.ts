@@ -1,4 +1,4 @@
-import {JsonStore} from "anbaric-tsapi";
+import {JsonStore, SystemActor} from "anbaric-tsapi";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 
@@ -17,12 +17,12 @@ class DocumentsHandler implements RequestHandler {
     private async handleDocument(request : Request, store : JsonStore, documentId : string) : Promise<void> {
         switch (request.method) {
             case "PUT":
-                await store.save(documentId, await request.body());
+                await store.create(SystemActor.actor, documentId, await request.body());
                 return request.reply(204);
             case "GET":
-                return request.reply(200, await store.retrieve(documentId));
+                return request.reply(200, await store.retrieve(documentId, SystemActor.actor));
             case "DELETE":
-                await store.delete(documentId);
+                await store.delete(documentId, SystemActor.actor);
                 return request.reply(204);
         }
         request.notFound();
@@ -33,7 +33,7 @@ class DocumentsHandler implements RequestHandler {
             case "GET": {
                 const pageSize = Number(request.query("pageSize") ?? 100);
                 const page = Number(request.query("page") ?? 0);
-                return request.reply(200, await store.list(pageSize, page));
+                return request.reply(200, await store.list(SystemActor.actor, pageSize, page));
             }
         }
         request.notFound();

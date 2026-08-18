@@ -1,16 +1,37 @@
-import {AuditRecord} from "anbaric-tsapi";
+import {AuditInteraction, AuditRecord} from "anbaric-tsapi";
 import {Pool} from "pg";
 import {AuditFilter, AuditRecordStore} from "../auditing/AuditRecordStore";
 
+const DEFAULT_WRITE_MASK : Array<AuditInteraction> = [
+    AuditInteraction.CREATE, AuditInteraction.UPDATE_PROPERTIES, AuditInteraction.CHANGE_STATE, AuditInteraction.DELETE,
+];
+
+/* Persists audit records, subject to a write mask: only the interactions in
+   the mask are stored, so high-volume reads can be audited at the call site
+   yet kept out of the durable trail. The mask defaults to every write and is
+   overridable via ANBARIC_AUDIT_INTERACTIONS. */
 class PostgresAuditRecordStore implements AuditRecordStore {
 
-    constructor(private pool : Pool) {}
+    private writeMask : Set<AuditInteraction>;
+
+    constructor(private pool : Pool, writeMask : Set<AuditInteraction> = PostgresAuditRecordStore.maskFromEnvironment()) {
+        this.writeMask = writeMask;
+    }
+
+    static maskFromEnvironment() : Set<AuditInteraction> {
+        const configured = process.env.ANBARIC_AUDIT_INTERACTIONS;
+        if (!configured) return new Set(DEFAULT_WRITE_MASK);
+        return new Set(configured.split(",").map(entry => entry.trim()).filter(Boolean) as Array<AuditInteraction>);
+    }
 
     async save(record : AuditRecord) : Promise<void> {
+        if (!record.interaction.some(interaction => this.writeMask.has(interaction))) return;
+
         await this.pool.query(
-            `INSERT INTO anbaric_system.audit_records (job_id, actor_id, actor_type, change, description, details)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [record.jobId, record.actorId, record.actorType, record.change,
+            `INSERT INTO anbaric_system.audit_records
+                (resource_type, resource_id, actor_id, actor_type, interaction, description, details)
+             VALUES ($1, $2, $3, $4, $5::anbaric_system.audit_interaction[], $6, $7)`,
+            [record.resourceType, record.resourceId, record.actorId, record.actorType, record.interaction,
                 record.description, JSON.stringify(record.details ?? null)],
         );
     }
@@ -19,17 +40,21 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         const conditions : Array<string> = [];
         const parameters : Array<any> = [];
 
-        if (filter.jobId) {
-            parameters.push(filter.jobId);
-            conditions.push(`job_id = $${parameters.length}`);
+        if (filter.resourceType) {
+            parameters.push(filter.resourceType);
+            conditions.push(`resource_type = $${parameters.length}`);
+        }
+        if (filter.resourceId) {
+            parameters.push(filter.resourceId);
+            conditions.push(`resource_id = $${parameters.length}`);
         }
         if (filter.actorId) {
             parameters.push(filter.actorId);
             conditions.push(`actor_id = $${parameters.length}`);
         }
-        if (filter.change) {
-            parameters.push(filter.change);
-            conditions.push(`change = $${parameters.length}::anbaric_system.audit_change`);
+        if (filter.interaction) {
+            parameters.push(filter.interaction);
+            conditions.push(`$${parameters.length}::anbaric_system.audit_interaction = ANY(interaction)`);
         }
         if (filter.search) {
             parameters.push(`%${filter.search}%`);
@@ -43,7 +68,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         const offset = `OFFSET $${parameters.length}`;
 
         const result = await this.pool.query(
-            `SELECT id, job_id, actor_id, actor_type, change, description, details, at
+            `SELECT id, resource_type, resource_id, actor_id, actor_type, interaction, description, details, at
              FROM anbaric_system.audit_records ${where}
              ORDER BY at DESC, id DESC ${limit} ${offset}`,
             parameters,
@@ -51,10 +76,11 @@ class PostgresAuditRecordStore implements AuditRecordStore {
 
         return result.rows.map(row => ({
             id: String(row.id),
-            jobId: row.job_id,
+            resourceType: row.resource_type,
+            resourceId: row.resource_id,
             actorId: row.actor_id,
             actorType: row.actor_type,
-            change: row.change,
+            interaction: row.interaction,
             description: row.description,
             details: row.details,
             at: row.at.toISOString(),

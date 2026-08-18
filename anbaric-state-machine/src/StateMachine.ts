@@ -1,10 +1,18 @@
-import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State} from "anbaric-tsapi";
+import {
+    Action,
+    Actor,
+    AuditInteraction,
+    Consumer,
+    Job,
+    JobPersistence,
+    PropertyDefinition,
+    Queue,
+    State
+} from "anbaric-tsapi";
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
 import {QueueFactory} from "./scheduling/QueueFactory";
 import {ConsumerFactory} from "./scheduling/ConsumerFactory";
 import {Code} from "./actors/Code";
-import {AuditorFactory} from "./auditing/AuditorFactory";
-import {AuditorTransaction} from "./auditing/AuditorTransaction";
 
 class StateMachine {
 
@@ -15,10 +23,9 @@ class StateMachine {
     private persistence: JobPersistence;
     private queue: Queue;
     private consumer: Consumer;
-    private auditor: Auditor;
     private machineActor: Code;
 
-    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), auditor : Auditor = AuditorFactory.instance()) {
+    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance()) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
@@ -26,29 +33,21 @@ class StateMachine {
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
-        this.auditor = auditor;
         this.machineActor = new Code(workflowId, "state-machine");
 
         this.consumer = ConsumerFactory.instance(queue)
         this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
     }
 
-    async startJob(properties?: Map<string, any>, actor? : Actor): Promise<Job> {
+    async startJob(properties?: Map<string, any>, actor : Actor = this.machineActor): Promise<Job> {
 
         const job = new Job(crypto.randomUUID(), properties, this.startState, this.workflowId,
             actor?.id ?? this.workflowId);
 
         if (! this.validateProperties(properties ?? new Map(), true)) throw new Error("Invalid properties");
+        if (! this.authorizeActor(actor, job)) throw new Error("Unauthorized");
 
-        if (! this.authorizeActor(actor, job)) {
-            await this.auditor.audit(job.id, actor ?? this.machineActor, "CREATE", "Unauthorized start", null);
-            throw new Error("Unauthorized");
-        }
-
-        await this.persistence.save(job);
-        await this.auditor.audit(job.id, actor ?? this.machineActor, "CREATE", "Job started",
-            Object.fromEntries(job.properties));
-
+        await this.persistence.create(actor, job);
         await this.queue.enqueue(job.id, this.workflowId);
 
         return job;
@@ -56,40 +55,35 @@ class StateMachine {
 
     async updateJob(jobId : string, properties : Map<string, any>, actor : Actor) : Promise<void> {
 
-        if (! this.authorizeActor(actor, await this.persistence.retrieve(jobId))) {
-            await this.auditor.audit(jobId, actor, "UPDATE_PROPERTIES", "Unauthorized update", null);
-            throw new Error("Unauthorized");
-        }
+        const job = await this.persistence.retrieve(jobId, actor);
 
-        if (! this.validateProperties(properties, false)) throw new Error("Invalid properties");
+        if (!this.authorizeActor(actor, job)) throw new Error("Unauthorized");
 
-        await this.persistence.updateProperties(jobId, properties);
-        await this.auditor.audit(jobId, actor, "UPDATE_PROPERTIES", "Properties updated", Object.fromEntries(properties));
-
-        await this.queue.enqueue(jobId, this.workflowId);
+        await this.updateJobInternal(actor, "Properties Updated", job, properties);
     }
 
     async executeAction(jobId : string, action : Action) : Promise<void> {
-        const job = await this.persistence.retrieve(jobId);
+
+        const job = await this.persistence.retrieve(jobId, action.actor);
 
         if (! action.predicate(job)) throw new Error("Action predicate unmet");
-
-        if (! this.authorizeActor(action.actor, job)) {
-            await this.auditor.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Unauthorized update", null);
-            throw new Error("Actor not authorized to execute action");
-        }
+        if (! this.authorizeActor(action.actor, job)) throw new Error("Actor not authorized to execute action");
 
         const newProperties = await action.run(job);
 
-        if (! this.validateProperties(newProperties, false)) {
-            await this.auditor.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Invalid properties", Object.fromEntries(newProperties));
-            throw new Error("The action generated invalid properties");
+        try {
+            await this.updateJobInternal(action.actor, `Action ${action.name} executed on job ${job.id}: ${action.description}`, job, newProperties);
+        } catch (error) {
+            throw new Error('The action generated invalid properties');
         }
+    }
 
-        await this.persistence.updateProperties(jobId, newProperties);
-        await this.auditor.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Properties updated", Object.fromEntries(newProperties));
+    private async updateJobInternal(actor: Actor, message : string, job: Job, newProperties?: Map<string, any>, newState? : string) {
 
-        await this.queue.enqueue(jobId, this.workflowId);
+        if (newProperties && !this.validateProperties(newProperties, false)) throw new Error("Invalid properties");
+
+        await this.persistence.save(actor, "Properties Updated", job, newProperties, newState)
+        await this.queue.enqueue(job.id, this.workflowId);
     }
 
     private validateProperties(properties : Map<string, any>, isNew : boolean) : boolean {
@@ -108,49 +102,44 @@ class StateMachine {
     }
 
     private async progressJob(jobId : string) : Promise<void> {
-        const auditTransaction = new AuditorTransaction(this.auditor);
         let pristine = true;
 
-        const job = await this.persistence.retrieve(jobId);
-        const currentState = this.states.get(job.stateId!);
+        const job = await this.persistence.retrieve(jobId, this.machineActor);
+        const currentState = this.states.get(job.state);
+
+        const involvedActors : Actor[] = [];
 
         for (const action of currentState?.actions ?? []) {
             if (! action.predicate(job)) continue;
-
-            if (! this.authorizeActor(action.actor, job)) {
-                auditTransaction.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Unauthorized update", null);
-                continue;
-            }
+            if (! this.authorizeActor(action.actor, job)) continue;
 
             const newProperties = await action.run(job);
 
-            if (! this.validateProperties(newProperties, false)) {
-                auditTransaction.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Invalid properties", Object.fromEntries(newProperties));
-                continue;
-            }
+            if (! this.validateProperties(newProperties, false)) continue;
 
-            auditTransaction.audit(jobId, action.actor, "UPDATE_PROPERTIES", "Properties updated", Object.fromEntries(newProperties));
+            involvedActors.push(action.actor);
+
             newProperties.forEach((value, key) => {
                 pristine = false;
                 job.properties.set(key, value);
             });
         }
 
+        let newState : string | undefined = undefined;
         for (const transition of currentState?.transitions ?? []) {
             if (! this.states.has(transition.to)) continue;
-            if (job.transition(transition)) {
-                auditTransaction.audit(jobId, this.machineActor, "CHANGE_STATE", `Transitioned to "${transition.to}"`, null);
+            if (transition.predicate(job)) {
+                newState = transition.to;
                 pristine = false;
                 break;
             }
         }
 
         if (! pristine) {
-            await this.persistence.save(job);
+            // TODO: persistence.save should have the ability to accept multiple actors for this case.
+            await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`, job, job.properties, newState);
             await this.queue.enqueue(job.id, this.workflowId);
         }
-
-        await auditTransaction.flush();
     }
 
     async cleanUp() : Promise<void> {

@@ -76,9 +76,9 @@ describe("platform end to end", () => {
         const job = await machine.startJob();
 
         await vi.waitFor(async () => {
-            const progressed = await persistence.retrieve(job.id);
+            const progressed = await persistence.retrieve(job.id, new Code("e2e"));
             expect(progressed.properties.get("progressed")).toBe(true);
-            expect(progressed.stateId).toBe("done");
+            expect(progressed.state).toBe("done");
         }, { timeout: 2000 });
 
         await vi.waitFor(() => expect(backingQueue.confirmed).toContainEqual(

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
+import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
@@ -9,14 +9,15 @@ const WORKFLOW_ID = "workflow-1";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const mockPersistence = () => ({
-    save: vi.fn(async (_job : Job) => {}),
-    retrieve: vi.fn(async (_id : string) : Promise<Job> => {
+    create: vi.fn(async (_actor : Actor, _job : Job) => {}),
+    save: vi.fn(async (_actor : Actor, _description : string, _job : Job,
+                       _properties? : Map<string, any>, _state? : string) => {}),
+    retrieve: vi.fn(async (_id : string, _actor : Actor) : Promise<Job> => {
         throw new Error("retrieve not mocked");
     }),
-    delete: vi.fn(async (_id : string) => {}),
-    list: vi.fn(async () => [] as Array<Job>),
-    updateProperties: vi.fn(async (_id : string, _properties : Map<string, any>) => {}),
-}) satisfies JobPersistence;
+    delete: vi.fn(async (_id : string, _actor : Actor) => {}),
+    list: vi.fn(async (_actor : Actor) => [] as Array<Job>),
+});
 
 const mockQueue = () => ({
     enqueue: vi.fn(async (_jobId : string, _workflowId : string) => {}),
@@ -61,7 +62,11 @@ describe("StateMachine", () => {
     });
 
     const machineWith = (states : Array<State>, schema : Array<PropertyDefinition> = []) =>
-        new StateMachine(WORKFLOW_ID, states, "start", schema, persistence, queue);
+        new StateMachine(WORKFLOW_ID, states, "start", schema, persistence as unknown as JobPersistence, queue);
+
+    const createdJob = () => persistence.create.mock.calls[0][1];
+    const savedProperties = () => persistence.save.mock.calls[0][3];
+    const savedState = () => persistence.save.mock.calls[0][4];
 
     const progressJob = async (jobId : string) => {
         const processJob = consumer.subscribe.mock.calls[0][1];
@@ -83,8 +88,8 @@ describe("StateMachine", () => {
 
             await progressJob("job-1");
 
-            expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
-            expect(job.stateId).toBe("done");
+            expect(persistence.save).toHaveBeenCalledOnce();
+            expect(savedState()).toBe("done");
         });
 
     });
@@ -109,7 +114,7 @@ describe("StateMachine", () => {
             const job = await machine.startJob();
 
             expect(job.id).toMatch(UUID_PATTERN);
-            expect(job.stateId).toBe("start");
+            expect(job.state).toBe("start");
         });
 
         it("stamps the new job with its workflow id", async () => {
@@ -136,12 +141,13 @@ describe("StateMachine", () => {
             expect(job.startedBy).toBe("chris");
         });
 
-        it("persists the new job", async () => {
+        it("creates the new job", async () => {
             const machine = machineWith([new State("start")]);
 
             const job = await machine.startJob();
 
-            expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+            expect(persistence.create).toHaveBeenCalledOnce();
+            expect(createdJob()).toBe(job);
         });
 
         it("enqueues the new job id under its workflow", async () => {
@@ -170,7 +176,7 @@ describe("StateMachine", () => {
             const machine = machineWith([new State("start")], [requiredNumber("age")]);
 
             await expect(machine.startJob()).rejects.toThrowError("Invalid properties");
-            expect(persistence.save).not.toHaveBeenCalled();
+            expect(persistence.create).not.toHaveBeenCalled();
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
@@ -178,7 +184,7 @@ describe("StateMachine", () => {
             const machine = machineWith([new State("start")], [requiredNumber("age")]);
 
             await expect(machine.startJob(new Map([["age", "old"]]))).rejects.toThrowError("Invalid properties");
-            expect(persistence.save).not.toHaveBeenCalled();
+            expect(persistence.create).not.toHaveBeenCalled();
         });
 
         it("accepts a valid required property", async () => {
@@ -187,7 +193,8 @@ describe("StateMachine", () => {
             const job = await machine.startJob(new Map([["age", 42]]));
 
             expect(job.properties.get("age")).toBe(42);
-            expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+            expect(persistence.create).toHaveBeenCalledOnce();
+            expect(createdJob()).toBe(job);
         });
 
     });
@@ -196,14 +203,15 @@ describe("StateMachine", () => {
 
         const actor = new Human("chris", "admin");
 
-        it("updates the persisted properties and re-enqueues the job", async () => {
+        it("saves the updated properties and re-enqueues the job", async () => {
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [new PropertyDefinition("colour")]);
-            const update = new Map([["colour", "blue"]]);
 
-            await machine.updateJob("job-1", update, actor);
+            await machine.updateJob("job-1", new Map([["colour", "blue"]]), actor);
 
-            expect(persistence.updateProperties).toHaveBeenCalledExactlyOnceWith("job-1", update);
+            expect(persistence.save).toHaveBeenCalledOnce();
+            expect(savedProperties()?.get("colour")).toBe("blue");
+            expect(persistence.save.mock.calls[0][0]).toBe(actor);
             expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
         });
 
@@ -214,12 +222,12 @@ describe("StateMachine", () => {
             await expect(machine.updateJob("job-1", new Map([["age", 43]]), actor)).resolves.toBeUndefined();
         });
 
-        it("rejects an invalid value without updating", async () => {
+        it("rejects an invalid value without saving", async () => {
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [requiredNumber("age")]);
 
             await expect(machine.updateJob("job-1", new Map([["age", "old"]]), actor)).rejects.toThrowError("Invalid properties");
-            expect(persistence.updateProperties).not.toHaveBeenCalled();
+            expect(persistence.save).not.toHaveBeenCalled();
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
@@ -242,13 +250,14 @@ describe("StateMachine", () => {
             return action;
         };
 
-        it("persists the action's properties and re-enqueues the job", async () => {
+        it("saves the action's properties and re-enqueues the job", async () => {
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
             const machine = machineWith([new State("start")], [new PropertyDefinition("approved")]);
 
             await machine.executeAction("job-1", approvalAction());
 
-            expect(persistence.updateProperties).toHaveBeenCalledExactlyOnceWith("job-1", new Map([["approved", true]]));
+            expect(persistence.save).toHaveBeenCalledOnce();
+            expect(savedProperties()?.get("approved")).toBe(true);
             expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
         });
 
@@ -259,7 +268,7 @@ describe("StateMachine", () => {
             action.predicate = () => false;
 
             await expect(machine.executeAction("job-1", action)).rejects.toThrowError("Action predicate unmet");
-            expect(persistence.updateProperties).not.toHaveBeenCalled();
+            expect(persistence.save).not.toHaveBeenCalled();
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
@@ -269,7 +278,7 @@ describe("StateMachine", () => {
 
             await expect(machine.executeAction("job-1", approvalAction()))
                 .rejects.toThrowError("The action generated invalid properties");
-            expect(persistence.updateProperties).not.toHaveBeenCalled();
+            expect(persistence.save).not.toHaveBeenCalled();
         });
 
     });
@@ -289,9 +298,9 @@ describe("StateMachine", () => {
 
             await progressJob("job-1");
 
-            expect(job.properties.get("first")).toBe(true);
-            expect(job.properties.get("second")).toBe(true);
-            expect(job.properties.has("skipped")).toBe(false);
+            expect(savedProperties()?.get("first")).toBe(true);
+            expect(savedProperties()?.get("second")).toBe(true);
+            expect(savedProperties()?.has("skipped")).toBe(false);
         });
 
         it("changes nothing when an action keeps the default run stub", async () => {
@@ -301,7 +310,6 @@ describe("StateMachine", () => {
 
             await progressJob("job-1");
 
-            expect(job.properties.size).toBe(0);
             expect(persistence.save).not.toHaveBeenCalled();
         });
 
@@ -312,7 +320,6 @@ describe("StateMachine", () => {
 
             await progressJob("job-1");
 
-            expect(job.properties.has("unknown")).toBe(false);
             expect(persistence.save).not.toHaveBeenCalled();
         });
 
@@ -327,14 +334,16 @@ describe("StateMachine", () => {
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
-        it("saves and re-enqueues when an action changed the job", async () => {
+        it("saves a property-only change with no new state and re-enqueues", async () => {
             const job = jobInState("start");
             persistence.retrieve.mockResolvedValue(job);
             machineWith([new State("start", [stampingAction("touched", true)])], [new PropertyDefinition("touched")]);
 
             await progressJob("job-1");
 
-            expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
+            expect(persistence.save).toHaveBeenCalledOnce();
+            expect(savedProperties()?.get("touched")).toBe(true);
+            expect(savedState()).toBeUndefined();
             expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
         });
 
@@ -354,17 +363,7 @@ describe("StateMachine", () => {
 
                 await progressJob("job-1");
 
-                expect(job.stateId).toBe("approved");
-            });
-
-            it("records the transition in the job's history", async () => {
-                const job = new Job("job-1", new Map(), "start", WORKFLOW_ID);
-                persistence.retrieve.mockResolvedValue(job);
-                machineWith([new State("start", [], [new Transition("done", () => true)]), new State("done")]);
-
-                await progressJob("job-1");
-
-                expect(job.transitions).toEqual([{ from: "start", to: "done", actor: WORKFLOW_ID }]);
+                expect(savedState()).toBe("approved");
             });
 
             it("leaves the state unchanged when no transition matches", async () => {
@@ -377,7 +376,7 @@ describe("StateMachine", () => {
 
                 await progressJob("job-1");
 
-                expect(job.stateId).toBe("start");
+                expect(persistence.save).not.toHaveBeenCalled();
             });
 
             it("applies at most one transition per progression", async () => {
@@ -390,7 +389,7 @@ describe("StateMachine", () => {
 
                 await progressJob("job-1");
 
-                expect(job.stateId).toBe("middle");
+                expect(savedState()).toBe("middle");
             });
 
             it("evaluates transition predicates after the actions have run", async () => {
@@ -405,7 +404,7 @@ describe("StateMachine", () => {
 
                 await progressJob("job-1");
 
-                expect(job.stateId).toBe("done");
+                expect(savedState()).toBe("done");
             });
 
             it("skips transitions whose target state is not defined", async () => {
@@ -421,18 +420,18 @@ describe("StateMachine", () => {
 
                 await progressJob("job-1");
 
-                expect(job.stateId).toBe("done");
+                expect(savedState()).toBe("done");
             });
 
-            it("saves and re-enqueues the job after transitioning", async () => {
+            it("saves the new state and re-enqueues the job after transitioning", async () => {
                 const job = jobInState("start");
                 persistence.retrieve.mockResolvedValue(job);
                 machineWith([new State("start", [], [new Transition("done", () => true)]), new State("done")]);
 
                 await progressJob("job-1");
 
-                expect(persistence.save).toHaveBeenCalledExactlyOnceWith(job);
-                expect(persistence.save.mock.calls[0][0].stateId).toBe("done");
+                expect(persistence.save).toHaveBeenCalledOnce();
+                expect(savedState()).toBe("done");
                 expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
             });
 

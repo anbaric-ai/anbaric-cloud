@@ -1,4 +1,4 @@
-import {SecretStore} from "anbaric-tsapi";
+import {SecretStore, SystemActor} from "anbaric-tsapi";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 
@@ -17,13 +17,13 @@ class SecretsHandler implements RequestHandler {
             case "PUT": {
                 const { value } = await request.body();
                 if (typeof value !== "string") return request.reply(400, { error: "Expected a body of { value : string }" });
-                await this.secretStore.save(name, value);
+                await this.secretStore.create(SystemActor.actor, name, value);
                 return request.reply(204);
             }
             case "GET":
-                return request.reply(200, { value: await this.secretStore.retrieve(name) });
+                return request.reply(200, { value: await this.secretStore.retrieve(name, SystemActor.actor) });
             case "DELETE":
-                await this.secretStore.delete(name);
+                await this.secretStore.delete(name, SystemActor.actor);
                 return request.reply(204);
         }
         request.notFound();
@@ -32,7 +32,7 @@ class SecretsHandler implements RequestHandler {
     private async handleCollection(request : Request) : Promise<void> {
         switch (request.method) {
             case "GET":
-                return request.reply(200, await this.secretStore.list());
+                return request.reply(200, await this.secretStore.list(SystemActor.actor));
         }
         request.notFound();
     }

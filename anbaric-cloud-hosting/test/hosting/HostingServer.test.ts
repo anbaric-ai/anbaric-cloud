@@ -2,7 +2,7 @@ import {generateKeyPairSync, sign} from "node:crypto";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-impl-cloud";
-import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
+import {Code, InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
 import {Authenticator} from "../../src/auth/Authenticator";
 import {CliAuthorizer} from "../../src/auth/CliAuthorizer";
@@ -17,6 +17,7 @@ import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
+const actor = new Code("tester");
 
 class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
 
@@ -57,45 +58,46 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     describe("job persistence", () => {
 
-        it("saves and retrieves a job", async () => {
-            await persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
+        it("creates and retrieves a job", async () => {
+            await persistence.create(actor, makeJob("job-1", new Map([["colour", "red"]])));
 
-            const retrieved = await persistence.retrieve("job-1");
+            const retrieved = await persistence.retrieve("job-1", actor);
 
             expect(retrieved.id).toBe("job-1");
-            expect(retrieved.stateId).toBe("start");
+            expect(retrieved.state).toBe("start");
             expect(retrieved.properties.get("colour")).toBe("red");
         });
 
         it("rejects retrieval of an unknown job", async () => {
-            await expect(persistence.retrieve("missing")).rejects.toThrowError('No job found with id "missing"');
+            await expect(persistence.retrieve("missing", actor)).rejects.toThrowError('No job found with id "missing"');
         });
 
-        it("updates properties by merging", async () => {
-            await persistence.save(makeJob("job-1", new Map([["colour", "red"]])));
+        it("merges properties into the persisted job on save", async () => {
+            await persistence.create(actor, makeJob("job-1", new Map([["colour", "red"]])));
+            const job = await persistence.retrieve("job-1", actor);
 
-            await persistence.updateProperties("job-1", new Map([["size", "large"]]));
+            await persistence.save(actor, "resized", job, new Map([["size", "large"]]));
 
-            const updated = await persistence.retrieve("job-1");
+            const updated = await persistence.retrieve("job-1", actor);
             expect(updated.properties.get("colour")).toBe("red");
             expect(updated.properties.get("size")).toBe("large");
         });
 
         it("deletes a job", async () => {
-            await persistence.save(makeJob("job-1"));
+            await persistence.create(actor, makeJob("job-1"));
 
-            await persistence.delete("job-1");
+            await persistence.delete("job-1", actor);
 
-            await expect(persistence.retrieve("job-1")).rejects.toThrowError();
+            await expect(persistence.retrieve("job-1", actor)).rejects.toThrowError();
         });
 
         it("lists jobs with paging", async () => {
             for (const id of ["a", "b", "c"]) {
-                await persistence.save(makeJob(id));
+                await persistence.create(actor, makeJob(id));
             }
 
-            expect((await persistence.list()).map(job => job.id)).toEqual(["a", "b", "c"]);
-            expect((await persistence.list(2, 1)).map(job => job.id)).toEqual(["c"]);
+            expect((await persistence.list(actor)).map(job => job.id)).toEqual(["a", "b", "c"]);
+            expect((await persistence.list(actor, 2, 1)).map(job => job.id)).toEqual(["c"]);
         });
 
     });
@@ -143,36 +145,36 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("round-trips documents through the cloud store", async () => {
             const store = new CloudJsonStore("customers", customerSchema, baseUrl);
 
-            await store.save("ada", { name: "Ada" });
+            await store.create(actor, "ada", { name: "Ada" });
 
-            expect(await store.retrieve("ada")).toEqual({ name: "Ada" });
+            expect(await store.retrieve("ada", actor)).toEqual({ name: "Ada" });
         });
 
         it("rejects an invalid document client-side before it reaches the platform", async () => {
             const store = new CloudJsonStore("customers", customerSchema, baseUrl);
 
-            await expect(store.save("bad", { name: 7 })).rejects.toThrowError("failed schema validation");
-            expect(await store.list()).toEqual([]);
+            await expect(store.create(actor, "bad", { name: 7 })).rejects.toThrowError("failed schema validation");
+            expect(await store.list(actor)).toEqual([]);
         });
 
         it("keeps collections separate", async () => {
             const customers = new CloudJsonStore("customers", customerSchema, baseUrl);
             const orders = new CloudJsonStore("orders", undefined, baseUrl);
 
-            await customers.save("ada", { name: "Ada" });
-            await orders.save("order-1", { total: 42 });
+            await customers.create(actor, "ada", { name: "Ada" });
+            await orders.create(actor, "order-1", { total: 42 });
 
-            expect(await customers.list()).toEqual([{ name: "Ada" }]);
-            expect(await orders.list()).toEqual([{ total: 42 }]);
+            expect(await customers.list(actor)).toEqual([{ name: "Ada" }]);
+            expect(await orders.list(actor)).toEqual([{ total: 42 }]);
         });
 
         it("deletes documents and 404s unknown ids", async () => {
             const store = new CloudJsonStore("customers", customerSchema, baseUrl);
-            await store.save("ada", { name: "Ada" });
+            await store.create(actor, "ada", { name: "Ada" });
 
-            await store.delete("ada");
+            await store.delete("ada", actor);
 
-            await expect(store.retrieve("ada")).rejects.toThrowError('No document found with id "ada"');
+            await expect(store.retrieve("ada", actor)).rejects.toThrowError('No document found with id "ada"');
         });
 
     });
@@ -182,27 +184,27 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("round-trips a secret through the cloud store", async () => {
             const secrets = new CloudSecretStore(baseUrl);
 
-            await secrets.save("api-key", "s3cr3t");
+            await secrets.create(actor, "api-key", "s3cr3t");
 
-            expect(await secrets.retrieve("api-key")).toBe("s3cr3t");
+            expect(await secrets.retrieve("api-key", actor)).toBe("s3cr3t");
         });
 
         it("lists secret names", async () => {
             const secrets = new CloudSecretStore(baseUrl);
 
-            await secrets.save("api-key", "a");
-            await secrets.save("db-password", "b");
+            await secrets.create(actor, "api-key", "a");
+            await secrets.create(actor, "db-password", "b");
 
-            expect(await secrets.list()).toEqual(["api-key", "db-password"]);
+            expect(await secrets.list(actor)).toEqual(["api-key", "db-password"]);
         });
 
         it("deletes secrets and 404s unknown names", async () => {
             const secrets = new CloudSecretStore(baseUrl);
-            await secrets.save("api-key", "s3cr3t");
+            await secrets.create(actor, "api-key", "s3cr3t");
 
-            await secrets.delete("api-key");
+            await secrets.delete("api-key", actor);
 
-            await expect(secrets.retrieve("api-key")).rejects.toThrowError('No secret found with name "api-key"');
+            await expect(secrets.retrieve("api-key", actor)).rejects.toThrowError('No secret found with name "api-key"');
         });
 
         it("rejects a non-string secret value", async () => {
@@ -590,28 +592,28 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const posted = await fetch(`${internalUrl}/audits`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", change: "UPDATE_PROPERTIES", description: "Properties updated", details: { age: 42 } }),
+                body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: ["UPDATE_PROPERTIES"], description: "Properties updated", details: { age: 42 } }),
             });
             expect(posted.status).toBe(204);
 
-            const listed = await (await fetch(`${publicUrl}/audits?jobId=job-1`)).json();
+            const listed = await (await fetch(`${publicUrl}/audits?resourceId=job-1`)).json();
             expect(listed).toHaveLength(1);
             expect(listed[0].description).toBe("Properties updated");
             expect(listed[0].actorId).toBe("chris");
 
-            expect(await (await fetch(`${publicUrl}/audits?jobId=other`)).json()).toEqual([]);
+            expect(await (await fetch(`${publicUrl}/audits?resourceId=other`)).json()).toEqual([]);
             expect(await (await fetch(`${publicUrl}/audits?search=updated`)).json()).toHaveLength(1);
-            expect(await (await fetch(`${publicUrl}/audits?change=UPDATE_PROPERTIES`)).json()).toHaveLength(1);
-            expect(await (await fetch(`${publicUrl}/audits?change=DELETE`)).json()).toEqual([]);
+            expect(await (await fetch(`${publicUrl}/audits?interaction=UPDATE_PROPERTIES`)).json()).toHaveLength(1);
+            expect(await (await fetch(`${publicUrl}/audits?interaction=DELETE`)).json()).toEqual([]);
 
             const rejected = await fetch(`${internalUrl}/audits`, { method: "POST", body: "{}" });
             expect(rejected.status).toBe(400);
 
-            const badChange = await fetch(`${internalUrl}/audits`, {
+            const badInteraction = await fetch(`${internalUrl}/audits`, {
                 method: "POST",
-                body: JSON.stringify({ jobId: "job-1", actorId: "chris", actorType: "HUMAN", change: "RENAME", description: "x" }),
+                body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: ["RENAME"], description: "x" }),
             });
-            expect(badChange.status).toBe(400);
+            expect(badInteraction.status).toBe(400);
 
             await audited.close();
         });

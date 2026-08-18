@@ -1,12 +1,13 @@
 import {createServer, IncomingMessage, ServerResponse} from "node:http";
 import {serializeJob} from "anbaric-tsapi";
-import {JobPersistenceFactory, QueueFactory} from "anbaric-state-machine";
+import {Code, JobPersistenceFactory, QueueFactory} from "anbaric-state-machine";
 import {customerWorkflow} from "./customerWorkflow";
 import {indexPage} from "./indexPage";
 
 const persistence = JobPersistenceFactory.instance();
 const queue = QueueFactory.instance();
 const customers = customerWorkflow(persistence, queue);
+const appActor = new Code("crm");
 
 const readBody = (request : IncomingMessage) : Promise<any> =>
     new Promise((resolve, reject) => {
@@ -37,7 +38,7 @@ const handle = async (request : IncomingMessage, response : ServerResponse) => {
     const [resource, id] = url.pathname.split("/").filter(Boolean);
 
     if (!resource && request.method === "GET") {
-        const customers = (await persistence.list()).map(serializeJob);
+        const customers = (await persistence.list(appActor)).map(serializeJob);
         response.writeHead(200, { "content-type": "text/html" });
         return response.end(indexPage(customers));
     }
@@ -51,11 +52,11 @@ const handle = async (request : IncomingMessage, response : ServerResponse) => {
     }
 
     if (request.method === "GET" && !id) {
-        return reply(response, 200, (await persistence.list()).map(serializeJob));
+        return reply(response, 200, (await persistence.list(appActor)).map(serializeJob));
     }
 
     if (request.method === "GET" && id) {
-        return reply(response, 200, serializeJob(await persistence.retrieve(id)));
+        return reply(response, 200, serializeJob(await persistence.retrieve(id, appActor)));
     }
 
     reply(response, 404, { error: "Not found" });

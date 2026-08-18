@@ -1,4 +1,4 @@
-type ActorType = "HUMAN" | "CODE" | "AGENT";
+type ActorType = "HUMAN" | "CODE" | "AGENT" | "SYSTEM";
 
 interface Actor {
 

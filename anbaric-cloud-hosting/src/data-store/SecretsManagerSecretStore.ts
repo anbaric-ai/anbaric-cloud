@@ -8,13 +8,16 @@ import {
     ResourceNotFoundException,
     SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
-import {SecretStore} from "anbaric-tsapi";
+import {Auditor, NoOpAuditor, SecretStore} from "anbaric-tsapi";
 
-class SecretsManagerSecretStore implements SecretStore {
+class SecretsManagerSecretStore extends SecretStore {
 
-    constructor(private client : SecretsManagerClient, private prefix : string = "anbaric/") {}
+    constructor(private client : SecretsManagerClient, private prefix : string = "anbaric/",
+                auditor : Auditor = new NoOpAuditor()) {
+        super(auditor);
+    }
 
-    async save(name : string, value : string) : Promise<void> {
+    protected async saveInternal(name : string, value : string) : Promise<void> {
         try {
             await this.client.send(new CreateSecretCommand({ Name: this.prefix + name, SecretString: value }));
         } catch (error) {
@@ -23,7 +26,7 @@ class SecretsManagerSecretStore implements SecretStore {
         }
     }
 
-    async retrieve(name : string) : Promise<string> {
+    protected async retrieveInternal(name : string) : Promise<string> {
         try {
             const secret = await this.client.send(new GetSecretValueCommand({ SecretId: this.prefix + name }));
             return secret.SecretString ?? "";
@@ -33,7 +36,7 @@ class SecretsManagerSecretStore implements SecretStore {
         }
     }
 
-    async delete(name : string) : Promise<void> {
+    protected async deleteInternal(name : string) : Promise<void> {
         try {
             await this.client.send(new DeleteSecretCommand({ SecretId: this.prefix + name, ForceDeleteWithoutRecovery: true }));
         } catch (error) {
@@ -41,7 +44,7 @@ class SecretsManagerSecretStore implements SecretStore {
         }
     }
 
-    async list() : Promise<Array<string>> {
+    protected async listInternal() : Promise<Array<string>> {
         const result = await this.client.send(new ListSecretsCommand({
             Filters: [{ Key: "name", Values: [this.prefix] }],
         }));

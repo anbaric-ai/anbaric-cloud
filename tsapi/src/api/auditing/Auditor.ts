@@ -1,12 +1,19 @@
 import {Actor} from "../actors/Actor";
 
-type AuditChange = "CREATE" | "UPDATE_PROPERTIES" | "CHANGE_STATE" | "DELETE";
+enum AuditInteraction {
+    CREATE = "CREATE",
+    UPDATE_PROPERTIES = "UPDATE_PROPERTIES",
+    CHANGE_STATE = "CHANGE_STATE",
+    DELETE = "DELETE",
+    READ = "READ",
+    LIST = "LIST",
+}
 
 interface Auditor {
 
-    audit(jobId : string, actor : Actor, change : AuditChange,
-          changeDescription : string, details : any) : Promise<void>;
+    audit(resourceType : string, resourceId : string, actor : Actor, interaction : AuditInteraction[],
+          description : string, details : any) : Promise<void>;
 
 }
 
-export type { AuditChange, Auditor }
+export { AuditInteraction, Auditor }

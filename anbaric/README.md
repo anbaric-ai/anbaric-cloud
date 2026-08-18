@@ -1,98 +1,201 @@
 # anbaric
 
-Everything needed to write an Anbaric app, in one install. Re-exports the
-full app-facing surface of [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi)
-(contracts and value classes), [`anbaric-state-machine`](https://npmjs.com/package/anbaric-state-machine)
-(the state machine and in-memory implementations),
-[`anbaric-data-store`](https://npmjs.com/package/anbaric-data-store)
-(document and secret stores) and [`anbaric-impl-cloud`](https://npmjs.com/package/anbaric-impl-cloud)
-(the clients the factories switch to when deployed).
+Anbaric is a Typescript framework for building stateful applications. An application is
+expressed as one or more state machines: long-lived jobs move through named
+states, driven by actions and transitions, with their data validated against a
+schema and every change recorded in an audit trail. Alongside the state machine
+the framework provides schema-validated document storage and secret storage.
+
+Anbaric is also a platform-as-a-service. The same application runs unchanged on
+a developer's machine, on a server you operate, or on Anbaric Cloud, where a
+single CLI command deploys it. Application code depends only on the interfaces
+in this package; the framework selects in-memory or platform-backed
+implementations from the environment, so no deployment detail appears in the
+code.
+
+This package (`anbaric`) is the umbrella install for writing an application. It
+re-exports the app-facing surface of the underlying packages.
 
 ```bash
 npm install anbaric
 ```
 
-An Anbaric app is a plain Node/TypeScript ESM program. Requirements:
-`"type": "module"` in package.json, `main` pointing at the TypeScript entry
-file, run with `tsx`. Apps deployed to an Anbaric platform may currently only
-depend on `anbaric-*` packages.
+An Anbaric application is a standard Node.js ESM program written in TypeScript:
+set `"type": "module"` in `package.json`, point `main` at the TypeScript entry
+file, and run it with `tsx`.
 
-## The model
+## State machines
 
-A **StateMachine** owns a workflow: named **States**, each with **Actions**
-(work that runs when a job is processed in that state) and **Transitions**
-(predicates deciding the next state). A **Job** moves through the machine
-carrying a `Map` of properties validated against **PropertyDefinitions**.
-Every Action declares an **Actor** (`Code`, `Human` or `Agent` — pure
-identity objects with `type`, `id`, `role`); `Code` actions run
-automatically, the other types are placeholders for human/agent work.
+A **`StateMachine`** defines a workflow. It is constructed with an identifier, a
+list of states, the name of the start state, and the property schema for its
+jobs.
 
-```ts
-import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from "anbaric";
+- A **`State`** is a named step. It holds a list of **actions** to run while a
+  job sits in that state, and a list of **transitions** to the next state.
+- An **`Action`** is a unit of work. Its `run` function receives the job and
+  returns a `Map` of property changes: `run(job) => Promise<Map<string, any>>`.
+  An action does not mutate the job directly; the returned properties are
+  validated and applied by the machine. Each action declares the **actor** that
+  performs it.
+- A **`Transition`** names a target state and carries a predicate over the job.
+  When a job is processed, the first transition whose predicate holds moves the
+  job to that state.
+- A **`Job`** is one instance moving through the machine. It carries an
+  identifier, its current `state`, a `Map` of `properties`, and provenance
+  (`workflowId`, `startedBy`, `startedAt`, `lastUpdated`). Jobs are immutable;
+  each change produces a new version.
+- A **`PropertyDefinition`** describes one property a job may carry: whether it
+  is required and how its value is validated. Every property a job holds —
+  including properties set by actions — must have a definition, or the change is
+  rejected.
+- An **`Actor`** identifies who performs an operation, for authorization and
+  auditing. The actor types are `Code`, `Human`, `Agent` and `System`. `Code`
+  actions run automatically as jobs are processed; a `Human` or `Agent` actor
+  represents work performed by a person or an autonomous agent.
 
-const flag = new PropertyDefinition("welcomeSent");
-flag.validation = (value) => typeof value === "boolean";
-const email = new PropertyDefinition("email");
-email.required = true;
+A job progresses automatically as it is processed: matching actions run, their
+properties are applied, and the first satisfied transition advances the state.
+This repeats until the job reaches a state from which nothing more applies.
 
-const sendWelcome = new Action("Send welcome email", new Code("send-welcome"));
-sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
+There are three ways to influence a job:
 
-const customers = new StateMachine(
-    "customer-onboarding",
-    [
-        new State("new", [sendWelcome],
-            [new Transition("active", job => job.properties.get("welcomeSent") === true)]),
-        new State("active"),
-    ],
-    "new",
-    [email, flag],
-);
+- `startJob(properties?, actor?)` creates a job in the start state.
+- `updateJob(jobId, properties, actor)` applies an explicit property change.
+- `executeAction(jobId, action)` runs a single action immediately.
+- Actions subscribed to a state run automatically whenever a job in that state
+  is processed.
 
-const job = await customers.startJob(new Map([["email", "ada@example.com"]]));
-```
+Every operation is validated against the schema and written to the audit trail,
+which records the resource, the actor, the interactions (create, update, state
+change, delete, read), and a description of what changed.
 
-Key rules an agent must respect:
+## Documents and secrets
 
-- **Actions return properties, they do not mutate the job**: `run` returns a
-  `Promise<Map<string, any>>` of property changes. Every returned property
-  must exist in the machine's schema or the change is discarded.
-- **Every property a job ever carries needs a `PropertyDefinition`** —
-  including ones actions set. Unknown properties make updates invalid.
-- **Three ways to influence a job**: `updateJob(jobId, properties, actor)`
-  (explicit change, actor declared), `executeAction(jobId, action)` (run one
-  action now, actor embedded), or subscribing actions to states (automatic on
-  processing). All are schema-validated and audited.
-- **Jobs carry history**: `startedAt`, `startedBy`, `lastUpdated`, and
-  `transitions` (`{from, to, actor}` for every state change).
+For data that does not belong to a job, the framework provides two stores,
+obtained from factories and used with an actor for auditing.
 
-## Local versus deployed
-
-Persistence, queueing and consumers come from env-driven factories. With no
-environment set, everything is in-memory and jobs progress automatically —
-`npx tsx src/main.ts` is a complete local run. On an Anbaric platform the
-same factories talk to the platform because it injects
-`ANBARIC_JOB_PERSISTENCE_TYPE=cloud`, `ANBARIC_QUEUE_TYPE=cloud`,
-`ANBARIC_JSON_STORE_TYPE=cloud`, `ANBARIC_SECRET_STORE_TYPE=cloud` and
-`ANBARIC_CLOUD_URL`. Never set these by hand in app code.
-
-Documents and secrets follow the same pattern:
+- **`JsonStore`** stores JSON documents in named collections, optionally
+  validated against a JSON Schema.
+- **`SecretStore`** stores named secret strings, encrypted at rest, and never
+  records secret values in the audit trail.
 
 ```ts
-import {JsonStoreFactory, SecretStoreFactory} from "anbaric";
+import {Human, JsonStoreFactory, SecretStoreFactory} from "anbaric";
+
+const actor = new Human("ada", "admin");
 
 const customers = JsonStoreFactory.instance("customers", {
     type: "object",
     required: ["name"],
     properties: { name: { type: "string" } },
 });
-await customers.save("ada", { name: "Ada" });
+await customers.create(actor, "ada", { name: "Ada" });
+const record = await customers.retrieve("ada", actor);
 
 const secrets = SecretStoreFactory.instance();
-await secrets.save("api-key", "s3cr3t");
+await secrets.create(actor, "api-key", "s3cr3t");
 ```
 
-Per-package detail: [anbaric-tsapi](https://npmjs.com/package/anbaric-tsapi)
-for every contract's exact shape, [anbaric-state-machine](https://npmjs.com/package/anbaric-state-machine)
-for progression semantics, [anbaric-cli](https://npmjs.com/package/anbaric-cli)
-for deployment.
+## Running and deploying
+
+Persistence, queueing and consumers are supplied by environment-driven
+factories, so the same application runs in several ways without code changes.
+
+- **Local.** With no environment configured, every store, queue and consumer is
+  in-memory and jobs progress automatically. Running the program with
+  `npx tsx src/main.ts` is a complete local run, suitable for development and
+  testing.
+- **Anbaric Cloud.** `anbaric deploy` packages the application and runs it on
+  the hosted platform. The platform injects the configuration that points the
+  factories at platform-backed persistence, queueing, documents and secrets;
+  application code is unchanged. Authentication, job inspection and updates are
+  available through the CLI.
+- **Self-hosted.** The [`anbaric-hosting`](https://npmjs.com/package/anbaric-hosting)
+  package runs the platform — the API, dispatcher, build layer and app proxy —
+  on infrastructure you operate, backed by Postgres.
+
+Applications should not set the `ANBARIC_*` factory variables themselves; the
+platform sets them when the application is deployed.
+
+## Example
+
+```ts
+import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from "anbaric";
+
+const name = new PropertyDefinition("name");
+name.required = true;
+
+const email = new PropertyDefinition("email");
+email.required = true;
+
+const welcomeSent = new PropertyDefinition("welcomeSent");
+welcomeSent.validation = (value) => typeof value === "boolean";
+
+const sendWelcome = new Action("Send welcome email", new Code("send-welcome"));
+sendWelcome.run = async (job) => {
+    // ... send the email to job.properties.get("email") ...
+    return new Map([["welcomeSent", true]]);
+};
+
+const onboarding = new StateMachine(
+    "customer-onboarding",
+    [
+        new State("new", [sendWelcome], [
+            new Transition("active", (job) => job.properties.get("welcomeSent") === true),
+        ]),
+        new State("active"),
+    ],
+    "new",
+    [name, email, welcomeSent],
+);
+
+const job = await onboarding.startJob(new Map([["name", "Ada"], ["email", "ada@example.com"]]));
+```
+
+The job starts in `new`. When it is processed the `sendWelcome` action runs and
+sets `welcomeSent`, and the transition then advances the job to `active`. Run
+locally this happens automatically in memory; deployed, it happens on the
+platform.
+
+## Command-line interface
+
+The [`anbaric`](https://npmjs.com/package/anbaric-cli) CLI authenticates a
+terminal, deploys applications, and inspects and drives jobs on a platform. The
+principal commands are:
+
+| Command | Purpose |
+| --- | --- |
+| `anbaric login` / `anbaric logout` | authorize this terminal against a platform, or revoke it |
+| `anbaric configure [dir]` | set an application's name and internal port |
+| `anbaric deploy [dir]` | deploy an application and wait until it is live |
+| `anbaric update [dir]` | deploy over a running application without prompting |
+| `anbaric apps` | list deployed applications |
+| `anbaric state-machines` | list registered state machines |
+| `anbaric job list [state-machine-id]` | list jobs |
+| `anbaric job watch <job-id>` | follow a job's state as it changes |
+| `anbaric job set-state <job-id> <state>` | move a job to a state and re-queue it |
+| `anbaric job update <job-id> <key=value ...>` | change job properties and re-queue |
+
+Every command accepts flags (such as `--environment`, `--tenant`, `--name`,
+`--port`, `--yes`) that supply the answers a prompt would otherwise ask for, so
+the CLI can be run non-interactively in scripts and CI. See the
+[`anbaric-cli`](https://npmjs.com/package/anbaric-cli) documentation for the
+full command and flag reference.
+
+## Packages
+
+`anbaric` re-exports these packages; install them individually for a narrower
+dependency.
+
+- [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi) — the interfaces
+  and value classes: `Job`, `State`, `Action`, `Transition`, `Actor`,
+  `JobPersistence`, `JsonStore`, `SecretStore`, `Auditor`.
+- [`anbaric-state-machine`](https://npmjs.com/package/anbaric-state-machine) —
+  the `StateMachine`, actors, and in-memory implementations.
+- [`anbaric-data-store`](https://npmjs.com/package/anbaric-data-store) — the
+  document and secret stores.
+- [`anbaric-impl-cloud`](https://npmjs.com/package/anbaric-impl-cloud) — the
+  clients used when an application is deployed to a platform.
+- [`anbaric-cli`](https://npmjs.com/package/anbaric-cli) — the platform CLI.
+- [`anbaric-hosting`](https://npmjs.com/package/anbaric-hosting) — run a
+  platform yourself.

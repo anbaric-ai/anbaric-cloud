@@ -1,5 +1,5 @@
 import {createCipheriv, createDecipheriv, randomBytes} from "node:crypto";
-import {SecretStore} from "anbaric-tsapi";
+import {Auditor, NoOpAuditor, SecretStore} from "anbaric-tsapi";
 
 type EncryptedSecret = {
     iv : Buffer,
@@ -7,23 +7,24 @@ type EncryptedSecret = {
     authTag : Buffer,
 };
 
-class InMemorySecretStore implements SecretStore {
+class InMemorySecretStore extends SecretStore {
 
     private secrets = new Map<string, EncryptedSecret>();
     private encryptionKey : Buffer;
 
-    constructor(encryptionKey : Buffer = randomBytes(32)) {
+    constructor(encryptionKey : Buffer = randomBytes(32), auditor : Auditor = new NoOpAuditor()) {
+        super(auditor);
         this.encryptionKey = encryptionKey;
     }
 
-    async save(name : string, value : string) : Promise<void> {
+    protected async saveInternal(name : string, value : string) : Promise<void> {
         const iv = randomBytes(12);
         const cipher = createCipheriv("aes-256-gcm", this.encryptionKey, iv);
         const cipherText = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
         this.secrets.set(name, { iv, cipherText, authTag: cipher.getAuthTag() });
     }
 
-    async retrieve(name : string) : Promise<string> {
+    protected async retrieveInternal(name : string) : Promise<string> {
         const secret = this.secrets.get(name);
         if (!secret) {
             throw new Error(`No secret found with name "${name}"`);
@@ -33,11 +34,11 @@ class InMemorySecretStore implements SecretStore {
         return Buffer.concat([decipher.update(secret.cipherText), decipher.final()]).toString("utf8");
     }
 
-    async delete(name : string) : Promise<void> {
+    protected async deleteInternal(name : string) : Promise<void> {
         this.secrets.delete(name);
     }
 
-    async list() : Promise<Array<string>> {
+    protected async listInternal() : Promise<Array<string>> {
         return Array.from(this.secrets.keys());
     }
 

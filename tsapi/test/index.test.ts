@@ -8,6 +8,8 @@ describe("public api barrel", () => {
         expect(api.PropertyDefinition).toBeTypeOf("function");
         expect(api.State).toBeTypeOf("function");
         expect(api.Action).toBeTypeOf("function");
+        expect(api.AgenticAction).toBeTypeOf("function");
+        expect(api.Agent).toBeTypeOf("function");
         expect(api.Transition).toBeTypeOf("function");
     });
 

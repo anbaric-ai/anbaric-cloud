@@ -8,10 +8,12 @@ import {
     ResourceNotFoundException,
     SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
+import {Actor} from "anbaric-tsapi";
 import {SecretsManagerSecretStore} from "../../src/data-store/SecretsManagerSecretStore";
 
 const notFound = () => new ResourceNotFoundException({ message: "not found", $metadata: {} });
 const alreadyExists = () => new ResourceExistsException({ message: "exists", $metadata: {} });
+const actor : Actor = { type: "CODE", id: "tester", role: "code" };
 
 describe("SecretsManagerSecretStore", () => {
 
@@ -24,7 +26,7 @@ describe("SecretsManagerSecretStore", () => {
     });
 
     it("creates a new prefixed secret on save", async () => {
-        await store.save("api-key", "s3cr3t");
+        await store.create(actor, "api-key", "s3cr3t");
 
         expect(send).toHaveBeenCalledOnce();
         const command = send.mock.calls[0][0] as CreateSecretCommand;
@@ -35,7 +37,7 @@ describe("SecretsManagerSecretStore", () => {
     it("updates the value when the secret already exists", async () => {
         send.mockRejectedValueOnce(alreadyExists());
 
-        await store.save("api-key", "s3cr3t");
+        await store.save(actor, "updated", "api-key", "s3cr3t");
 
         const update = send.mock.calls[1][0] as PutSecretValueCommand;
         expect(update).toBeInstanceOf(PutSecretValueCommand);
@@ -45,7 +47,7 @@ describe("SecretsManagerSecretStore", () => {
     it("retrieves a secret's value", async () => {
         send.mockResolvedValueOnce({ SecretString: "s3cr3t" });
 
-        expect(await store.retrieve("api-key")).toBe("s3cr3t");
+        expect(await store.retrieve("api-key", actor)).toBe("s3cr3t");
         const command = send.mock.calls[0][0] as GetSecretValueCommand;
         expect(command.input).toEqual({ SecretId: "anbaric/api-key" });
     });
@@ -53,19 +55,19 @@ describe("SecretsManagerSecretStore", () => {
     it("maps a missing secret to the standard not-found error", async () => {
         send.mockRejectedValueOnce(notFound());
 
-        await expect(store.retrieve("missing")).rejects.toThrowError('No secret found with name "missing"');
+        await expect(store.retrieve("missing", actor)).rejects.toThrowError('No secret found with name "missing"');
     });
 
     it("tolerates deleting an unknown secret", async () => {
         send.mockRejectedValueOnce(notFound());
 
-        await expect(store.delete("missing")).resolves.toBeUndefined();
+        await expect(store.delete("missing", actor)).resolves.toBeUndefined();
     });
 
     it("lists secret names with the prefix stripped", async () => {
         send.mockResolvedValueOnce({ SecretList: [{ Name: "anbaric/api-key" }, { Name: "anbaric/db-password" }] });
 
-        expect(await store.list()).toEqual(["api-key", "db-password"]);
+        expect(await store.list(actor)).toEqual(["api-key", "db-password"]);
         expect(send.mock.calls[0][0]).toBeInstanceOf(ListSecretsCommand);
     });
 

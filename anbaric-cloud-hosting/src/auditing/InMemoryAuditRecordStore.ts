@@ -15,9 +15,10 @@ class InMemoryAuditRecordStore implements AuditRecordStore {
         const page = filter.page ?? 0;
 
         return this.records
-            .filter(record => !filter.jobId || record.jobId === filter.jobId)
+            .filter(record => !filter.resourceType || record.resourceType === filter.resourceType)
+            .filter(record => !filter.resourceId || record.resourceId === filter.resourceId)
             .filter(record => !filter.actorId || record.actorId === filter.actorId)
-            .filter(record => !filter.change || record.change === filter.change)
+            .filter(record => !filter.interaction || record.interaction.includes(filter.interaction))
             .filter(record => !filter.search ||
                 record.description.toLowerCase().includes(filter.search.toLowerCase()))
             .reverse()

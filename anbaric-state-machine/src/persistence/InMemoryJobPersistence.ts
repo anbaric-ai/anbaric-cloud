@@ -1,14 +1,18 @@
-import {Job, JobPersistence} from "anbaric-tsapi";
+import {Auditor, Job, JobPersistence, NoOpAuditor} from "anbaric-tsapi";
 
-class InMemoryJobPersistence implements JobPersistence {
+class InMemoryJobPersistence extends JobPersistence {
 
     private jobs = new Map<string, Job>();
 
-    async save(job : Job) : Promise<void> {
+    constructor(auditor : Auditor = new NoOpAuditor()) {
+        super(auditor);
+    }
+
+    protected async saveInternal(job : Job) : Promise<void> {
         this.jobs.set(job.id, job);
     }
 
-    async retrieve(id : string) : Promise<Job> {
+    protected async retrieveInternal(id : string) : Promise<Job> {
         const job = this.jobs.get(id);
         if (!job) {
             throw new Error(`No job found with id "${id}"`);
@@ -16,20 +20,12 @@ class InMemoryJobPersistence implements JobPersistence {
         return job;
     }
 
-    async delete(id : string) : Promise<void> {
+    protected async deleteInternal(id : string) : Promise<void> {
         this.jobs.delete(id);
     }
 
-    async list(pageSize : number = 100, page : number = 0) : Promise<Array<Job>> {
+    protected async listInternal(pageSize : number = 100, page : number = 0) : Promise<Array<Job>> {
         return Array.from(this.jobs.values()).slice(page * pageSize, (page + 1) * pageSize);
-    }
-
-    async updateProperties(id : string, properties : Map<string, any>) : Promise<void> {
-        const job = await this.retrieve(id);
-        for (const [key, value] of properties) {
-            job.properties.set(key, value);
-        }
-        job.lastUpdated = new Date();
     }
 
 }

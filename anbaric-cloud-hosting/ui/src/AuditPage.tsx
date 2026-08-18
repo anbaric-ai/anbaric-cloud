@@ -9,19 +9,29 @@ import { PlatformNav } from './PlatformNav'
 
 interface AuditRecord {
   id: string
-  jobId: string
+  resourceType: string
+  resourceId: string
   actorId: string
   actorType: string
-  change: string
+  interaction: string[]
   description: string
   details: unknown
   at: string
 }
 
-const CHANGES = ['CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE']
+const INTERACTIONS = ['CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE', 'READ', 'LIST']
+const RESOURCE_TYPES = ['job', 'document', 'secret']
 
-const changeTone = (change: string) =>
-  change === 'CREATE' ? 'success' : change === 'DELETE' ? 'danger' : change === 'CHANGE_STATE' ? 'primary' : 'neutral'
+const interactionTone = (interaction: string) =>
+  interaction === 'CREATE'
+    ? 'success'
+    : interaction === 'DELETE'
+      ? 'danger'
+      : interaction === 'CHANGE_STATE'
+        ? 'primary'
+        : interaction === 'READ' || interaction === 'LIST'
+          ? 'neutral'
+          : 'neutral'
 
 const cell: CSSProperties = {
   textAlign: 'left',
@@ -50,7 +60,7 @@ const filterInput: CSSProperties = {
   borderRadius: 'var(--radius-element)',
   background: 'var(--color-background)',
   color: 'var(--color-foreground)',
-  minWidth: '12rem',
+  minWidth: '10rem',
 }
 
 const formatDate = (iso: string) =>
@@ -68,16 +78,18 @@ const actorTone = (type?: string) =>
 function AuditPage() {
   const [records, setRecords] = useState<AuditRecord[] | undefined>(undefined)
   const [failed, setFailed] = useState(false)
-  const [jobId, setJobId] = useState('')
+  const [resourceType, setResourceType] = useState('')
+  const [resourceId, setResourceId] = useState('')
   const [actorId, setActorId] = useState('')
-  const [change, setChange] = useState('')
+  const [interaction, setInteraction] = useState('')
   const [search, setSearch] = useState('')
 
   const load = async () => {
     const query = new URLSearchParams()
-    if (jobId.trim()) query.set('jobId', jobId.trim())
+    if (resourceType) query.set('resourceType', resourceType)
+    if (resourceId.trim()) query.set('resourceId', resourceId.trim())
     if (actorId.trim()) query.set('actorId', actorId.trim())
-    if (change) query.set('change', change)
+    if (interaction) query.set('interaction', interaction)
     if (search.trim()) query.set('search', search.trim())
     try {
       const response = await fetch(`/audits?${query}`)
@@ -106,11 +118,23 @@ function AuditPage() {
           }}
           style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}
         >
+          <select
+            style={filterInput}
+            value={resourceType}
+            onChange={(event) => setResourceType(event.target.value)}
+          >
+            <option value="">Any resource</option>
+            {RESOURCE_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
           <input
             style={filterInput}
-            placeholder="Job id"
-            value={jobId}
-            onChange={(event) => setJobId(event.target.value)}
+            placeholder="Resource id"
+            value={resourceId}
+            onChange={(event) => setResourceId(event.target.value)}
           />
           <input
             style={filterInput}
@@ -120,11 +144,11 @@ function AuditPage() {
           />
           <select
             style={filterInput}
-            value={change}
-            onChange={(event) => setChange(event.target.value)}
+            value={interaction}
+            onChange={(event) => setInteraction(event.target.value)}
           >
-            <option value="">Any change</option>
-            {CHANGES.map((value) => (
+            <option value="">Any interaction</option>
+            {INTERACTIONS.map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
@@ -168,9 +192,9 @@ function AuditPage() {
             <thead>
               <tr>
                 <th style={headerCell}>When</th>
-                <th style={headerCell}>Job</th>
+                <th style={headerCell}>Resource</th>
                 <th style={headerCell}>Actor</th>
-                <th style={headerCell}>Change</th>
+                <th style={headerCell}>Interaction</th>
                 <th style={headerCell}>Description</th>
                 <th style={headerCell}>Details</th>
               </tr>
@@ -179,14 +203,23 @@ function AuditPage() {
               {(records ?? []).map((record) => (
                 <tr key={record.id}>
                   <td style={{ ...cell, whiteSpace: 'nowrap' }}>{formatDate(record.at)}</td>
-                  <td style={{ ...cell, ...mono }}>{record.jobId.slice(0, 8)}</td>
+                  <td style={{ ...cell, ...mono }}>
+                    <Badge tone="neutral">{record.resourceType}</Badge>{' '}
+                    {record.resourceId}
+                  </td>
                   <td style={cell}>
                     <Badge tone={actorTone(record.actorType)} dot>
                       {record.actorId}
                     </Badge>
                   </td>
                   <td style={cell}>
-                    <Badge tone={changeTone(record.change)}>{record.change}</Badge>
+                    <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                      {record.interaction.map((interaction) => (
+                        <Badge key={interaction} tone={interactionTone(interaction)}>
+                          {interaction}
+                        </Badge>
+                      ))}
+                    </div>
                   </td>
                   <td style={cell}>{record.description}</td>
                   <td style={{ ...cell, ...mono, overflowWrap: 'anywhere' }}>

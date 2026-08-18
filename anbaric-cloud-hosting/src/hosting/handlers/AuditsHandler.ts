@@ -1,9 +1,9 @@
-import {AuditChange} from "anbaric-tsapi";
+import {AuditInteraction} from "anbaric-tsapi";
 import {AuditRecordStore} from "../../auditing/AuditRecordStore";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 
-const AUDIT_CHANGES = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE"]);
+const AUDIT_INTERACTIONS = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE", "READ", "LIST"]);
 
 class AuditsHandler implements RequestHandler {
 
@@ -23,21 +23,24 @@ class AuditsHandler implements RequestHandler {
 
     private async handleRecord(request : Request) : Promise<void> {
         const record = await request.body();
-        if (typeof record?.jobId !== "string" || typeof record?.description !== "string"
-            || typeof record?.actorId !== "string" || typeof record?.actorType !== "string"
-            || !AUDIT_CHANGES.has(record?.change)) {
-            return request.reply(400, { error: "Expected a body of { jobId, actorId, actorType, change, description, ... }" });
+        if (typeof record?.resourceType !== "string" || typeof record?.resourceId !== "string"
+            || typeof record?.description !== "string" || typeof record?.actorId !== "string"
+            || typeof record?.actorType !== "string"
+            || !Array.isArray(record?.interaction) || record.interaction.length === 0
+            || !record.interaction.every((interaction : unknown) => typeof interaction === "string" && AUDIT_INTERACTIONS.has(interaction))) {
+            return request.reply(400, { error: "Expected a body of { resourceType, resourceId, actorId, actorType, interaction: [...], description, ... }" });
         }
         await this.auditRecords.save(record);
         request.reply(204);
     }
 
     private async handleQuery(request : Request) : Promise<void> {
-        const change = request.query("change");
+        const interaction = request.query("interaction");
         const records = await this.auditRecords.list({
-            jobId: request.query("jobId"),
+            resourceType: request.query("resourceType"),
+            resourceId: request.query("resourceId"),
             actorId: request.query("actorId"),
-            change: change && AUDIT_CHANGES.has(change) ? change as AuditChange : undefined,
+            interaction: interaction && AUDIT_INTERACTIONS.has(interaction) ? interaction as AuditInteraction : undefined,
             search: request.query("search"),
             pageSize: request.query("pageSize") === undefined ? undefined : Number(request.query("pageSize")),
             page: request.query("page") === undefined ? undefined : Number(request.query("page")),
