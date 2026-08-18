@@ -137,8 +137,20 @@ variable "additional_services_api_key_secret_arn" {
   default     = ""
 }
 
-variable "additional_services_anthropic_secret_arn" {
-  description = "Secrets Manager ARN of the Anthropic API key used by additional-services"
+variable "additional_services_ai_gateway_token_secret_arn" {
+  description = "Secrets Manager ARN of the OpenAI-compatible gateway token used by additional-services"
+  type        = string
+  default     = ""
+}
+
+variable "additional_services_ai_gateway_url" {
+  description = "OpenAI-compatible base URL additional-services calls (e.g. the Cloudflare AI Gateway /compat endpoint)"
+  type        = string
+  default     = ""
+}
+
+variable "additional_services_agentic_model" {
+  description = "Model id additional-services requests (e.g. openai/gpt-4o-mini via a gateway, or gpt-4o-mini direct)"
   type        = string
   default     = ""
 }

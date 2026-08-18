@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "additional_services_secrets" {
     Statement = [{
       Effect   = "Allow"
       Action   = "secretsmanager:GetSecretValue"
-      Resource = [var.additional_services_api_key_secret_arn, var.additional_services_anthropic_secret_arn]
+      Resource = [var.additional_services_api_key_secret_arn, var.additional_services_ai_gateway_token_secret_arn]
     }]
   })
 }
@@ -69,11 +69,13 @@ resource "aws_ecs_task_definition" "additional_services" {
 
     environment = [
       { name = "ANBARIC_ADDITIONAL_SERVICES_PORT", value = "8790" },
+      { name = "ANBARIC_AI_GATEWAY_URL", value = var.additional_services_ai_gateway_url },
+      { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
     ]
 
     secrets = [
       { name = "ANBARIC_SERVICE_API_KEYS", valueFrom = var.additional_services_api_key_secret_arn },
-      { name = "ANTHROPIC_API_KEY", valueFrom = var.additional_services_anthropic_secret_arn },
+      { name = "ANBARIC_AI_GATEWAY_TOKEN", valueFrom = var.additional_services_ai_gateway_token_secret_arn },
     ]
 
     logConfiguration = {
