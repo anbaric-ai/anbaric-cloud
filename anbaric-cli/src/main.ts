@@ -5,6 +5,7 @@ import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
 import {AppStatusCommand} from "./commands/AppStatusCommand";
 import {AppTailCommand} from "./commands/AppTailCommand";
+import {AppTearDownCommand} from "./commands/AppTearDownCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
@@ -28,6 +29,7 @@ ${bold("Usage")}
   anbaric apps                                  list deployed apps
   anbaric app status <name>                     show an app's deploy state and whether it is up
   anbaric app tail <name>                       stream an app's runtime logs to stdout (Ctrl-C to stop)
+  anbaric app tear-down <name>                  stop and remove a deployed app (--yes to skip the prompt)
   anbaric state-machines                        list registered state machines
   anbaric job list [state-machine-id]           list jobs, optionally for one state machine
   anbaric job watch <job-id>                    follow a job's state live
@@ -94,6 +96,10 @@ const runAppCommand = async (args : Array<string>) : Promise<number> => {
         case "tail":
             if (!appName) return fail("usage: anbaric app tail <name>");
             return new AppTailCommand(await clientFromConfig()).run(appName);
+        case "tear-down":
+        case "teardown":
+            if (!appName) return fail("usage: anbaric app tear-down <name>");
+            return new AppTearDownCommand(await clientFromConfig(), values.yes ?? false).run(appName);
         default:
             usage();
             return 1;

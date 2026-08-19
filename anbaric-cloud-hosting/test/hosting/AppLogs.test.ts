@@ -25,6 +25,7 @@ const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({
             yield line;
         }
     },
+    teardown: async () => true,
     cleanUp: async () => {},
 });
 

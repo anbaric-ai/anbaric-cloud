@@ -109,6 +109,20 @@ CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-host
         });
     });
 
+    it("tears down a running app: removes its container and forgets it", async () => {
+        await deployFixture();
+
+        const removed = await buildLayer.teardown("fixture-app");
+
+        expect(removed).toBe(true);
+        expect(commandsNamed("rm").length).toBeGreaterThan(0);
+        expect(buildLayer.status("fixture-app")).toBeUndefined();
+    });
+
+    it("teardown reports false for an unknown app", async () => {
+        expect(await buildLayer.teardown("ghost")).toBe(false);
+    });
+
     it("force-removes the old container before starting a replacement", async () => {
         await deployFixture();
         dockerCommands = [];

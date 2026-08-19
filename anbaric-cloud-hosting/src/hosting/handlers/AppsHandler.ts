@@ -44,6 +44,11 @@ class AppsHandler implements RequestHandler {
                 const live = await this.buildLayer.ping(appName);
                 return request.reply(200, { ...status, live });
             }
+            case "DELETE": {
+                const torn = await this.buildLayer.teardown(appName);
+                if (!torn) return request.reply(404, { error: `No app named "${appName}"` });
+                return request.reply(200, { appName, status: "stopped" });
+            }
         }
         request.notFound();
     }

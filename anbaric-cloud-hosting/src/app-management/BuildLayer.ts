@@ -14,6 +14,7 @@ interface BuildLayer {
     list() : Array<DeploymentSummary>;
     ping(appName : string) : Promise<boolean>;
     logs(appName : string, signal : AbortSignal) : AsyncIterable<string>;
+    teardown(appName : string) : Promise<boolean>;
     cleanUp() : Promise<void>;
 
 }

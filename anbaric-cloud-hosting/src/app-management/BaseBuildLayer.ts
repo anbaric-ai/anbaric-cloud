@@ -80,6 +80,18 @@ abstract class BaseBuildLayer implements BuildLayer {
         yield* this.streamLogs(deployment, signal);
     }
 
+    async teardown(appName : string) : Promise<boolean> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment) return false;
+
+        // stop() runs while the deployment is still the mapped one, so the
+        // Fargate guard lets it delete the service; then drop it from the map.
+        deployment.status = "stopped";
+        await this.stop(deployment);
+        this.deployments.delete(appName);
+        return true;
+    }
+
     async cleanUp() : Promise<void> {
         await Promise.all(Array.from(this.deployments.values(), deployment => {
             deployment.status = "stopped";
