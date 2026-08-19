@@ -13,6 +13,7 @@ interface BuildLayer {
     status(appName : string) : (DeploymentSummary & { log : Array<string> }) | undefined;
     list() : Array<DeploymentSummary>;
     ping(appName : string) : Promise<boolean>;
+    logs(appName : string, signal : AbortSignal) : AsyncIterable<string>;
     cleanUp() : Promise<void>;
 
 }

@@ -74,6 +74,12 @@ abstract class BaseBuildLayer implements BuildLayer {
         return adminPing(deployment.appHost, deployment.adminPort, LIVENESS_PROBE_INTERVAL_MS);
     }
 
+    async *logs(appName : string, signal : AbortSignal) : AsyncGenerator<string> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment) throw new Error(`No app named "${appName}"`);
+        yield* this.streamLogs(deployment, signal);
+    }
+
     async cleanUp() : Promise<void> {
         await Promise.all(Array.from(this.deployments.values(), deployment => {
             deployment.status = "stopped";
@@ -84,6 +90,7 @@ abstract class BaseBuildLayer implements BuildLayer {
     protected abstract appHostFor(appName : string) : string;
     protected abstract start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void>;
     protected abstract stop(deployment : Deployment) : Promise<void>;
+    protected abstract streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string>;
 
     private async buildAndStart(deployment : Deployment, tarball : Buffer) : Promise<void> {
         const appDir = join(this.appsDir, deployment.appName);

@@ -4,6 +4,7 @@ import {PlatformClient} from "./PlatformClient";
 import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
 import {AppStatusCommand} from "./commands/AppStatusCommand";
+import {AppTailCommand} from "./commands/AppTailCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
@@ -26,6 +27,7 @@ ${bold("Usage")}
   anbaric update [dir]                          deploy, replacing a running app without prompting
   anbaric apps                                  list deployed apps
   anbaric app status <name>                     show an app's deploy state and whether it is up
+  anbaric app tail <name>                       stream an app's runtime logs to stdout (Ctrl-C to stop)
   anbaric state-machines                        list registered state machines
   anbaric job list [state-machine-id]           list jobs, optionally for one state machine
   anbaric job watch <job-id>                    follow a job's state live
@@ -89,6 +91,9 @@ const runAppCommand = async (args : Array<string>) : Promise<number> => {
         case "status":
             if (!appName) return fail("usage: anbaric app status <name>");
             return new AppStatusCommand(await clientFromConfig()).run(appName);
+        case "tail":
+            if (!appName) return fail("usage: anbaric app tail <name>");
+            return new AppTailCommand(await clientFromConfig()).run(appName);
         default:
             usage();
             return 1;

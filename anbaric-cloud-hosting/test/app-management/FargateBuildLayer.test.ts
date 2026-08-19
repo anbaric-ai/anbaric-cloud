@@ -37,6 +37,7 @@ describe("FargateBuildLayer", () => {
     let buildStatuses : Array<string>;
     let existingEcsService : boolean;
     let existingDiscoveryService : boolean;
+    let liveTailMessages : Array<string>;
 
     const record = (client : string, command : any) => {
         (sent[client] ??= []).push(command);
@@ -72,6 +73,16 @@ describe("FargateBuildLayer", () => {
                 return { Service: { Arn: "arn:discovery/created" } };
             },
         },
+        cloudWatchLogs: {
+            send: async (command) => {
+                record("cloudWatchLogs", command);
+                return {
+                    responseStream: (async function* () {
+                        yield { sessionUpdate: { sessionResults: liveTailMessages.map(message => ({ message })) } };
+                    })(),
+                };
+            },
+        },
     });
 
     beforeEach(async () => {
@@ -81,6 +92,7 @@ describe("FargateBuildLayer", () => {
         buildStatuses = [];
         existingEcsService = false;
         existingDiscoveryService = false;
+        liveTailMessages = [];
         buildLayer = new FargateBuildLayer(
             join(workDir, "apps"),
             {
@@ -96,6 +108,7 @@ describe("FargateBuildLayer", () => {
                 baseImage: "123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-platform:latest",
                 appExecutionRoleArn: "arn:role/app-execution",
                 appsLogGroup: "/anbaric/test/apps",
+                appsLogGroupArn: "arn:aws:logs:eu-west-3:123:log-group:/anbaric/test/apps",
                 platformUrl: "http://platform.anbaric-test.local:8788",
             },
             CONSUMER_PORT_BASE,
@@ -199,6 +212,16 @@ describe("FargateBuildLayer", () => {
 
         expect(status.status).toBe("running");
         expect(status.log.join("\n")).toContain("app is live (admin port 8791)");
+    });
+
+    it("streams live-tail messages as runtime log lines", async () => {
+        liveTailMessages = ["hello from the app", "processing job 1"];
+        await deployFixture();
+
+        const lines : Array<string> = [];
+        for await (const line of buildLayer.logs("crm", new AbortController().signal)) lines.push(line);
+
+        expect(lines).toEqual(["hello from the app", "processing job 1"]);
     });
 
 });

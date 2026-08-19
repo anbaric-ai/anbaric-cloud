@@ -227,6 +227,11 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
         Action   = "iam:PassRole"
         Resource = aws_iam_role.app_execution.arn
       },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:StartLiveTail", "logs:DescribeLogGroups"]
+        Resource = "*"
+      },
     ]
   })
 }

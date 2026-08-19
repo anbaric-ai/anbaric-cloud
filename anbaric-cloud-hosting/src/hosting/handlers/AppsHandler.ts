@@ -11,6 +11,9 @@ class AppsHandler implements RequestHandler {
             case "deploy":
                 if (request.id) return this.handleDeploy(request, request.id);
                 break;
+            case "logs":
+                if (request.id) return this.handleLogs(request, request.id);
+                break;
             case undefined:
                 if (request.id) return this.handleApp(request, request.id);
                 return this.handleCollection(request);
@@ -43,6 +46,46 @@ class AppsHandler implements RequestHandler {
             }
         }
         request.notFound();
+    }
+
+    private async handleLogs(request : Request, appName : string) : Promise<void> {
+        if (request.method !== "GET") return request.notFound();
+        if (!this.buildLayer.status(appName)) return request.reply(404, { error: `No app named "${appName}"` });
+
+        const response = request.rawResponse;
+        response.writeHead(200, {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "no-cache",
+            "x-content-type-options": "nosniff",
+        });
+
+        const controller = new AbortController();
+        request.raw.on("close", () => controller.abort());
+
+        // A newline heartbeat after each idle interval keeps the streamed
+        // connection alive through the edge (CloudFront/ALB) read timeouts when
+        // the app is producing no output.
+        const beat = () : ReturnType<typeof setTimeout> => setTimeout(() => {
+            if (!response.writableEnded) { response.write("\n"); heartbeat = beat(); }
+        }, 15_000);
+        let heartbeat = beat();
+
+        try {
+            for await (const line of this.buildLayer.logs(appName, controller.signal)) {
+                clearTimeout(heartbeat);
+                if (!response.write(`${line}\n`)) {
+                    await new Promise<void>(resolve => response.once("drain", resolve));
+                }
+                heartbeat = beat();
+            }
+        } catch (error) {
+            if (!controller.signal.aborted) {
+                response.write(`[log stream error: ${error instanceof Error ? error.message : error}]\n`);
+            }
+        } finally {
+            clearTimeout(heartbeat);
+            response.end();
+        }
     }
 
     private async handleCollection(request : Request) : Promise<void> {

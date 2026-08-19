@@ -132,23 +132,24 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_BASE_IMAGE", value = local.platform_image },
       { name = "ANBARIC_AWS_APP_EXECUTION_ROLE", value = aws_iam_role.app_execution.arn },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
-    ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
+      { name = "ANBARIC_AWS_APPS_LOG_GROUP_ARN", value = aws_cloudwatch_log_group.apps.arn },
+      ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
       { name = "ANBARIC_TENANT", value = var.tenant },
-    ], var.auth0_domain == "" ? [] : [
+      ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
       { name = "ANBARIC_AUTH0_CLIENT_ID", value = var.auth0_client_id },
-    ], var.auth0_organization == "" ? [] : [
+      ], var.auth0_organization == "" ? [] : [
       { name = "ANBARIC_AUTH0_ORGANIZATION", value = var.auth0_organization },
-    ], var.deploy_additional_services ? [
+      ], var.deploy_additional_services ? [
       { name = "ANBARIC_SERVICES_URL", value = "http://additional-services.${aws_service_discovery_private_dns_namespace.anbaric.name}:8790" },
     ] : [])
 
     secrets = concat([
       { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
-    ], var.auth0_domain == "" ? [] : [
+      ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
-    ], var.deploy_additional_services ? [
+      ], var.deploy_additional_services ? [
       { name = "ANBARIC_SERVICES_API_KEY", valueFrom = var.additional_services_api_key_secret_arn },
     ] : [])
 

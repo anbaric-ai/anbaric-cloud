@@ -37,6 +37,26 @@ class PlatformClient {
         return this.request("POST", path, new Uint8Array(body), contentType);
     }
 
+    async stream(path : string, onChunk : (text : string) => void, signal? : AbortSignal) : Promise<void> {
+        const headers : Record<string, string> = {};
+        if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
+        if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
+
+        const response = await fetch(`${this.options.platformUrl}${path}`, { method: "GET", headers, signal });
+        if (this.deniedForAuthentication(response)) {
+            throw new Error(`You're not signed in to ${this.options.platformUrl} - run \`anbaric login\` to authorize this terminal`);
+        }
+        if (!response.ok || !response.body) {
+            const problem = await response.json().catch(() => ({}));
+            throw new Error(problem.error ?? `GET ${path} failed with status ${response.status}`);
+        }
+
+        const decoder = new TextDecoder();
+        for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
+            onChunk(decoder.decode(chunk, { stream: true }));
+        }
+    }
+
     private async request(method : string, path : string, body? : BodyInit, contentType? : string) : Promise<any> {
         const headers : Record<string, string> = {};
         if (contentType) headers["content-type"] = contentType;

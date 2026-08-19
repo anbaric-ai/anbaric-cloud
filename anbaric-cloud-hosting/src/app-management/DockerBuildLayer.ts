@@ -2,6 +2,12 @@ import {spawn} from "node:child_process";
 import {writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
+import {childLines} from "./childLines";
+
+type LogStreamer = (container : string, signal : AbortSignal) => AsyncIterable<string>;
+
+const dockerLogStreamer : LogStreamer = (container, signal) =>
+    childLines(spawn("docker", ["logs", "--follow", "--tail", "50", container]), signal);
 
 type DockerBuildLayerOptions = {
     baseImage : string,
@@ -40,12 +46,17 @@ class DockerBuildLayer extends BaseBuildLayer {
 
     constructor(appsDir : string, private options : DockerBuildLayerOptions,
                 consumerPortBase? : number,
-                private runCommand : CommandRunner = spawnRunner, probe? : Probe) {
+                private runCommand : CommandRunner = spawnRunner, probe? : Probe,
+                private logStreamer : LogStreamer = dockerLogStreamer) {
         super(appsDir, consumerPortBase, probe);
     }
 
     protected appHostFor(appName : string) : string {
         return `anbaric-app-${appName}`;
+    }
+
+    protected streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string> {
+        return this.logStreamer(this.appHostFor(deployment.appName), signal);
     }
 
     protected async start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void> {
@@ -91,4 +102,4 @@ class DockerBuildLayer extends BaseBuildLayer {
 }
 
 export { DockerBuildLayer, dockerfileFor };
-export type { CommandRunner, DockerBuildLayerOptions };
+export type { CommandRunner, DockerBuildLayerOptions, LogStreamer };
