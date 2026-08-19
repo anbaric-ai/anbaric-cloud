@@ -3,6 +3,7 @@ import {CliConfig, platformUrlForEnvironment} from "./CliConfig";
 import {PlatformClient} from "./PlatformClient";
 import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
+import {AppStatusCommand} from "./commands/AppStatusCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
@@ -24,6 +25,7 @@ ${bold("Usage")}
   anbaric deploy [dir]                          deploy an app (defaults to the current directory)
   anbaric update [dir]                          deploy, replacing a running app without prompting
   anbaric apps                                  list deployed apps
+  anbaric app status <name>                     show an app's deploy state and whether it is up
   anbaric state-machines                        list registered state machines
   anbaric job list [state-machine-id]           list jobs, optionally for one state machine
   anbaric job watch <job-id>                    follow a job's state live
@@ -80,6 +82,19 @@ const fail = (message : string) : number => {
     return 1;
 };
 
+const runAppCommand = async (args : Array<string>) : Promise<number> => {
+    const [subcommand, appName] = args;
+
+    switch (subcommand) {
+        case "status":
+            if (!appName) return fail("usage: anbaric app status <name>");
+            return new AppStatusCommand(await clientFromConfig()).run(appName);
+        default:
+            usage();
+            return 1;
+    }
+};
+
 const runJobCommand = async (args : Array<string>) : Promise<number> => {
     const [subcommand, jobId, ...rest] = args;
 
@@ -115,6 +130,8 @@ try {
             process.exit(await new DeployCommand(await clientForDeploy(), true, configureCommand()).run(commandArgs[0] ?? "."));
         case "apps":
             process.exit(await new AppsCommand(await clientFromConfig()).run());
+        case "app":
+            process.exit(await runAppCommand(commandArgs));
         case "state-machines":
             process.exit(await new StateMachinesCommand(await clientFromConfig()).run());
         case "job":

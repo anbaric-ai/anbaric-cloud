@@ -74,7 +74,7 @@ describe("DockerBuildLayer", () => {
 COPY . /anbaric-app
 WORKDIR /anbaric-app
 RUN npm install --omit=dev --no-audit --no-fund
-CMD ["/anbaric/node_modules/.bin/tsx", "src/main.ts"]
+CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-hosting/src/app-admin/launch.ts", "src/main.ts"]
 `);
         expect(commandsNamed("build")[0]).toEqual([
             "build", "-t", "anbaric-app-fixture-app", join(workDir, "apps", "fixture-app"),

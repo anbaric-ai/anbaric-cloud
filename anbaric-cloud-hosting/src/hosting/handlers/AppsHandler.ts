@@ -38,7 +38,8 @@ class AppsHandler implements RequestHandler {
             case "GET": {
                 const status = this.buildLayer.status(appName);
                 if (!status) return request.reply(404, { error: `No app named "${appName}"` });
-                return request.reply(200, status);
+                const live = await this.buildLayer.ping(appName);
+                return request.reply(200, { ...status, live });
             }
         }
         request.notFound();

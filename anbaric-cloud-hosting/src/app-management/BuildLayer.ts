@@ -12,6 +12,7 @@ interface BuildLayer {
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary;
     status(appName : string) : (DeploymentSummary & { log : Array<string> }) | undefined;
     list() : Array<DeploymentSummary>;
+    ping(appName : string) : Promise<boolean>;
     cleanUp() : Promise<void>;
 
 }

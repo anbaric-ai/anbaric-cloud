@@ -39,6 +39,7 @@ const runningApp = (appName : string) : BuildLayer => ({
         ? { appName, status: "running", appPort: 1, appHost: "localhost", log: [] }
         : undefined,
     list: () => [{ appName, status: "running", appPort: 1, appHost: "localhost" }],
+    ping: async () => true,
     cleanUp: async () => {},
 });
 

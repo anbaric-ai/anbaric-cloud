@@ -33,7 +33,7 @@ const dockerfileFor = (baseImage : string, entryPoint : string) : string => `FRO
 COPY . /anbaric-app
 WORKDIR /anbaric-app
 RUN npm install --omit=dev --no-audit --no-fund
-CMD ["/anbaric/node_modules/.bin/tsx", "${entryPoint}"]
+CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-hosting/src/app-admin/launch.ts", "${entryPoint}"]
 `;
 
 class DockerBuildLayer extends BaseBuildLayer {
@@ -62,6 +62,7 @@ class DockerBuildLayer extends BaseBuildLayer {
         await this.docker(deployment, ["run", "--detach", "--name", container,
             "--network", this.options.network,
             "--env", `PORT=${deployment.appPort}`,
+            "--env", `ANBARIC_ADMIN_PORT=${deployment.adminPort}`,
             "--env", `ANBARIC_CLOUD_URL=${this.options.platformUrl}`,
             "--env", "ANBARIC_JOB_PERSISTENCE_TYPE=cloud",
             "--env", "ANBARIC_QUEUE_TYPE=cloud",

@@ -141,10 +141,12 @@ class FargateBuildLayer extends BaseBuildLayer {
                 essential: true,
                 portMappings: [
                     { containerPort: deployment.appPort, protocol: "tcp" },
+                    { containerPort: deployment.adminPort, protocol: "tcp" },
                     { containerPort: deployment.consumerPort, protocol: "tcp" },
                 ],
                 environment: [
                     { name: "PORT", value: String(deployment.appPort) },
+                    { name: "ANBARIC_ADMIN_PORT", value: String(deployment.adminPort) },
                     { name: "ANBARIC_CLOUD_URL", value: this.options.platformUrl },
                     { name: "ANBARIC_JOB_PERSISTENCE_TYPE", value: "cloud" },
                     { name: "ANBARIC_QUEUE_TYPE", value: "cloud" },

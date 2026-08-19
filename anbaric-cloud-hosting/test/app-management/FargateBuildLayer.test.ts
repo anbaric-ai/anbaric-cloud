@@ -198,7 +198,7 @@ describe("FargateBuildLayer", () => {
         const status = await deployFixture();
 
         expect(status.status).toBe("running");
-        expect(status.log.join("\n")).toContain("app is live at crm.anbaric-test.local:4000");
+        expect(status.log.join("\n")).toContain("app is live (admin port 8791)");
     });
 
 });
