@@ -105,7 +105,7 @@ factories, so the same application runs in several ways without code changes.
   in-memory and jobs progress automatically. Running the program with
   `npx tsx src/main.ts` is a complete local run, suitable for development and
   testing.
-- **Anbaric Cloud.** `anbaric deploy` packages the application (source only, no
+- **Anbaric Cloud.** `anbaric app deploy` packages the application (source only, no
   `node_modules`) and runs it on the hosted platform. The platform installs the
   application's own dependencies as it builds the image, so any npm package the
   application imports works when deployed. The platform injects the configuration
@@ -168,15 +168,22 @@ principal commands are:
 | Command | Purpose |
 | --- | --- |
 | `anbaric login` / `anbaric logout` | authorize this terminal against a platform, or revoke it |
-| `anbaric configure [dir]` | set an application's name and internal port |
-| `anbaric deploy [dir]` | deploy an application and wait until it is live |
-| `anbaric update [dir]` | deploy over a running application without prompting |
 | `anbaric apps` | list deployed applications |
+| `anbaric app configure` | set an application's name and internal port |
+| `anbaric app deploy` | deploy an application and wait until it is live |
+| `anbaric app update` | deploy over a running application without prompting |
+| `anbaric app status <name>` | show an application's deploy state and whether it is up |
+| `anbaric app tail <name>` | stream an application's runtime logs |
+| `anbaric app tear-down <name>` | stop and remove a deployed application |
 | `anbaric state-machines` | list registered state machines |
-| `anbaric job list [state-machine-id]` | list jobs |
-| `anbaric job watch <job-id>` | follow a job's state as it changes |
-| `anbaric job set-state <job-id> <state>` | move a job to a state and re-queue it |
-| `anbaric job update <job-id> <key=value ...>` | change job properties and re-queue |
+| `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs watch <job-id>` | follow a job's state as it changes |
+| `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |
+| `anbaric jobs update <job-id> <key=value ...>` | change job properties and re-queue |
+
+The `app configure`/`deploy`/`update` commands act on the application for the
+current project, located by walking up to the nearest `package.json`, so they
+run from anywhere inside it.
 
 Every command accepts flags (such as `--environment`, `--tenant`, `--name`,
 `--port`, `--yes`) that supply the answers a prompt would otherwise ask for, so

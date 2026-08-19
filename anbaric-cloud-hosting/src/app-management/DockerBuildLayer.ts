@@ -2,6 +2,12 @@ import {spawn} from "node:child_process";
 import {writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
+import {childLines} from "./childLines";
+
+type LogStreamer = (container : string, signal : AbortSignal) => AsyncIterable<string>;
+
+const dockerLogStreamer : LogStreamer = (container, signal) =>
+    childLines(spawn("docker", ["logs", "--follow", "--tail", "50", container]), signal);
 
 type DockerBuildLayerOptions = {
     baseImage : string,
@@ -33,19 +39,24 @@ const dockerfileFor = (baseImage : string, entryPoint : string) : string => `FRO
 COPY . /anbaric-app
 WORKDIR /anbaric-app
 RUN npm install --omit=dev --no-audit --no-fund
-CMD ["/anbaric/node_modules/.bin/tsx", "${entryPoint}"]
+CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-hosting/src/app-admin/launch.ts", "${entryPoint}"]
 `;
 
 class DockerBuildLayer extends BaseBuildLayer {
 
     constructor(appsDir : string, private options : DockerBuildLayerOptions,
                 consumerPortBase? : number,
-                private runCommand : CommandRunner = spawnRunner, probe? : Probe) {
+                private runCommand : CommandRunner = spawnRunner, probe? : Probe,
+                private logStreamer : LogStreamer = dockerLogStreamer) {
         super(appsDir, consumerPortBase, probe);
     }
 
     protected appHostFor(appName : string) : string {
         return `anbaric-app-${appName}`;
+    }
+
+    protected streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string> {
+        return this.logStreamer(this.appHostFor(deployment.appName), signal);
     }
 
     protected async start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void> {
@@ -62,6 +73,7 @@ class DockerBuildLayer extends BaseBuildLayer {
         await this.docker(deployment, ["run", "--detach", "--name", container,
             "--network", this.options.network,
             "--env", `PORT=${deployment.appPort}`,
+            "--env", `ANBARIC_ADMIN_PORT=${deployment.adminPort}`,
             "--env", `ANBARIC_CLOUD_URL=${this.options.platformUrl}`,
             "--env", "ANBARIC_JOB_PERSISTENCE_TYPE=cloud",
             "--env", "ANBARIC_QUEUE_TYPE=cloud",
@@ -90,4 +102,4 @@ class DockerBuildLayer extends BaseBuildLayer {
 }
 
 export { DockerBuildLayer, dockerfileFor };
-export type { CommandRunner, DockerBuildLayerOptions };
+export type { CommandRunner, DockerBuildLayerOptions, LogStreamer };

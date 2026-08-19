@@ -1,6 +1,7 @@
 import {ChildProcess, spawn} from "node:child_process";
 import {mkdir, readFile, rm, symlink, writeFile} from "node:fs/promises";
 import {join} from "node:path";
+import {adminPing} from "../app-admin/adminPing";
 import {BuildLayer, DeploymentStatus, DeploymentSummary} from "./BuildLayer";
 
 type Deployment = {
@@ -8,6 +9,7 @@ type Deployment = {
     status : DeploymentStatus,
     appPort : number,
     appHost : string,
+    adminPort : number,
     consumerPort : number,
     log : Array<string>,
     process? : ChildProcess,
@@ -19,15 +21,11 @@ type Probe = (host : string, port : number) => Promise<boolean>;
 const LOG_LIMIT = 200;
 const LIVENESS_TIMEOUT_MS = 30_000;
 const LIVENESS_PROBE_INTERVAL_MS = 250;
+const APP_ADMIN_PORT = 8791;
 
-const httpProbe : Probe = async (host, port) => {
-    try {
-        await fetch(`http://${host}:${port}/`, { signal: AbortSignal.timeout(LIVENESS_PROBE_INTERVAL_MS) });
-        return true;
-    } catch {
-        return false;
-    }
-};
+/* Liveness is the built-in admin server answering `ping` on the admin port, so
+   an app that serves no HTTP still passes. */
+const adminProbe : Probe = (host, port) => adminPing(host, port, LIVENESS_PROBE_INTERVAL_MS);
 
 abstract class BaseBuildLayer implements BuildLayer {
 
@@ -35,7 +33,7 @@ abstract class BaseBuildLayer implements BuildLayer {
     private nextAppIndex = 0;
 
     constructor(protected appsDir : string, private consumerPortBase : number = 8800,
-                private probe : Probe = httpProbe,
+                private probe : Probe = adminProbe,
                 private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS) {}
 
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary {
@@ -46,6 +44,7 @@ abstract class BaseBuildLayer implements BuildLayer {
             status: "building",
             appPort,
             appHost: this.appHostFor(appName),
+            adminPort: APP_ADMIN_PORT,
             consumerPort: existing?.consumerPort ?? this.consumerPortBase + this.nextAppIndex++,
             log: [],
             replaces: existing,
@@ -69,6 +68,30 @@ abstract class BaseBuildLayer implements BuildLayer {
         return Array.from(this.deployments.values(), deployment => this.summarize(deployment));
     }
 
+    async ping(appName : string) : Promise<boolean> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment || deployment.status !== "running") return false;
+        return adminPing(deployment.appHost, deployment.adminPort, LIVENESS_PROBE_INTERVAL_MS);
+    }
+
+    async *logs(appName : string, signal : AbortSignal) : AsyncGenerator<string> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment) throw new Error(`No app named "${appName}"`);
+        yield* this.streamLogs(deployment, signal);
+    }
+
+    async teardown(appName : string) : Promise<boolean> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment) return false;
+
+        // stop() runs while the deployment is still the mapped one, so the
+        // Fargate guard lets it delete the service; then drop it from the map.
+        deployment.status = "stopped";
+        await this.stop(deployment);
+        this.deployments.delete(appName);
+        return true;
+    }
+
     async cleanUp() : Promise<void> {
         await Promise.all(Array.from(this.deployments.values(), deployment => {
             deployment.status = "stopped";
@@ -79,6 +102,7 @@ abstract class BaseBuildLayer implements BuildLayer {
     protected abstract appHostFor(appName : string) : string;
     protected abstract start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void>;
     protected abstract stop(deployment : Deployment) : Promise<void>;
+    protected abstract streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string>;
 
     private async buildAndStart(deployment : Deployment, tarball : Buffer) : Promise<void> {
         const appDir = join(this.appsDir, deployment.appName);
@@ -110,9 +134,9 @@ abstract class BaseBuildLayer implements BuildLayer {
 
         while (Date.now() < deadline) {
             if (deployment.status !== "building") return;
-            if (await this.probe(deployment.appHost, deployment.appPort)) {
+            if (await this.probe(deployment.appHost, deployment.adminPort)) {
                 deployment.status = "running";
-                this.log(deployment, `app is live at ${deployment.appHost}:${deployment.appPort}`);
+                this.log(deployment, `app is live (admin port ${deployment.adminPort})`);
                 return;
             }
             await new Promise(resolve => setTimeout(resolve, LIVENESS_PROBE_INTERVAL_MS));
@@ -120,7 +144,7 @@ abstract class BaseBuildLayer implements BuildLayer {
 
         await this.stop(deployment);
         deployment.status = "failed";
-        this.log(deployment, `app did not respond at ${deployment.appHost}:${deployment.appPort} within ${this.livenessTimeoutMs / 1000}s`);
+        this.log(deployment, `app admin port ${deployment.adminPort} did not answer within ${this.livenessTimeoutMs / 1000}s`);
     }
 
     private async linkWorkspacePackages(appDir : string, manifest : { dependencies? : Record<string, string> }) : Promise<void> {
@@ -174,5 +198,5 @@ abstract class BaseBuildLayer implements BuildLayer {
 
 }
 
-export { BaseBuildLayer, httpProbe };
+export { BaseBuildLayer, adminProbe };
 export type { Deployment, Probe };

@@ -6,6 +6,7 @@ import {ECSClient, CreateServiceCommand, DeleteServiceCommand, DescribeServicesC
 import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
 import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCommand,
     ListServicesCommand} from "@aws-sdk/client-servicediscovery";
+import {CloudWatchLogsClient, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
 import {dockerfileFor} from "./DockerBuildLayer";
 
@@ -22,6 +23,7 @@ type FargateBuildLayerOptions = {
     baseImage : string,
     appExecutionRoleArn : string,
     appsLogGroup : string,
+    appsLogGroupArn : string,
     platformUrl : string,
     servicesUrl? : string,
     servicesApiKey? : string,
@@ -32,6 +34,7 @@ type AwsClients = {
     codeBuild : { send(command : any) : Promise<any> },
     ecs : { send(command : any) : Promise<any> },
     serviceDiscovery : { send(command : any) : Promise<any> },
+    cloudWatchLogs : { send(command : any, options? : any) : Promise<any> },
 };
 
 const defaultClients = (region : string) : AwsClients => ({
@@ -39,6 +42,7 @@ const defaultClients = (region : string) : AwsClients => ({
     codeBuild: new CodeBuildClient({ region }),
     ecs: new ECSClient({ region }),
     serviceDiscovery: new ServiceDiscoveryClient({ region }),
+    cloudWatchLogs: new CloudWatchLogsClient({ region }),
 });
 
 const BUILD_TIMEOUT_MS = 900_000;
@@ -58,6 +62,23 @@ class FargateBuildLayer extends BaseBuildLayer {
 
     protected appHostFor(appName : string) : string {
         return `${appName}.${this.options.namespaceName}`;
+    }
+
+    protected async *streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string> {
+        const response = await this.aws.cloudWatchLogs.send(new StartLiveTailCommand({
+            logGroupIdentifiers: [this.options.appsLogGroupArn],
+            logStreamNamePrefixes: [deployment.appName],
+        }), { abortSignal: signal });
+
+        try {
+            for await (const event of response.responseStream) {
+                for (const result of event.sessionUpdate?.sessionResults ?? []) {
+                    if (result.message !== undefined) yield result.message;
+                }
+            }
+        } catch (error) {
+            if (!signal.aborted) throw error;
+        }
     }
 
     protected async start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void> {
@@ -141,10 +162,12 @@ class FargateBuildLayer extends BaseBuildLayer {
                 essential: true,
                 portMappings: [
                     { containerPort: deployment.appPort, protocol: "tcp" },
+                    { containerPort: deployment.adminPort, protocol: "tcp" },
                     { containerPort: deployment.consumerPort, protocol: "tcp" },
                 ],
                 environment: [
                     { name: "PORT", value: String(deployment.appPort) },
+                    { name: "ANBARIC_ADMIN_PORT", value: String(deployment.adminPort) },
                     { name: "ANBARIC_CLOUD_URL", value: this.options.platformUrl },
                     { name: "ANBARIC_JOB_PERSISTENCE_TYPE", value: "cloud" },
                     { name: "ANBARIC_QUEUE_TYPE", value: "cloud" },

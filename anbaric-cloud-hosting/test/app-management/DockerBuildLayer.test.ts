@@ -74,7 +74,7 @@ describe("DockerBuildLayer", () => {
 COPY . /anbaric-app
 WORKDIR /anbaric-app
 RUN npm install --omit=dev --no-audit --no-fund
-CMD ["/anbaric/node_modules/.bin/tsx", "src/main.ts"]
+CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-hosting/src/app-admin/launch.ts", "src/main.ts"]
 `);
         expect(commandsNamed("build")[0]).toEqual([
             "build", "-t", "anbaric-app-fixture-app", join(workDir, "apps", "fixture-app"),
@@ -107,6 +107,20 @@ CMD ["/anbaric/node_modules/.bin/tsx", "src/main.ts"]
             appPort: APP_PORT,
             status: "running",
         });
+    });
+
+    it("tears down a running app: removes its container and forgets it", async () => {
+        await deployFixture();
+
+        const removed = await buildLayer.teardown("fixture-app");
+
+        expect(removed).toBe(true);
+        expect(commandsNamed("rm").length).toBeGreaterThan(0);
+        expect(buildLayer.status("fixture-app")).toBeUndefined();
+    });
+
+    it("teardown reports false for an unknown app", async () => {
+        expect(await buildLayer.teardown("ghost")).toBe(false);
     });
 
     it("force-removes the old container before starting a replacement", async () => {

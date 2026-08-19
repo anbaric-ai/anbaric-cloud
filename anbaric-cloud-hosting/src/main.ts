@@ -50,6 +50,7 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         baseImage: process.env.ANBARIC_AWS_BASE_IMAGE!,
         appExecutionRoleArn: process.env.ANBARIC_AWS_APP_EXECUTION_ROLE!,
         appsLogGroup: process.env.ANBARIC_AWS_APPS_LOG_GROUP!,
+        appsLogGroupArn: process.env.ANBARIC_AWS_APPS_LOG_GROUP_ARN!,
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL!,
         servicesUrl: process.env.ANBARIC_SERVICES_URL,
         servicesApiKey: process.env.ANBARIC_SERVICES_API_KEY,

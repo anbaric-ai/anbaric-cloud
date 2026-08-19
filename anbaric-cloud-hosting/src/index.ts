@@ -17,6 +17,8 @@ export * from "./auth/TokenAuthenticator";
 export * from "./auth/User";
 export * from "./app-management/DockerBuildLayer";
 export * from "./app-management/FargateBuildLayer";
+export * from "./app-admin/AdminServer";
+export * from "./app-admin/adminPing";
 export * from "./data-store/PostgresCliKeyStore";
 export * from "./data-store/PostgresJobPersistence";
 export * from "./data-store/PostgresJsonStore";
