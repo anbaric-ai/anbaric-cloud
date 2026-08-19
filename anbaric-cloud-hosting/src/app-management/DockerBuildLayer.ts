@@ -22,9 +22,17 @@ const spawnRunner : CommandRunner = (command, args, onOutput) =>
         child.on("error", reject);
     });
 
+/* Third-party dependencies are installed into the app image at build time.
+   The anbaric-* packages are already present as symlinks to the base image
+   (linked by BaseBuildLayer), and `npm install` leaves satisfied dependencies
+   in place, so it only fetches the app's own registry dependencies - the
+   anbaric packages keep coming from the base image, not the registry. It must
+   be `install`, not `ci`: `ci` empties node_modules first and would delete
+   those symlinks. */
 const dockerfileFor = (baseImage : string, entryPoint : string) : string => `FROM ${baseImage}
 COPY . /anbaric-app
 WORKDIR /anbaric-app
+RUN npm install --omit=dev --no-audit --no-fund
 CMD ["/anbaric/node_modules/.bin/tsx", "${entryPoint}"]
 `;
 

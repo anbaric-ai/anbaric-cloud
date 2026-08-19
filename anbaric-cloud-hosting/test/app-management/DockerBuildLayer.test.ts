@@ -73,6 +73,7 @@ describe("DockerBuildLayer", () => {
         expect(dockerfile).toBe(`FROM anbaric-base:test
 COPY . /anbaric-app
 WORKDIR /anbaric-app
+RUN npm install --omit=dev --no-audit --no-fund
 CMD ["/anbaric/node_modules/.bin/tsx", "src/main.ts"]
 `);
         expect(commandsNamed("build")[0]).toEqual([

@@ -105,11 +105,13 @@ factories, so the same application runs in several ways without code changes.
   in-memory and jobs progress automatically. Running the program with
   `npx tsx src/main.ts` is a complete local run, suitable for development and
   testing.
-- **Anbaric Cloud.** `anbaric deploy` packages the application and runs it on
-  the hosted platform. The platform injects the configuration that points the
-  factories at platform-backed persistence, queueing, documents and secrets;
-  application code is unchanged. Authentication, job inspection and updates are
-  available through the CLI.
+- **Anbaric Cloud.** `anbaric deploy` packages the application (source only, no
+  `node_modules`) and runs it on the hosted platform. The platform installs the
+  application's own dependencies as it builds the image, so any npm package the
+  application imports works when deployed. The platform injects the configuration
+  that points the factories at platform-backed persistence, queueing, documents
+  and secrets; application code is unchanged. Authentication, job inspection and
+  updates are available through the CLI.
 - **Self-hosted.** The [`anbaric-hosting`](https://npmjs.com/package/anbaric-hosting)
   package runs the platform — the API, dispatcher, build layer and app proxy —
   on infrastructure you operate, backed by Postgres.
