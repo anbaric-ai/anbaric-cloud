@@ -21,6 +21,7 @@ COPY anbaric-data-store/package.json anbaric-data-store/
 COPY anbaric/package.json anbaric/
 COPY anbaric-hosting/package.json anbaric-hosting/
 COPY anbaric-plugins/package.json anbaric-plugins/
+COPY anbaric-services-client/package.json anbaric-services-client/
 # The design system is a file: devDependency of anbaric-plugins, so npm ci
 # needs it present; it is aliased away when plugins are bundled, never run.
 COPY anbaric-design-system anbaric-design-system
@@ -35,6 +36,7 @@ COPY anbaric-data-store anbaric-data-store
 COPY anbaric anbaric
 COPY anbaric-hosting anbaric-hosting
 COPY anbaric-plugins anbaric-plugins
+COPY anbaric-services-client anbaric-services-client
 
 EXPOSE 8787
 CMD ["npx", "tsx", "anbaric-cloud-hosting/src/main.ts"]
