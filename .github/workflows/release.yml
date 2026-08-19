@@ -1,0 +1,99 @@
+name: Release
+
+# On merge to main: run the suite, bump the patch version, publish every
+# workspace to npm, tag, then pin the new platform version in
+# anbaric-cloud-central (which triggers the staging platform redeploy there).
+# No image is built here - the platform ships as npm packages.
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Test, publish, and roll staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Skip the version-bump commit this workflow makes, so it does not loop.
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release') }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump patch version
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          IFS='.' read -r MA MI PA <<< "$CURRENT"
+          NEW="$MA.$MI.$((PA + 1))"
+          npm pkg set version="$NEW"
+          npm run versions
+          npm install --package-lock-only
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          echo "Bumped $CURRENT -> $NEW"
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # 2.0.0 is still published and higher than the 1.x line, so npm rejects
+          # implicitly moving the "latest" tag; publish under a side tag and move
+          # latest explicitly (best-effort).
+          npm publish --workspaces --access public --tag deploy
+          for pkg in tsapi anbaric-state-machine anbaric-data-store anbaric-impl-cloud anbaric \
+                     anbaric-cloud-hosting anbaric-hosting anbaric-plugins anbaric-services-client anbaric-cli; do
+            name=$(node -p "require('./$pkg/package.json').name")
+            npm dist-tag add "$name@${{ steps.version.outputs.version }}" latest || true
+          done
+
+      - name: Commit version bump and tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -m "chore: release ${{ steps.version.outputs.version }}"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main --follow-tags
+
+      - name: Pin platform version in anbaric-cloud-central (triggers deploy)
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git clone --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/anbaric-ai/anbaric-cloud-central.git" central
+          cd central
+          echo "$VERSION" > PLATFORM_VERSION
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if git diff --quiet; then
+            echo "PLATFORM_VERSION already $VERSION"
+          else
+            git add PLATFORM_VERSION
+            git commit -m "chore: platform $VERSION"
+            git push origin main
+          fi

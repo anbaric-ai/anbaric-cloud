@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck every workspace
+        run: |
+          for pkg in tsapi anbaric-state-machine anbaric-data-store anbaric-impl-cloud \
+                     anbaric anbaric-cloud-hosting anbaric-hosting anbaric-plugins \
+                     anbaric-services-client anbaric-cli; do
+            echo "::group::tsc $pkg"
+            npx tsc --noEmit -p "$pkg"
+            echo "::endgroup::"
+          done
+
+      - name: Test
+        run: npx vitest run
