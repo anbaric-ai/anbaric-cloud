@@ -77,13 +77,14 @@ consumer. Nothing to install or configure.
 ```bash
 npm install -g anbaric-cli    # once; provides the anbaric command
 anbaric login                 # pick a platform; a browser authorizes this terminal
-anbaric configure             # writes .anbaric/app-config.json (name + internal port)
-anbaric deploy                # packs, uploads, bakes an image, waits until live
+anbaric app configure         # writes .anbaric/app-config.json (name + internal port)
+anbaric app deploy            # packs, uploads, bakes an image, waits until live
 ```
 
-`deploy` returns when the app is actually answering on its port. Watch it
-work with `anbaric apps`, `anbaric job list [state-machine]`, and
-`anbaric job watch <job-id>`.
+`app deploy` returns when the app is actually answering on its port. Watch it
+work with `anbaric apps`, `anbaric jobs list [state-machine]`, and
+`anbaric jobs watch <job-id>`. The `app` commands run from anywhere inside the
+project — they walk up to the nearest `package.json`.
 
 ### What deployment does (and expects)
 
@@ -102,8 +103,8 @@ An app must have:
 - `package.json` with `main` pointing at the entry file (e.g. `src/main.ts`)
   and `"type": "module"`.
 - `.anbaric/app-config.json` with a `name` (lowercase letters, numbers, `-`,
-  `_`) and an `internalPort` — `anbaric configure` creates it, and `deploy`
-  prompts if it's missing.
+  `_`) and an `internalPort` — `anbaric app configure` creates it, and
+  `app deploy` prompts if it's missing.
 - An HTTP listener on `process.env.PORT` (deploy waits for it to respond).
 
 The platform injects all wiring as env vars (`ANBARIC_*_TYPE=cloud`, the
@@ -114,15 +115,18 @@ platform URL, consumer ports) — never hardcode these.
 | Command | Purpose |
 | --- | --- |
 | `anbaric login` | choose a platform and authorize this terminal (browser flow; keypair saved to `~/.anbaric/`) |
-| `anbaric configure [dir]` | create or update `.anbaric/app-config.json` |
-| `anbaric deploy [dir]` | deploy an app (prompts before replacing a running one) |
-| `anbaric update [dir]` | deploy, replacing without prompting |
 | `anbaric apps` | list deployed apps |
+| `anbaric app configure` | create or update `.anbaric/app-config.json` |
+| `anbaric app deploy` | deploy the app (prompts before replacing a running one) |
+| `anbaric app update` | deploy, replacing without prompting |
+| `anbaric app status <name>` | show an app's deploy state and whether it is up |
+| `anbaric app tail <name>` | stream an app's runtime logs |
+| `anbaric app tear-down <name>` | stop and remove a deployed app |
 | `anbaric state-machines` | list registered state machines |
-| `anbaric job list [state-machine-id]` | list jobs |
-| `anbaric job watch <job-id>` | follow a job's state live |
-| `anbaric job set-state <job-id> <state>` | move a job and re-queue it |
-| `anbaric job update <job-id> <key=value ...>` | update job properties and re-queue |
+| `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs watch <job-id>` | follow a job's state live |
+| `anbaric jobs set-state <job-id> <state>` | move a job and re-queue it |
+| `anbaric jobs update <job-id> <key=value ...>` | update job properties and re-queue |
 
 All commands accept `--platform-url` and `--tenant`; `login` sets the
 defaults. Manage your CLI keys in the browser at `<platform>/manage-keys`.
@@ -141,5 +145,5 @@ tofu init && tofu apply       # Docker Desktop: Postgres + the platform on :8787
 ```
 
 See `gitops/README.md` for staging/prod and for enabling Auth0 login.
-`sample-apps/crm` is a complete worked example — deploy it with
-`anbaric deploy sample-apps/crm`.
+`sample-apps/crm` is a complete worked example — deploy it by running
+`anbaric app deploy` from inside `sample-apps/crm`.

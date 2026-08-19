@@ -14,33 +14,41 @@ npm install -g anbaric-cli
 | --- | --- |
 | `anbaric login` | choose a platform and authorize this terminal (browser flow; keypair saved to `~/.anbaric/key.json`) |
 | `anbaric logout` | revoke this terminal's key on the platform and remove it locally |
-| `anbaric configure [dir]` | create or update the app's `.anbaric/app-config.json` (name + internal port) |
-| `anbaric deploy [dir]` | deploy an app; waits until it is live (prompts before replacing a running app) |
-| `anbaric update [dir]` | deploy, replacing a running app without prompting |
 | `anbaric apps` | list deployed apps |
+| `anbaric app configure` | create or update the app's `.anbaric/app-config.json` (name + internal port) |
+| `anbaric app deploy` | deploy the app; waits until it is live (prompts before replacing a running app) |
+| `anbaric app update` | deploy, replacing a running app without prompting |
+| `anbaric app status <name>` | show an app's deploy state and whether it is up |
+| `anbaric app tail <name>` | stream an app's runtime logs to stdout (Ctrl-C to stop) |
+| `anbaric app tear-down <name>` | stop and remove a deployed app (`--yes` to skip the prompt) |
 | `anbaric state-machines` | list registered state machines |
-| `anbaric job list [state-machine-id]` | list jobs |
-| `anbaric job watch <job-id>` | follow a job's state live |
-| `anbaric job set-state <job-id> <state>` | move a job to a state and re-queue it |
-| `anbaric job update <job-id> <key=value ...>` | update job properties and re-queue |
+| `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs watch <job-id>` | follow a job's state live |
+| `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |
+| `anbaric jobs update <job-id> <key=value ...>` | update job properties and re-queue |
+
+The `app configure`/`deploy`/`update` commands operate on the app for the
+current project — they walk up from the working directory to the nearest
+`package.json`, so they run from anywhere inside it.
 
 ## Flags
 
 | Flag | Overrides | Notes |
 | --- | --- | --- |
+| `-h`, `--help` | — | print the usage screen (also shown for any unknown command or flag) |
 | `--platform-url <url>` | the platform picker | exact URL, highest precedence |
 | `--environment <local\|staging\|production>` | the platform picker | fixed domains: `local` → `http://localhost:8787`, `staging` → `https://staging.cloud.anbaric.ai`, `production` → `https://cloud.anbaric.ai` |
 | `--tenant <tenant>` | nothing (no prompt asks for a tenant) | overrides the tenant the CLI routes to; normally learned automatically at login |
-| `--yes` | deploy's replace confirmation | equivalent to `update` |
-| `--name <name>` | configure's app-name prompt | lowercase letters, numbers, `-`, `_` |
-| `--port <port>` | configure's internal-port prompt | 1–65535 |
+| `--yes` | `app deploy`'s replace confirmation and `app tear-down`'s prompt | for deploy, equivalent to `app update` |
+| `--name <name>` | `app configure`'s app-name prompt | lowercase letters, numbers, `-`, `_` |
+| `--port <port>` | `app configure`'s internal-port prompt | 1–65535 |
 
 ## Non-interactive usage (agents, CI)
 
 ```bash
-anbaric configure --name crm --port 3000 ./my-app
-anbaric update --environment staging --tenant internal ./my-app
-anbaric job set-state 4f1c... approved --environment staging --tenant internal
+anbaric app configure --name crm --port 3000
+anbaric app update --environment staging --tenant internal
+anbaric jobs set-state 4f1c... approved --environment staging --tenant internal
 ```
 
 Without a TTY the CLI never prompts: prompts either take their flag value,
@@ -64,5 +72,5 @@ a fresh 60-second EdDSA JWT signed with that key, plus an
 be reviewed and revoked in the browser at `<platform>/manage-keys`.
 
 A typical session is: `anbaric login` once, then plain
-`anbaric deploy --environment staging` forever after — the tenant travels
+`anbaric app deploy --environment staging` forever after — the tenant travels
 with the key, never with the URL.
