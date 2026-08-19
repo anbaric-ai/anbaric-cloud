@@ -81,22 +81,25 @@ anbaric app configure         # writes .anbaric/app-config.json (name + internal
 anbaric app deploy            # packs, uploads, bakes an image, waits until live
 ```
 
-`app deploy` returns when the app is actually answering on its port. Watch it
+`app deploy` returns once the app is actually up — its built-in admin port
+answers the platform's liveness ping. Watch it
 work with `anbaric apps`, `anbaric jobs list [state-machine]`, and
 `anbaric jobs watch <job-id>`. The `app` commands run from anywhere inside the
 project — they walk up to the nearest `package.json`.
 
 ### What deployment does (and expects)
 
-The platform unpacks your upload onto a pre-canned base image, links the
-`anbaric-*` libraries, bakes a Docker image and runs it as a container. Note
-carefully what it does **not** do:
+The platform unpacks your upload onto a pre-canned base image, installs the
+app's dependencies, bakes a Docker image and runs it as a container. One thing
+it does **not** do:
 
 - **No build step.** `npm run build` is never run — your TypeScript source is
   executed directly (via tsx). Ship source, not `dist/`.
-- **No dependency install.** `npm install` is never run. Only `anbaric-*`
-  dependencies are available (the platform links them in); other npm
-  dependencies are not yet supported in deployed apps.
+
+Dependencies, though, *are* installed: the image runs `npm install` for the
+app's declared dependencies (the `anbaric-*` packages and any others), so
+ordinary npm dependencies work. Only source is uploaded — `node_modules` is
+not.
 
 An app must have:
 
@@ -105,10 +108,12 @@ An app must have:
 - `.anbaric/app-config.json` with a `name` (lowercase letters, numbers, `-`,
   `_`) and an `internalPort` — `anbaric app configure` creates it, and
   `app deploy` prompts if it's missing.
-- An HTTP listener on `process.env.PORT` (deploy waits for it to respond).
 
-The platform injects all wiring as env vars (`ANBARIC_*_TYPE=cloud`, the
-platform URL, consumer ports) — never hardcode these.
+A built-in admin process answers the platform's liveness check, so an app needs
+no HTTP server of its own to deploy. If it does serve HTTP (reached through the
+app proxy), it listens on `process.env.PORT`. The platform injects all wiring as
+env vars (`ANBARIC_*_TYPE=cloud`, the platform URL, the consumer and admin
+ports) — never hardcode these.
 
 ## CLI reference
 
