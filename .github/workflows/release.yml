@@ -58,7 +58,7 @@ jobs:
         if: steps.version.outputs.published == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --workspaces --access public
+        run: npm publish --workspaces --access public --tag latest
 
       - name: Tag the release
         if: steps.version.outputs.published == 'false'
