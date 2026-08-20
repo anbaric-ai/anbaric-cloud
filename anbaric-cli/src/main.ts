@@ -17,7 +17,8 @@ import {LogoutCommand} from "./commands/LogoutCommand";
 import {StateMachinesCommand} from "./commands/StateMachinesCommand";
 import {WatchCommand} from "./commands/WatchCommand";
 import {findAppRoot} from "./findAppRoot";
-import {bold, dim, red} from "./ui/Ansi";
+import {versionSkewWarning} from "./versionCheck";
+import {bold, dim, red, yellow} from "./ui/Ansi";
 
 const usage = () => {
     console.log(`${bold("anbaric")} — the Anbaric platform CLI
@@ -71,6 +72,9 @@ const parse = () => {
 };
 
 const {values, positionals} = parse();
+
+const skew = versionSkewWarning();
+if (skew) console.warn(yellow(`⚠ ${skew}`));
 
 if (values.help) {
     usage();
