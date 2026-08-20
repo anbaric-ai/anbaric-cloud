@@ -49,4 +49,10 @@ describe("State", () => {
         expect(state.transitions).toBe(transitions);
     });
 
+    it("is not terminal by default", () => {
+        const state = new State("draft");
+
+        expect(state.isTerminal).toBe(false);
+    });
+
 });

@@ -7,6 +7,7 @@ describe("public api barrel", () => {
         expect(api.Job).toBeTypeOf("function");
         expect(api.PropertyDefinition).toBeTypeOf("function");
         expect(api.State).toBeTypeOf("function");
+        expect(api.Terminal).toBeTypeOf("function");
         expect(api.Action).toBeTypeOf("function");
         expect(api.AgenticAction).toBeTypeOf("function");
         expect(api.Agent).toBeTypeOf("function");
