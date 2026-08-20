@@ -55,8 +55,15 @@ actor that made it.
 Everything is pluggable through env-driven factories: locally (no env vars)
 you get in-memory persistence and queueing; deployed, the same factories talk
 to the platform automatically. The same applies to `JsonStoreFactory`
-(schema-validated documents) and `SecretStoreFactory` (encrypted secrets) from
-`anbaric-data-store`.
+(schema-validated documents), `SecretStoreFactory` (encrypted secrets) and
+`SqlStoreFactory` (a relational store) from `anbaric-data-store`.
+
+The SQL store is backed by SQLite locally (in-memory by default) and, once
+deployed, by the tenant's PostgreSQL in a dedicated `anbaric_app_data` schema
+shared by all of the tenant's apps. Write portable SQL where you can — the two
+differ in a few places, notably parameter placeholders (`?` for SQLite, `$1`
+for PostgreSQL); see the [`anbaric-data-store`](anbaric-data-store/README.md)
+docs for the full list.
 
 If your app serves HTTP, listen on `process.env.PORT` and users reach it at
 `<platform>/<app-name>`. All front-end must be React and use the Anbaric

@@ -54,6 +54,8 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL!,
         servicesUrl: process.env.ANBARIC_SERVICES_URL,
         servicesApiKey: process.env.ANBARIC_SERVICES_API_KEY,
+        sqlDatabaseUrlSecretArn: process.env.ANBARIC_AWS_APP_SQL_URL_SECRET,
+        sqlSchema: process.env.ANBARIC_SQL_SCHEMA,
     })
     : undefined;
 

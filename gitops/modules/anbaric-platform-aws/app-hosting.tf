@@ -99,6 +99,21 @@ resource "aws_iam_role_policy_attachment" "app_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Apps resolve their shared SQL connection URL as an ECS secret at launch.
+resource "aws_iam_role_policy" "app_execution_sql_secret" {
+  name = "read-app-db-url"
+  role = aws_iam_role.app_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "secretsmanager:GetSecretValue"
+      Resource = aws_secretsmanager_secret.app_db_url.arn
+    }]
+  })
+}
+
 resource "aws_iam_role" "codebuild" {
   name = "anbaric-${var.environment}-app-build"
 

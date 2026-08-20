@@ -1,9 +1,9 @@
 # anbaric-data-store
 
-Schema-validated JSON document storage and secret storage for Anbaric apps,
-with in-memory implementations and env-driven factories. App developers
-usually install [`anbaric`](https://npmjs.com/package/anbaric), which
-re-exports this package.
+Schema-validated JSON document storage, secret storage, and a relational (SQL)
+store for Anbaric apps, with local implementations and env-driven factories.
+App developers usually install [`anbaric`](https://npmjs.com/package/anbaric),
+which re-exports this package.
 
 ## Documents
 
@@ -42,13 +42,46 @@ await secrets.create(actor, "api-key", "s3cr3t");
 const key = await secrets.retrieve("api-key", actor);
 ```
 
+## SQL
+
+A relational store for structured app data. Locally it is backed by SQLite (an
+in-memory database by default); once deployed, every app in a tenant shares one
+dedicated PostgreSQL schema (`anbaric_app_data`), kept apart from the platform's
+own schemas by a scoped database role.
+
+```ts
+import {SqlStoreFactory} from "anbaric-data-store";
+
+const sql = SqlStoreFactory.instance();
+
+await sql.execute(actor, "CREATE TABLE IF NOT EXISTS notes (id SERIAL PRIMARY KEY, body TEXT)");
+await sql.execute(actor, "INSERT INTO notes (body) VALUES ($1)", ["hello"]);   // SQLite: VALUES (?)
+const rows = await sql.query(actor, "SELECT id, body FROM notes WHERE body = $1", ["hello"]);
+```
+
+`query` returns the rows; `execute` returns the number of affected rows. Both
+record the interaction (`QUERY` / `EXECUTE`) for the audit trail.
+
+**SQLite (local) vs PostgreSQL (cloud).** The backends are close but not
+identical — write portable SQL, or target the one you deploy to:
+
+| | SQLite (local) | PostgreSQL (cloud) |
+| --- | --- | --- |
+| Parameter placeholders | positional `?` | numbered `$1, $2` |
+| Auto-increment key | `INTEGER PRIMARY KEY` | `SERIAL` / `GENERATED … AS IDENTITY` |
+| Column types | dynamic (`TEXT`/`INTEGER`/`REAL`/`BLOB`) | static and rich (`JSONB`, `TIMESTAMPTZ`, …) |
+| Booleans | `0` / `1` | native `boolean` |
+| Persistence | in-memory unless `ANBARIC_SQL_FILE` is set | durable, shared across the tenant's apps |
+
 ## Factories
 
 | Factory | Env var | Default | `cloud` |
 | --- | --- | --- | --- |
 | `JsonStoreFactory.instance(collection, schema?)` | `ANBARIC_JSON_STORE_TYPE` | `InMemoryJsonStore` | `CloudJsonStore` |
 | `SecretStoreFactory.instance()` | `ANBARIC_SECRET_STORE_TYPE` | `InMemorySecretStore` | `CloudSecretStore` |
+| `SqlStoreFactory.instance()` | `ANBARIC_SQL_STORE_TYPE` | `SqliteSqlStore` | `PostgresSqlStore` |
 
-An Anbaric platform injects `cloud` into deployed apps automatically. In
-cloud mode documents live in the platform's Postgres and secrets in its
-secret store (AWS Secrets Manager on the hosted platform).
+An Anbaric platform injects `cloud` into deployed apps automatically. In cloud
+mode documents live in the platform's Postgres and secrets in its secret store
+(AWS Secrets Manager on the hosted platform); the SQL store connects directly to
+the tenant's Postgres, in its own `anbaric_app_data` schema.
