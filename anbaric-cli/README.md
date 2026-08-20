@@ -1,8 +1,10 @@
 # anbaric-cli
 
-The Anbaric platform CLI. Dependency-light (only `tsx`), hand-rolled
-terminal UI, and fully scriptable: **every interactive prompt has a flag**,
-so it works identically for humans and for AI agents or CI.
+The command-line interface for an Anbaric platform: it authorizes a terminal,
+deploys and manages apps, and inspects and drives jobs. It publishes as a single
+bundled file that runs on plain Node with no runtime dependencies. Every
+interactive prompt also has a flag, so the CLI runs unattended in scripts and CI
+as well as interactively.
 
 ```bash
 npm install -g anbaric-cli

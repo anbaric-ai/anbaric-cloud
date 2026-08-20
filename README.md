@@ -1,10 +1,12 @@
 # Anbaric
 
-Build custom back-office software from the ground up in minutes, not months.
-An Anbaric app is a plain Node/TypeScript program that models its work as
-**state machines**: jobs move through states, actions run when a job is
-processed, and transitions decide where it goes next. Run it on your laptop
-with zero setup, then deploy the same code unchanged to an Anbaric platform.
+Anbaric is a TypeScript framework for building stateful back-office
+applications, together with a platform for deploying them. An app is a plain
+Node/TypeScript program that models its work as **state machines**: jobs move
+through named states, actions run when a job is processed, and transitions
+decide which state a job moves to next. The same program runs against in-memory
+implementations on your machine and against a platform's Postgres, queue and
+stores once deployed — the application code does not change between the two.
 
 This README is for app developers. If you're working on the platform itself,
 start with `CLAUDE.md` and the package READMEs.
@@ -72,12 +74,18 @@ opening `anbaric-design-system/dist/index.html`.
 
 ## Run it locally
 
+With no `ANBARIC_*` variables set, the factories return the in-memory
+persistence, queue and stores, so the program runs entirely in-process — no
+database or platform involved. Run the TypeScript entry file directly with tsx;
+`npx` fetches it on demand if your project doesn't already depend on it:
+
 ```bash
 npx tsx src/main.ts
 ```
 
-That's it — jobs live in memory and progress automatically via the local
-consumer. Nothing to install or configure.
+Jobs are held in memory and progress as the in-memory consumer delivers them;
+the state is gone when the process exits. This is the mode for development and
+tests.
 
 ## Deploy it
 

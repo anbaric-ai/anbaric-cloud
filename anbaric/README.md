@@ -1,17 +1,18 @@
 # anbaric
 
-Anbaric is a Typescript framework for building stateful applications. An application is
-expressed as one or more state machines: long-lived jobs move through named
-states, driven by actions and transitions, with their data validated against a
-schema and every change recorded in an audit trail. Alongside the state machine
-the framework provides schema-validated document storage and secret storage.
+Anbaric is a TypeScript framework for building stateful applications. An
+application is expressed as one or more state machines: long-lived jobs move
+through named states, driven by actions and transitions, with their data
+validated against a schema and every change recorded in an audit trail.
+Alongside the state machine the framework provides schema-validated document
+storage and secret storage.
 
-Anbaric also provides a platform-as-a-service to easily deploy stateful apps built on Anbaric. The same application runs unchanged on
-a developer's machine, on a server you operate, or on Anbaric Cloud, where a
-single CLI command deploys it. Application code depends only on the interfaces
-in this package; the framework selects in-memory or platform-backed
-implementations from the environment, so no deployment detail appears in the
-code.
+Anbaric also provides a platform for deploying the applications built on it. The
+same application runs unchanged on a developer's machine, on a server you
+operate, or on Anbaric Cloud, where a single CLI command deploys it. Application
+code depends only on the interfaces in this package; the framework selects
+in-memory or platform-backed implementations from the environment, so no
+deployment detail appears in the code.
 
 This package (`anbaric`) is the umbrella install for writing an application. It
 re-exports the app-facing surface of the underlying packages.

@@ -2,12 +2,9 @@
 
 `@anbaric/design-system` — the shared visual foundation for Anbaric products
 (the portal and hosted apps). It provides global design tokens (colour,
-gradients, typography, spacing, radius), brand assets, and — over time —
-reusable React components. Colours and type come from the Anbaric brand book
-(`anbaric-v2.pdf`, in this folder).
-
-It ships design tokens, brand assets, and a growing set of React components,
-with a Vite-powered living style guide for previewing them.
+gradients, typography, spacing, radius), brand assets, and a set of React
+components, previewed through a Vite-powered living style guide. Colours and
+type come from the Anbaric brand book (`anbaric-v2.pdf`, in this folder).
 
 ## Getting started
 
