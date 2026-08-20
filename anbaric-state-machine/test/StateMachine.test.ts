@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Transition} from "anbaric-tsapi";
+import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Terminal, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
@@ -334,7 +334,7 @@ describe("StateMachine", () => {
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
-        it("saves a property-only change with no new state and re-enqueues", async () => {
+        it("saves a property-only change with no new state and schedules a back-off re-enqueue", async () => {
             const job = jobInState("start");
             persistence.retrieve.mockResolvedValue(job);
             machineWith([new State("start", [stampingAction("touched", true)])], [new PropertyDefinition("touched")]);
@@ -344,7 +344,20 @@ describe("StateMachine", () => {
             expect(persistence.save).toHaveBeenCalledOnce();
             expect(savedProperties()?.get("touched")).toBe(true);
             expect(savedState()).toBeUndefined();
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
+            expect(queue.enqueue).not.toHaveBeenCalled();
+            expect(queue.schedule).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID, expect.any(Date));
+        });
+
+        it("does not save or re-enqueue when an action rewrites an unchanged value", async () => {
+            const job = new Job("job-1", new Map([["touched", true]]), "start");
+            persistence.retrieve.mockResolvedValue(job);
+            machineWith([new State("start", [stampingAction("touched", true)])], [new PropertyDefinition("touched")]);
+
+            await progressJob("job-1");
+
+            expect(persistence.save).not.toHaveBeenCalled();
+            expect(queue.enqueue).not.toHaveBeenCalled();
+            expect(queue.schedule).not.toHaveBeenCalled();
         });
 
         describe("transitions", () => {
@@ -364,6 +377,21 @@ describe("StateMachine", () => {
                 await progressJob("job-1");
 
                 expect(savedState()).toBe("approved");
+            });
+
+            it("stops without re-enqueuing when a transition reaches a terminal state", async () => {
+                const job = jobInState("start");
+                persistence.retrieve.mockResolvedValue(job);
+                machineWith([
+                    new State("start", [], [new Transition("done", () => true)]),
+                    new Terminal("done", Terminal.Outcome.SUCCESS),
+                ]);
+
+                await progressJob("job-1");
+
+                expect(savedState()).toBe("done");
+                expect(queue.enqueue).not.toHaveBeenCalled();
+                expect(queue.schedule).not.toHaveBeenCalled();
             });
 
             it("leaves the state unchanged when no transition matches", async () => {

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Consumer, Dequeue, Job, PropertyDefinition, State, Transition} from "anbaric-tsapi";
+import {Action, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
@@ -96,6 +96,81 @@ describe("StateMachine with in-memory collaborators", () => {
         expect(saved.properties.get("progressed")).toBe(true);
         expect(saved.properties.has("mystery")).toBe(false);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("mystery"));
+    });
+
+    it("does not re-enqueue when an action rewrites an unchanged value", async () => {
+        const restamp = new Action("restamp", new Code("restamp"));
+        restamp.run = async () => new Map([["progressed", true]]);
+
+        const idle = new StateMachine(
+            "idle-workflow",
+            [new State("start", [restamp])],
+            "start",
+            [optionalFlag("progressed")],
+            persistence,
+            queue,
+        );
+
+        const enqueue = vi.spyOn(queue, "enqueue");
+        const schedule = vi.spyOn(queue, "schedule");
+        const job = await idle.startJob(new Map([["progressed", true]]));
+        enqueue.mockClear();
+
+        await progress(job.id);
+
+        expect(enqueue).not.toHaveBeenCalled();
+        expect(schedule).not.toHaveBeenCalled();
+    });
+
+    it("backs off with a scheduled re-enqueue when a job changes but stays in the same state", async () => {
+        const tick = new Action("tick", new Code("ticker"));
+        tick.run = async (job) => new Map([["attempts", (job.properties.get("attempts") ?? 0) + 1]]);
+
+        const poller = new StateMachine(
+            "poller",
+            [new State("waiting", [tick])],
+            "waiting",
+            [optionalNumber("attempts")],
+            persistence,
+            queue,
+        );
+
+        const enqueue = vi.spyOn(queue, "enqueue");
+        const schedule = vi.spyOn(queue, "schedule");
+        const job = await poller.startJob();
+        enqueue.mockClear();
+
+        await progress(job.id);
+
+        expect(enqueue).not.toHaveBeenCalled();
+        expect(schedule).toHaveBeenCalledTimes(1);
+        expect((schedule.mock.calls[0][2] as Date).getTime()).toBeGreaterThan(Date.now());
+        expect((await persistence.retrieve(job.id, actor)).properties.get("attempts")).toBe(1);
+    });
+
+    it("stops at a terminal state without re-enqueuing", async () => {
+        const finisher = new StateMachine(
+            "finisher",
+            [
+                new State("working", [stampingAction("done", true)], [new Transition("finished", (job) => job.properties.get("done") === true)]),
+                new Terminal("finished", Terminal.Outcome.SUCCESS),
+            ],
+            "working",
+            [optionalFlag("done")],
+            persistence,
+            queue,
+        );
+
+        const enqueue = vi.spyOn(queue, "enqueue");
+        const schedule = vi.spyOn(queue, "schedule");
+        const job = await finisher.startJob();
+        enqueue.mockClear();
+
+        await progress(job.id);
+
+        expect((await persistence.retrieve(job.id, actor)).state).toBe("finished");
+        expect(enqueue).not.toHaveBeenCalled();
+        expect(schedule).not.toHaveBeenCalled();
     });
 
     it("branches an order to cancellation or shipping depending on its properties", async () => {

@@ -24,8 +24,9 @@ class StateMachine {
     private queue: Queue;
     private consumer: Consumer;
     private machineActor: Code;
+    private sameStateDelayMs: number;
 
-    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance()) {
+    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
@@ -34,6 +35,7 @@ class StateMachine {
         this.persistence = persistence;
         this.queue = queue;
         this.machineActor = new Code(workflowId, "state-machine");
+        this.sameStateDelayMs = sameStateDelayMs;
 
         this.consumer = ConsumerFactory.instance(queue)
         this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
@@ -113,6 +115,8 @@ class StateMachine {
         const job = await this.persistence.retrieve(jobId, this.machineActor);
         const currentState = this.states.get(job.state);
 
+        if (currentState?.isTerminal) return;
+
         const involvedActors : Actor[] = [];
 
         for (const action of currentState?.actions ?? []) {
@@ -128,6 +132,7 @@ class StateMachine {
                     console.warn(`[${this.workflowId}] action "${action.name}" set "${key}", which ${problem}, on job ${job.id} — skipping that property.`);
                     continue;
                 }
+                if (job.properties.has(key) && this.sameValue(job.properties.get(key), value)) continue;
                 job.properties.set(key, value);
                 pristine = false;
                 applied = true;
@@ -146,11 +151,21 @@ class StateMachine {
             }
         }
 
-        if (! pristine) {
-            // TODO: persistence.save should have the ability to accept multiple actors for this case.
-            await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`, job, job.properties, newState);
+        if (pristine) return;
+
+        // TODO: persistence.save should have the ability to accept multiple actors for this case.
+        await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`, job, job.properties, newState);
+
+        if (this.states.get(newState ?? job.state)?.isTerminal) return;
+        if (newState !== undefined) {
             await this.queue.enqueue(job.id, this.workflowId);
+        } else {
+            await this.queue.schedule(job.id, this.workflowId, new Date(Date.now() + this.sameStateDelayMs));
         }
+    }
+
+    private sameValue(a : any, b : any) : boolean {
+        return a === b || JSON.stringify(a) === JSON.stringify(b);
     }
 
     async cleanUp() : Promise<void> {
