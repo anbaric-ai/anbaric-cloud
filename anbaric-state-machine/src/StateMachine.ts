@@ -15,10 +15,11 @@ import {Code} from "./actors/Code";
 
 class StateMachine {
 
-    private workflowId: string;
-    private states: Map<string, State>;
-    private startState: string;
-    private dataSchema: Map<string, PropertyDefinition>;
+    readonly workflowId: string;
+    readonly states: Map<string, State>;
+    readonly startState: string;
+    readonly dataSchema: Map<string, PropertyDefinition>;
+
     private persistence: JobPersistence;
     private queue: Queue;
     private consumer: Consumer;
@@ -87,8 +88,7 @@ class StateMachine {
 
     private validateProperties(properties : Map<string, any>, isNew : boolean) : boolean {
         for (const [key, value] of properties) {
-            const definition = this.dataSchema.get(key);
-            if (! definition || ! definition.validation(value)) return false;
+            if (this.propertyProblem(key, value)) return false;
         }
 
         if (! isNew) return true;
@@ -98,6 +98,13 @@ class StateMachine {
         }
 
         return true;
+    }
+
+    private propertyProblem(key : string, value : any) : string | undefined {
+        const definition = this.dataSchema.get(key);
+        if (! definition) return "is not declared in the data schema";
+        if (! definition.validation(value)) return "failed its validation";
+        return undefined;
     }
 
     private async progressJob(jobId : string) : Promise<void> {
@@ -114,14 +121,19 @@ class StateMachine {
 
             const newProperties = await action.run(job);
 
-            if (! this.validateProperties(newProperties, false)) continue;
-
-            involvedActors.push(action.actor);
-
-            newProperties.forEach((value, key) => {
-                pristine = false;
+            let applied = false;
+            for (const [key, value] of newProperties) {
+                const problem = this.propertyProblem(key, value);
+                if (problem) {
+                    console.warn(`[${this.workflowId}] action "${action.name}" set "${key}", which ${problem}, on job ${job.id} — skipping that property.`);
+                    continue;
+                }
                 job.properties.set(key, value);
-            });
+                pristine = false;
+                applied = true;
+            }
+
+            if (applied) involvedActors.push(action.actor);
         }
 
         let newState : string | undefined = undefined;

@@ -74,6 +74,30 @@ describe("StateMachine with in-memory collaborators", () => {
         await progress(job.id);
     });
 
+    it("applies an action's declared properties and warns on an undeclared one rather than dropping the lot", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+        const leaky = new Action("leaky", new Code("leaky"));
+        leaky.run = async () => new Map<string, any>([["progressed", true], ["mystery", 7]]);
+
+        const leakyMachine = new StateMachine(
+            "leaky-workflow",
+            [new State("start", [leaky])],
+            "start",
+            [optionalFlag("progressed")],
+            persistence,
+            queue,
+        );
+
+        const job = await leakyMachine.startJob();
+        await progress(job.id);
+
+        const saved = await persistence.retrieve(job.id, actor);
+        expect(saved.properties.get("progressed")).toBe(true);
+        expect(saved.properties.has("mystery")).toBe(false);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("mystery"));
+    });
+
     it("branches an order to cancellation or shipping depending on its properties", async () => {
         const orderMachine = () => new StateMachine(
             "order-fulfilment",
