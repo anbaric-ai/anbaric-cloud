@@ -58,16 +58,7 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # 2.0.0 is still published and higher than the 1.x line, so npm rejects
-          # implicitly moving the "latest" tag; publish under a side tag and move
-          # latest explicitly (best-effort).
-          npm publish --workspaces --access public --tag deploy
-          for pkg in tsapi anbaric-state-machine anbaric-data-store anbaric-impl-cloud anbaric \
-                     anbaric-cloud-hosting anbaric-hosting anbaric-plugins anbaric-services-client anbaric-cli; do
-            name=$(node -p "require('./$pkg/package.json').name")
-            npm dist-tag add "$name@${{ steps.version.outputs.version }}" latest || true
-          done
+        run: npm publish --workspaces --access public
 
       - name: Commit version bump and tag
         env:
