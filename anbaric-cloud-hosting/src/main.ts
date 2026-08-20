@@ -35,6 +35,8 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         baseImage: process.env.ANBARIC_APP_BASE_IMAGE ?? "anbaric-v2-platform:local",
         network: process.env.ANBARIC_DOCKER_NETWORK ?? "anbaric-v2-local",
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL ?? `http://localhost:${internalPort}`,
+        sqlDatabaseUrl: process.env.ANBARIC_APP_SQL_DATABASE_URL,
+        sqlSchema: process.env.ANBARIC_SQL_SCHEMA,
     })
     : process.env.ANBARIC_BUILD_LAYER === "fargate"
     ? new FargateBuildLayer(appsDir, {

@@ -13,6 +13,8 @@ type DockerBuildLayerOptions = {
     baseImage : string,
     network : string,
     platformUrl : string,
+    sqlDatabaseUrl? : string,
+    sqlSchema? : string,
 };
 
 type CommandRunner = (command : string, args : Array<string>, onOutput : (line : string) => void) => Promise<void>;
@@ -69,6 +71,12 @@ class DockerBuildLayer extends BaseBuildLayer {
 
         await this.removeContainer(deployment, container);
 
+        const sqlEnv = this.options.sqlDatabaseUrl ? [
+            "--env", "ANBARIC_SQL_STORE_TYPE=cloud",
+            "--env", `ANBARIC_SQL_DATABASE_URL=${this.options.sqlDatabaseUrl}`,
+            "--env", `ANBARIC_SQL_SCHEMA=${this.options.sqlSchema ?? "anbaric_app_data"}`,
+        ] : [];
+
         this.log(deployment, `starting container ${container}`);
         await this.docker(deployment, ["run", "--detach", "--name", container,
             "--network", this.options.network,
@@ -82,6 +90,7 @@ class DockerBuildLayer extends BaseBuildLayer {
             "--env", "ANBARIC_AUDITOR_TYPE=cloud",
             "--env", `ANBARIC_CONSUMER_PORT=${deployment.consumerPort}`,
             "--env", `ANBARIC_CONSUMER_URL=http://${container}:${deployment.consumerPort}`,
+            ...sqlEnv,
             image]);
 
         void this.docker(deployment, ["logs", "--follow", container]).catch(() => {});

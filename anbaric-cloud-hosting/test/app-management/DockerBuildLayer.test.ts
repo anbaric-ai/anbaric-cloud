@@ -45,7 +45,10 @@ describe("DockerBuildLayer", () => {
         dockerCommands = [];
         buildLayer = new DockerBuildLayer(
             join(workDir, "apps"),
-            { baseImage: "anbaric-base:test", network: "anbaric-test-net", platformUrl: "http://platform:8787" },
+            {
+                baseImage: "anbaric-base:test", network: "anbaric-test-net", platformUrl: "http://platform:8787",
+                sqlDatabaseUrl: "postgres://anbaric_app:pw@anbaric-v2-postgres:5432/anbaric",
+            },
             CONSUMER_PORT_BASE,
             recordingRunner,
             async () => true,
@@ -96,6 +99,9 @@ CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-host
         expect(run).toContain("ANBARIC_JSON_STORE_TYPE=cloud");
         expect(run).toContain("ANBARIC_SECRET_STORE_TYPE=cloud");
         expect(run).toContain(`ANBARIC_CONSUMER_URL=http://anbaric-app-fixture-app:${CONSUMER_PORT_BASE}`);
+        expect(run).toContain("ANBARIC_SQL_STORE_TYPE=cloud");
+        expect(run).toContain("ANBARIC_SQL_DATABASE_URL=postgres://anbaric_app:pw@anbaric-v2-postgres:5432/anbaric");
+        expect(run).toContain("ANBARIC_SQL_SCHEMA=anbaric_app_data");
         expect(run[run.length - 1]).toBe("anbaric-app-fixture-app");
     });
 
