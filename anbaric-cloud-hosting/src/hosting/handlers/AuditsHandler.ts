@@ -1,9 +1,6 @@
-import {AuditInteraction} from "anbaric-tsapi";
 import {AuditRecordStore} from "../../auditing/AuditRecordStore";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
-
-const AUDIT_INTERACTIONS = new Set(["CREATE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE", "READ", "LIST"]);
 
 class AuditsHandler implements RequestHandler {
 
@@ -27,7 +24,7 @@ class AuditsHandler implements RequestHandler {
             || typeof record?.description !== "string" || typeof record?.actorId !== "string"
             || typeof record?.actorType !== "string"
             || !Array.isArray(record?.interaction) || record.interaction.length === 0
-            || !record.interaction.every((interaction : unknown) => typeof interaction === "string" && AUDIT_INTERACTIONS.has(interaction))) {
+            || !record.interaction.every((interaction : unknown) => typeof interaction === "string" && interaction.length > 0)) {
             return request.reply(400, { error: "Expected a body of { resourceType, resourceId, actorId, actorType, interaction: [...], description, ... }" });
         }
         await this.auditRecords.save(record);
@@ -40,7 +37,7 @@ class AuditsHandler implements RequestHandler {
             resourceType: request.query("resourceType"),
             resourceId: request.query("resourceId"),
             actorId: request.query("actorId"),
-            interaction: interaction && AUDIT_INTERACTIONS.has(interaction) ? interaction as AuditInteraction : undefined,
+            interaction: interaction || undefined,
             search: request.query("search"),
             pageSize: request.query("pageSize") === undefined ? undefined : Number(request.query("pageSize")),
             page: request.query("page") === undefined ? undefined : Number(request.query("page")),

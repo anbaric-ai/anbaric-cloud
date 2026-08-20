@@ -1,7 +1,6 @@
 import {Actor} from "../actors/Actor";
-import {AuditInteraction, Auditor} from "../auditing/Auditor";
+import {Auditor} from "../auditing/Auditor";
 import {Job} from "./Job";
-import {SystemActor} from "../actors/SystemActor";
 
 /* Persists jobs and audits every interaction. Public methods record the
    interaction against the injected auditor and then defer to the abstract
@@ -14,7 +13,7 @@ abstract class JobPersistence {
     async create(actor : Actor,
                job : Job) : Promise<void> {
 
-        await this.auditor.audit("job", job.id, actor, [AuditInteraction.CREATE], "Job created", job);
+        await this.auditor.audit("job", job.id, actor, [JobPersistence.Interaction.CREATE], "Job created", job);
 
         this.saveInternal(job);
     }
@@ -30,9 +29,9 @@ abstract class JobPersistence {
             state: state ? {from : job.state, to : state} : undefined
         }
 
-        const interaction = [];
-        if (properties) interaction.push(AuditInteraction.UPDATE_PROPERTIES);
-        if (state) interaction.push(AuditInteraction.CHANGE_STATE);
+        const interaction : Array<string> = [];
+        if (properties) interaction.push(JobPersistence.Interaction.UPDATE_PROPERTIES);
+        if (state) interaction.push(JobPersistence.Interaction.CHANGE_STATE);
 
         await this.auditor.audit("job", job.id, actor, interaction, changeDescription, change);
 
@@ -67,17 +66,17 @@ abstract class JobPersistence {
     }
 
     async retrieve(id : string, actor : Actor) : Promise<Job> {
-        await this.auditor.audit("job", id, actor, [AuditInteraction.READ], "", null);
+        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.READ], "", null);
         return this.retrieveInternal(id);
     }
 
     async delete(id : string, actor : Actor) : Promise<void> {
-        await this.auditor.audit("job", id, actor, [AuditInteraction.DELETE], "", null);
+        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.DELETE], "", null);
         await this.deleteInternal(id);
     }
 
     async list(actor : Actor, pageSize? : number, page? : number) : Promise<Array<Job>> {
-        await this.auditor.audit("job", "*", actor, [AuditInteraction.LIST], "", null);
+        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
         return this.listInternal(pageSize, page);
     }
 
@@ -85,6 +84,19 @@ abstract class JobPersistence {
     protected abstract retrieveInternal(id : string) : Promise<Job>;
     protected abstract deleteInternal(id : string) : Promise<void>;
     protected abstract listInternal(pageSize? : number, page? : number) : Promise<Array<Job>>;
+
+}
+
+namespace JobPersistence {
+
+    export enum Interaction {
+        CREATE = "CREATE",
+        UPDATE_PROPERTIES = "UPDATE_PROPERTIES",
+        CHANGE_STATE = "CHANGE_STATE",
+        DELETE = "DELETE",
+        READ = "READ",
+        LIST = "LIST",
+    }
 
 }
 

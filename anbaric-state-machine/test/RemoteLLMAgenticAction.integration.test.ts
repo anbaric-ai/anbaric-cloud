@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from "vitest";
-import {Agent, AgentRequest, AuditInteraction, PropertyDefinition, State} from "anbaric-tsapi";
+import {Agent, AgentRequest, PropertyDefinition, State} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
@@ -30,7 +30,7 @@ describe("RemoteLLMAgenticAction inside a StateMachine", () => {
         await machine.executeAction(job.id, action);
 
         expect((await persistence.retrieve(job.id, agent)).properties.get("summary")).toBe("all clear");
-        expect(auditor.audit).toHaveBeenCalledWith("job", job.id, agent, [AuditInteraction.UPDATE_PROPERTIES], expect.any(String), expect.anything());
+        expect(auditor.audit).toHaveBeenCalledWith("job", job.id, agent, ["UPDATE_PROPERTIES"], expect.any(String), expect.anything());
     });
 
 });

@@ -1,7 +1,6 @@
 import {
     Action,
     Actor,
-    AuditInteraction,
     Consumer,
     Job,
     JobPersistence,

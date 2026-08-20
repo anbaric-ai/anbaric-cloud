@@ -66,7 +66,7 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             resource_id   TEXT NOT NULL,
             actor_id      TEXT NOT NULL,
             actor_type    TEXT NOT NULL,
-            interaction   anbaric_system.audit_interaction[] NOT NULL,
+            interaction   TEXT[] NOT NULL,
             description   TEXT NOT NULL,
             details       JSONB,
             at            TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -74,7 +74,7 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     `);
     await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS resource_type TEXT");
     await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS resource_id TEXT");
-    await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS interaction anbaric_system.audit_interaction[]");
+    await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS interaction TEXT[]");
     await pool.query(`
         DO $$ BEGIN
             IF EXISTS (SELECT 1 FROM information_schema.columns
@@ -100,9 +100,19 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             END IF;
         END $$
     `);
+    await pool.query(`
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_schema = 'anbaric_system' AND table_name = 'audit_records'
+                         AND column_name = 'interaction' AND udt_name = '_audit_interaction') THEN
+                ALTER TABLE anbaric_system.audit_records
+                    ALTER COLUMN interaction TYPE TEXT[] USING interaction::text[];
+            END IF;
+        END $$
+    `);
     await pool.query("UPDATE anbaric_system.audit_records SET resource_type = 'job' WHERE resource_type IS NULL");
     await pool.query("UPDATE anbaric_system.audit_records SET resource_id = 'unknown' WHERE resource_id IS NULL");
-    await pool.query("UPDATE anbaric_system.audit_records SET interaction = ARRAY['UPDATE_PROPERTIES']::anbaric_system.audit_interaction[] WHERE interaction IS NULL");
+    await pool.query("UPDATE anbaric_system.audit_records SET interaction = ARRAY['UPDATE_PROPERTIES']::text[] WHERE interaction IS NULL");
     await pool.query("ALTER TABLE anbaric_system.audit_records ALTER COLUMN resource_type SET NOT NULL");
     await pool.query("ALTER TABLE anbaric_system.audit_records ALTER COLUMN resource_id SET NOT NULL");
     await pool.query("ALTER TABLE anbaric_system.audit_records ALTER COLUMN interaction SET NOT NULL");

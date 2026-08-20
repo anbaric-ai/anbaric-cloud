@@ -1,12 +1,10 @@
-import {AuditInteraction} from "../auditing/Auditor";
-
 type AuditRecord = {
     id? : string,
     resourceType : string,
     resourceId : string,
     actorId : string,
     actorType : string,
-    interaction : AuditInteraction[],
+    interaction : Array<string>,
     description : string,
     details : any,
     at? : string,

@@ -1,5 +1,4 @@
 import {beforeEach, describe, expect, it} from "vitest";
-import {AuditInteraction} from "anbaric-tsapi";
 import {InMemoryAuditRecordStore} from "../../src/auditing/InMemoryAuditRecordStore";
 
 describe("InMemoryAuditRecordStore", () => {
@@ -8,9 +7,9 @@ describe("InMemoryAuditRecordStore", () => {
 
     beforeEach(async () => {
         store = new InMemoryAuditRecordStore();
-        await store.save({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: [AuditInteraction.UPDATE_PROPERTIES], description: "Properties updated", details: { age: 42 } });
-        await store.save({ resourceType: "job", resourceId: "job-2", actorId: "bot", actorType: "CODE", interaction: [AuditInteraction.UPDATE_PROPERTIES], description: "Properties updated", details: null });
-        await store.save({ resourceType: "job", resourceId: "job-1", actorId: "workflow-1", actorType: "CODE", interaction: [AuditInteraction.CHANGE_STATE], description: 'Transitioned to "done"', details: null });
+        await store.save({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: ["UPDATE_PROPERTIES"], description: "Properties updated", details: { age: 42 } });
+        await store.save({ resourceType: "job", resourceId: "job-2", actorId: "bot", actorType: "CODE", interaction: ["UPDATE_PROPERTIES"], description: "Properties updated", details: null });
+        await store.save({ resourceType: "job", resourceId: "job-1", actorId: "workflow-1", actorType: "CODE", interaction: ["CHANGE_STATE"], description: 'Transitioned to "done"', details: null });
     });
 
     it("lists newest first with generated ids and timestamps", async () => {
@@ -34,7 +33,7 @@ describe("InMemoryAuditRecordStore", () => {
     });
 
     it("filters by interaction", async () => {
-        const records = await store.list({ interaction: AuditInteraction.CHANGE_STATE });
+        const records = await store.list({ interaction: "CHANGE_STATE" });
 
         expect(records).toHaveLength(1);
         expect(records[0].description).toBe('Transitioned to "done"');
