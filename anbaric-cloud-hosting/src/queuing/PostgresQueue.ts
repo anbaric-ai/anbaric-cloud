@@ -39,14 +39,12 @@ class PostgresQueue implements ConfirmableQueue {
                 if (!b.due) return 1;
                 return a.due.getTime() - b.due.getTime() || a.position - b.position;
             })
-            .map(row => ({ jobId: row.job_id, workflowId: row.workflow_id }));
+            .map(row => ({ jobId: row.job_id, workflowId: row.workflow_id, position: Number(row.position) }));
     }
 
     async confirm(message : QueueMessage) : Promise<void> {
-        await this.pool.query(
-            "DELETE FROM queue WHERE job_id = $1 AND workflow_id = $2",
-            [message.jobId, message.workflowId],
-        );
+        if (message.position === undefined) return;
+        await this.pool.query("DELETE FROM queue WHERE position = $1", [message.position]);
     }
 
 }

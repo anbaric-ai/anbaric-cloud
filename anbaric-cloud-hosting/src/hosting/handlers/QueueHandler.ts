@@ -23,8 +23,8 @@ class QueueHandler implements RequestHandler {
             case "dequeue":
                 return request.reply(200, { messages: await this.queue.dequeueSome() });
             case "confirm": {
-                const { jobId, workflowId } = await request.body();
-                await this.queue.confirm({ jobId, workflowId });
+                const { jobId, workflowId, position } = await request.body();
+                await this.queue.confirm({ jobId, workflowId, position });
                 return request.reply(204);
             }
         }
