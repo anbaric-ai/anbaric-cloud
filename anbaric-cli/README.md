@@ -24,6 +24,7 @@ npm install -g anbaric-cli
 | `anbaric app tail <name>` | stream an app's runtime logs to stdout (Ctrl-C to stop) |
 | `anbaric app tear-down <name>` | stop and remove a deployed app (`--yes` to skip the prompt) |
 | `anbaric state-machines` | list registered state machines |
+| `anbaric jobs create <state-machine-id> <start-state> [key=value ...]` | create a job in the given state machine and queue it for processing |
 | `anbaric jobs list [state-machine-id]` | list jobs |
 | `anbaric jobs watch <job-id>` | follow a job's state live |
 | `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |

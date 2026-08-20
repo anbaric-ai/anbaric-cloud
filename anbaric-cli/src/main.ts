@@ -9,6 +9,7 @@ import {AppTearDownCommand} from "./commands/AppTearDownCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
+import {JobCreateCommand} from "./commands/JobCreateCommand";
 import {JobSetStateCommand} from "./commands/JobSetStateCommand";
 import {JobUpdateCommand} from "./commands/JobUpdateCommand";
 import {LoginCommand} from "./commands/LoginCommand";
@@ -32,6 +33,7 @@ ${bold("Usage")}
   anbaric app tail <name>                       stream an app's runtime logs to stdout (Ctrl-C to stop)
   anbaric app tear-down <name>                  stop and remove a deployed app (--yes to skip the prompt)
   anbaric state-machines                        list registered state machines
+  anbaric jobs create <sm-id> <start-state> [k=v ...]  create a job and queue it for processing
   anbaric jobs list [state-machine-id]          list jobs, optionally for one state machine
   anbaric jobs watch <job-id>                   follow a job's state live
   anbaric jobs set-state <job-id> <state>       move a job to a state and re-queue it
@@ -133,6 +135,9 @@ const runJobCommand = async (args : Array<string>) : Promise<number> => {
     const [subcommand, jobId, ...rest] = args;
 
     switch (subcommand) {
+        case "create":
+            if (!jobId || !rest[0]) return fail("usage: anbaric jobs create <state-machine-id> <start-state> [key=value ...]");
+            return new JobCreateCommand(await clientFromConfig()).run(jobId, rest[0], rest.slice(1));
         case "list":
             return new JobsCommand(await clientFromConfig()).run(jobId);
         case "watch":

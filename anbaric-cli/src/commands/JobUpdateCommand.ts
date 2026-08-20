@@ -10,7 +10,9 @@ class JobUpdateCommand {
         const properties = parsePropertyPairs(pairs);
 
         const job = await this.client.get(`/jobs/${encodeURIComponent(jobId)}`);
-        await this.client.patch(`/jobs/${encodeURIComponent(jobId)}/properties`, properties);
+        job.properties = { ...(job.properties ?? {}), ...properties };
+        job.lastUpdated = new Date().toISOString();
+        await this.client.put(`/jobs/${encodeURIComponent(jobId)}`, job);
 
         const updates = Object.entries(properties)
             .map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(" ");

@@ -177,6 +177,7 @@ principal commands are:
 | `anbaric app tail <name>` | stream an application's runtime logs |
 | `anbaric app tear-down <name>` | stop and remove a deployed application |
 | `anbaric state-machines` | list registered state machines |
+| `anbaric jobs create <sm-id> <start-state> [k=v ...]` | create a job and queue it for processing |
 | `anbaric jobs list [state-machine-id]` | list jobs |
 | `anbaric jobs watch <job-id>` | follow a job's state as it changes |
 | `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |
