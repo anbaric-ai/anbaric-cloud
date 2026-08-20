@@ -76,6 +76,11 @@ resource "docker_container" "platform" {
     "ANBARIC_APP_BASE_IMAGE=anbaric-v2-platform:local",
     "ANBARIC_DOCKER_NETWORK=anbaric-v2-local",
     "ANBARIC_PLATFORM_INTERNAL_URL=http://anbaric-v2-platform:8788",
+    # Shared app SQL store: the platform creates the scoped anbaric_app role with
+    # this password, and hands deployed app containers the matching URL so they
+    # share one anbaric_app_data schema in the local Postgres.
+    "ANBARIC_APP_DB_PASSWORD=anbaricapp",
+    "ANBARIC_APP_SQL_DATABASE_URL=postgres://anbaric_app:anbaricapp@anbaric-v2-postgres:5432/anbaric",
     ], var.authenticator == "" ? [] : [
     "ANBARIC_AUTHENTICATOR=${var.authenticator}",
     "ANBARIC_TENANT=${var.tenant}",

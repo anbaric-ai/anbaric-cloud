@@ -1,10 +1,10 @@
-import {AuditInteraction, AuditRecord} from "anbaric-tsapi";
+import {AuditRecord} from "anbaric-tsapi";
 
 type AuditFilter = {
     resourceType? : string,
     resourceId? : string,
     actorId? : string,
-    interaction? : AuditInteraction,
+    interaction? : string,
     search? : string,
     pageSize? : number,
     page? : number,

@@ -93,7 +93,7 @@ resource "aws_security_group" "database" {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.platform.id]
+    security_groups = [aws_security_group.platform.id, aws_security_group.apps.id]
   }
 
   egress {

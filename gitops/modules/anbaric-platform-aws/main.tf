@@ -78,6 +78,7 @@ resource "aws_iam_role_policy" "read_secrets" {
       Action = "secretsmanager:GetSecretValue"
       Resource = concat([
         aws_secretsmanager_secret.database_url.arn,
+        aws_secretsmanager_secret.app_db_password.arn,
         aws_secretsmanager_secret.auth0_client_secret.arn,
       ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [])
     }]
@@ -133,6 +134,8 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_APP_EXECUTION_ROLE", value = aws_iam_role.app_execution.arn },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP_ARN", value = aws_cloudwatch_log_group.apps.arn },
+      { name = "ANBARIC_SQL_SCHEMA", value = "anbaric_app_data" },
+      { name = "ANBARIC_AWS_APP_SQL_URL_SECRET", value = aws_secretsmanager_secret.app_db_url.arn },
       ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
       { name = "ANBARIC_TENANT", value = var.tenant },
       ], var.auth0_domain == "" ? [] : [
@@ -147,6 +150,7 @@ resource "aws_ecs_task_definition" "platform" {
 
     secrets = concat([
       { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
+      { name = "ANBARIC_APP_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.app_db_password.arn },
       ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
       ], var.deploy_additional_services ? [

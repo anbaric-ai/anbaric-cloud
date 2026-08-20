@@ -27,6 +27,8 @@ type FargateBuildLayerOptions = {
     platformUrl : string,
     servicesUrl? : string,
     servicesApiKey? : string,
+    sqlDatabaseUrlSecretArn? : string,
+    sqlSchema? : string,
 };
 
 type AwsClients = {
@@ -178,7 +180,14 @@ class FargateBuildLayer extends BaseBuildLayer {
                     { name: "ANBARIC_CONSUMER_URL", value: `http://${deployment.appHost}:${deployment.consumerPort}` },
                     ...(this.options.servicesUrl ? [{ name: "ANBARIC_SERVICES_URL", value: this.options.servicesUrl }] : []),
                     ...(this.options.servicesApiKey ? [{ name: "ANBARIC_SERVICES_API_KEY", value: this.options.servicesApiKey }] : []),
+                    ...(this.options.sqlDatabaseUrlSecretArn ? [
+                        { name: "ANBARIC_SQL_STORE_TYPE", value: "cloud" },
+                        { name: "ANBARIC_SQL_SCHEMA", value: this.options.sqlSchema ?? "anbaric_app_data" },
+                    ] : []),
                 ],
+                secrets: this.options.sqlDatabaseUrlSecretArn
+                    ? [{ name: "ANBARIC_SQL_DATABASE_URL", valueFrom: this.options.sqlDatabaseUrlSecretArn }]
+                    : undefined,
                 logConfiguration: {
                     logDriver: "awslogs",
                     options: {

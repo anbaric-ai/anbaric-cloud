@@ -611,7 +611,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
             const badInteraction = await fetch(`${internalUrl}/audits`, {
                 method: "POST",
-                body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: ["RENAME"], description: "x" }),
+                body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: [], description: "x" }),
             });
             expect(badInteraction.status).toBe(400);
 

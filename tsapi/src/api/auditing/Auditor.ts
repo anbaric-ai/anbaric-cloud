@@ -1,19 +1,13 @@
 import {Actor} from "../actors/Actor";
 
-enum AuditInteraction {
-    CREATE = "CREATE",
-    UPDATE_PROPERTIES = "UPDATE_PROPERTIES",
-    CHANGE_STATE = "CHANGE_STATE",
-    DELETE = "DELETE",
-    READ = "READ",
-    LIST = "LIST",
-}
-
+/* Records an interaction with a resource. The interaction is one or more plain
+   strings chosen by the persistence class that calls it - the auditor itself
+   defines no vocabulary. */
 interface Auditor {
 
-    audit(resourceType : string, resourceId : string, actor : Actor, interaction : AuditInteraction[],
+    audit(resourceType : string, resourceId : string, actor : Actor, interaction : Array<string>,
           description : string, details : any) : Promise<void>;
 
 }
 
-export { AuditInteraction, Auditor }
+export { Auditor }

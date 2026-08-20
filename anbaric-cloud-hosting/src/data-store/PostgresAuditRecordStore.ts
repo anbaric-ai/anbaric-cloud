@@ -1,10 +1,10 @@
-import {AuditInteraction, AuditRecord} from "anbaric-tsapi";
+import {AuditRecord} from "anbaric-tsapi";
 import {Pool} from "pg";
 import {AuditFilter, AuditRecordStore} from "../auditing/AuditRecordStore";
 
-const DEFAULT_WRITE_MASK : Array<AuditInteraction> = [
-    AuditInteraction.CREATE, AuditInteraction.UPDATE_PROPERTIES, AuditInteraction.CHANGE_STATE, AuditInteraction.DELETE,
-];
+/* The writes worth keeping in the durable trail; reads (READ, LIST, QUERY) are
+   dropped by default. Interactions are plain strings chosen by each store. */
+const DEFAULT_WRITE_MASK : Array<string> = ["CREATE", "SAVE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE", "EXECUTE"];
 
 /* Persists audit records, subject to a write mask: only the interactions in
    the mask are stored, so high-volume reads can be audited at the call site
@@ -12,16 +12,16 @@ const DEFAULT_WRITE_MASK : Array<AuditInteraction> = [
    overridable via ANBARIC_AUDIT_INTERACTIONS. */
 class PostgresAuditRecordStore implements AuditRecordStore {
 
-    private writeMask : Set<AuditInteraction>;
+    private writeMask : Set<string>;
 
-    constructor(private pool : Pool, writeMask : Set<AuditInteraction> = PostgresAuditRecordStore.maskFromEnvironment()) {
+    constructor(private pool : Pool, writeMask : Set<string> = PostgresAuditRecordStore.maskFromEnvironment()) {
         this.writeMask = writeMask;
     }
 
-    static maskFromEnvironment() : Set<AuditInteraction> {
+    static maskFromEnvironment() : Set<string> {
         const configured = process.env.ANBARIC_AUDIT_INTERACTIONS;
         if (!configured) return new Set(DEFAULT_WRITE_MASK);
-        return new Set(configured.split(",").map(entry => entry.trim()).filter(Boolean) as Array<AuditInteraction>);
+        return new Set(configured.split(",").map(entry => entry.trim()).filter(Boolean) );
     }
 
     async save(record : AuditRecord) : Promise<void> {
@@ -30,7 +30,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         await this.pool.query(
             `INSERT INTO anbaric_system.audit_records
                 (resource_type, resource_id, actor_id, actor_type, interaction, description, details)
-             VALUES ($1, $2, $3, $4, $5::anbaric_system.audit_interaction[], $6, $7)`,
+             VALUES ($1, $2, $3, $4, $5::text[], $6, $7)`,
             [record.resourceType, record.resourceId, record.actorId, record.actorType, record.interaction,
                 record.description, JSON.stringify(record.details ?? null)],
         );
@@ -54,7 +54,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         }
         if (filter.interaction) {
             parameters.push(filter.interaction);
-            conditions.push(`$${parameters.length}::anbaric_system.audit_interaction = ANY(interaction)`);
+            conditions.push(`$${parameters.length}::text = ANY(interaction)`);
         }
         if (filter.search) {
             parameters.push(`%${filter.search}%`);
