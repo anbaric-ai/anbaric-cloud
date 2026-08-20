@@ -1,6 +1,6 @@
 {
   "name": "anbaric-impl-cloud",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Public client library for the Anbaric Cloud hosting API, providing JobPersistence and Queue implementations backed by the cloud service",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "anbaric-tsapi": "^1.8.1"
+    "anbaric-tsapi": "^1.9.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

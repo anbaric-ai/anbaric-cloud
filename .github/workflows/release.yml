@@ -1,9 +1,11 @@
 name: Release
 
-# On merge to main: run the suite, bump the patch version, publish every
-# workspace to npm, tag, then pin the new platform version in
+# On merge to main: if the version in package.json isn't on npm yet, run the
+# suite, publish every workspace, tag, and pin the version in
 # anbaric-cloud-central (which triggers the staging platform redeploy there).
-# No image is built here - the platform ships as npm packages.
+# The version is the single source in the root package.json - bump it in your
+# merge; this workflow publishes exactly that version and no image is built here
+# (the platform ships as npm packages).
 
 on:
   push:
@@ -14,21 +16,16 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
-    name: Test, publish, and roll staging
+    name: Publish and roll staging
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Skip the version-bump commit this workflow makes, so it does not loop.
-    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release') }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -40,38 +37,42 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Bump patch version
+      - name: Determine version
         id: version
         run: |
-          CURRENT=$(node -p "require('./package.json').version")
-          IFS='.' read -r MA MI PA <<< "$CURRENT"
-          NEW="$MA.$MI.$((PA + 1))"
-          npm pkg set version="$NEW"
-          npm run versions
-          npm install --package-lock-only
-          echo "version=$NEW" >> "$GITHUB_OUTPUT"
-          echo "Bumped $CURRENT -> $NEW"
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "anbaric@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "anbaric@$VERSION is already on npm - nothing to release."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "Releasing anbaric@$VERSION."
+          fi
 
       - name: Test
+        if: steps.version.outputs.published == 'false'
         run: npx vitest run
 
       - name: Publish to npm
+        if: steps.version.outputs.published == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --workspaces --access public
 
-      - name: Commit version bump and tag
+      - name: Tag the release
+        if: steps.version.outputs.published == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add -A
-          git commit -m "chore: release ${{ steps.version.outputs.version }}"
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main --follow-tags
+          git tag -a "v$VERSION" -m "Release v$VERSION" || true
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" "v$VERSION" || true
 
       - name: Pin platform version in anbaric-cloud-central (triggers deploy)
+        if: steps.version.outputs.published == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
