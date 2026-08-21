@@ -117,6 +117,26 @@ await sql.execute(actor, "INSERT INTO notes (body) VALUES (?)", ["hello"]);
 const rows = await sql.query(actor, "SELECT id, body FROM notes");
 ```
 
+### Serve a web UI
+
+An app can serve its own HTTP frontend. Listen on `process.env.PORT` and the
+platform's app proxy routes `<platform>/<app-name>/*` to it — combine it with
+the persistence and state-machine APIs above to put your data on a page.
+
+```ts
+import {createServer} from "node:http";
+
+createServer((request, response) => {
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end("<h1>My Anbaric app</h1>");
+}).listen(Number(process.env.PORT ?? 3000));
+```
+
+Serve trivial pages directly like this; build richer UIs with React and the
+Anbaric design system (`anbaric-design-system`). `sample-apps/crm` is a complete
+worked example — an HTTP server that renders its customers as HTML and exposes a
+JSON API backed by a state machine.
+
 ## Auditing
 
 Every write to a job, document, secret or the SQL store is recorded against the
