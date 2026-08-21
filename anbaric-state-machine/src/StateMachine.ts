@@ -26,11 +26,11 @@ class StateMachine {
     private machineActor: Code;
     private sameStateDelayMs: number;
 
-    constructor(workflowId : string, states : Array<State>, startState : string, dataSchema : Array<PropertyDefinition>, persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000) {
+    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
-        this.startState = startState;
+        this.startState = startState ?? states[0].id;
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
