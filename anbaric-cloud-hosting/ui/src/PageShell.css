@@ -1,0 +1,34 @@
+.ds-page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+}
+
+.ds-page-main {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.ds-page-heading {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 2rem;
+  line-height: var(--title-line-height);
+  text-transform: var(--title-transform);
+}
+
+@media (max-width: 40rem) {
+  .ds-page-layout {
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  .ds-page-heading {
+    font-size: 1.5rem;
+  }
+}

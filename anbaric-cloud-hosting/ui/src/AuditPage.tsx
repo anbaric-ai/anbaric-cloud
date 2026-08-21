@@ -4,8 +4,7 @@ import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
 
-import { PageShell } from './PageShell'
-import { PlatformNav } from './PlatformNav'
+const PAGE_SIZE = 50
 
 interface AuditRecord {
   id: string
@@ -19,13 +18,13 @@ interface AuditRecord {
   at: string
 }
 
-const INTERACTIONS = ['CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE', 'READ', 'LIST']
-const RESOURCE_TYPES = ['job', 'document', 'secret']
+const INTERACTIONS = ['INITIALIZE', 'CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE', 'KILL', 'READ', 'LIST']
+const RESOURCE_TYPES = ['state-machine', 'job', 'document', 'secret']
 
 const interactionTone = (interaction: string) =>
-  interaction === 'CREATE'
+  interaction === 'CREATE' || interaction === 'INITIALIZE'
     ? 'success'
-    : interaction === 'DELETE'
+    : interaction === 'DELETE' || interaction === 'KILL'
       ? 'danger'
       : interaction === 'CHANGE_STATE'
         ? 'primary'
@@ -63,6 +62,16 @@ const filterInput: CSSProperties = {
   minWidth: '10rem',
 }
 
+const pageButton: CSSProperties = {
+  font: 'inherit',
+  padding: 'var(--space-sm) var(--space-md)',
+  border: '1px solid var(--color-background-shade-2)',
+  borderRadius: 'var(--radius-element)',
+  background: 'var(--color-background)',
+  color: 'var(--color-foreground)',
+  cursor: 'pointer',
+}
+
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
     day: 'numeric',
@@ -83,14 +92,17 @@ function AuditPage() {
   const [actorId, setActorId] = useState('')
   const [interaction, setInteraction] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
 
-  const load = async () => {
+  const load = async (pageToLoad: number) => {
     const query = new URLSearchParams()
     if (resourceType) query.set('resourceType', resourceType)
     if (resourceId.trim()) query.set('resourceId', resourceId.trim())
     if (actorId.trim()) query.set('actorId', actorId.trim())
     if (interaction) query.set('interaction', interaction)
     if (search.trim()) query.set('search', search.trim())
+    query.set('pageSize', String(PAGE_SIZE))
+    query.set('page', String(pageToLoad))
     try {
       const response = await fetch(`/audits?${query}`)
       if (!response.ok) {
@@ -99,22 +111,23 @@ function AuditPage() {
       }
       setFailed(false)
       setRecords(await response.json())
+      setPage(pageToLoad)
     } catch {
       setFailed(true)
     }
   }
 
   useEffect(() => {
-    void load()
+    void load(0)
   }, [])
 
   return (
-    <PageShell title="Audit" width="64rem" nav={<PlatformNav />}>
+    <>
       <Card>
         <form
           onSubmit={(event) => {
             event.preventDefault()
-            void load()
+            void load(0)
           }}
           style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}
         >
@@ -231,7 +244,28 @@ function AuditPage() {
           </table>
         )}
       </Card>
-    </PageShell>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-md)',
+        }}
+      >
+        <button type="button" style={pageButton} disabled={page === 0} onClick={() => void load(page - 1)}>
+          ← Newer
+        </button>
+        <span style={{ ...mono, color: 'var(--color-foreground-tint-2)' }}>Page {page + 1}</span>
+        <button
+          type="button"
+          style={pageButton}
+          disabled={(records?.length ?? 0) < PAGE_SIZE}
+          onClick={() => void load(page + 1)}
+        >
+          Older →
+        </button>
+      </div>
+    </>
   )
 }
 

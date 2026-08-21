@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react'
 
-import { PageShell } from './PageShell'
-import { PlatformNav } from './PlatformNav'
 import type { RenderableWidget } from './plugins/loadPlugins'
 import { registry } from './plugins/PluginRegistry'
 
@@ -26,10 +24,9 @@ function dataFetcher(widget: RenderableWidget) {
 }
 
 function PluginPage({ path }: { path: string }) {
-  const page = registry().pageAt(path)
   const widgets = registry().widgetsFor(path)
   return (
-    <PageShell title={page?.title ?? path} width="64rem" nav={<PlatformNav />}>
+    <>
       {widgets.map((widget) => {
         const Widget = widget.component
         return (
@@ -44,7 +41,7 @@ function PluginPage({ path }: { path: string }) {
           No widgets are registered on this page.
         </p>
       ) : null}
-    </PageShell>
+    </>
   )
 }
 

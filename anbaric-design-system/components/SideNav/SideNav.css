@@ -196,3 +196,31 @@ a.ds-sidenav__item {
 .ds-sidenav--collapsed .ds-sidenav__item {
   justify-content: center;
 }
+
+/* --- Mobile: collapse to a hamburger; open to a full-device-width overlay.
+   `!important` overrides any sticky positioning a host sets inline. --------- */
+@media (max-width: 40rem) {
+  .ds-sidenav {
+    width: auto;
+  }
+
+  /* Collapsed on mobile is just the toggle — the items appear only when opened. */
+  .ds-sidenav--collapsed {
+    width: auto;
+    padding: var(--space-sm);
+  }
+
+  .ds-sidenav--collapsed .ds-sidenav__list {
+    display: none;
+  }
+
+  .ds-sidenav:not(.ds-sidenav--collapsed) {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto;
+    height: 100dvh;
+    border-radius: 0;
+    overflow-y: auto;
+    z-index: 100;
+  }
+}

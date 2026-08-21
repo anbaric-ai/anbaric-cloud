@@ -18,7 +18,17 @@ function Sym({ name }: { name: string }) {
   )
 }
 
-function PlatformNav() {
+function PlatformNav({
+  active,
+  navigate,
+  collapsed,
+  onCollapsedChange,
+}: {
+  active: string
+  navigate: (to: string) => void
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
+}) {
   const [apps, setApps] = useState<App[]>([])
 
   useEffect(() => {
@@ -67,10 +77,10 @@ function PlatformNav() {
         />
       }
       items={items}
-      active={window.location.pathname}
-      onChange={(value) => {
-        window.location.href = value
-      }}
+      active={active}
+      onChange={(value) => navigate(value)}
+      collapsed={collapsed}
+      onCollapsedChange={onCollapsedChange}
       style={{ position: 'sticky', top: 'var(--space-lg)', flex: 'none' }}
     />
   )
