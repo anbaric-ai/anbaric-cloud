@@ -8,6 +8,23 @@ import {AwsClients, FargateBuildLayer} from "../../src/app-management/FargateBui
 const APP_PORT = 4000;
 const CONSUMER_PORT_BASE = 8950;
 
+const FARGATE_OPTIONS = {
+    awsRegion: "eu-west-3",
+    cluster: "anbaric-test",
+    subnets: ["subnet-1", "subnet-2"],
+    appSecurityGroup: "sg-apps",
+    namespaceId: "ns-1",
+    namespaceName: "anbaric-test.local",
+    appsRepositoryUrl: "123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-apps",
+    buildBucket: "anbaric-test-builds",
+    buildProject: "anbaric-test-app-build",
+    baseImage: "123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-platform:latest",
+    appExecutionRoleArn: "arn:role/app-execution",
+    appsLogGroup: "/anbaric/test/apps",
+    appsLogGroupArn: "arn:aws:logs:eu-west-3:123:log-group:/anbaric/test/apps",
+    platformUrl: "http://platform.anbaric-test.local:8788",
+};
+
 const writeFixtureApp = async (dir : string) : Promise<void> => {
     await mkdir(join(dir, "src"), { recursive: true });
     await writeFile(join(dir, "package.json"), JSON.stringify({
@@ -95,22 +112,7 @@ describe("FargateBuildLayer", () => {
         liveTailMessages = [];
         buildLayer = new FargateBuildLayer(
             join(workDir, "apps"),
-            {
-                awsRegion: "eu-west-3",
-                cluster: "anbaric-test",
-                subnets: ["subnet-1", "subnet-2"],
-                appSecurityGroup: "sg-apps",
-                namespaceId: "ns-1",
-                namespaceName: "anbaric-test.local",
-                appsRepositoryUrl: "123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-apps",
-                buildBucket: "anbaric-test-builds",
-                buildProject: "anbaric-test-app-build",
-                baseImage: "123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-platform:latest",
-                appExecutionRoleArn: "arn:role/app-execution",
-                appsLogGroup: "/anbaric/test/apps",
-                appsLogGroupArn: "arn:aws:logs:eu-west-3:123:log-group:/anbaric/test/apps",
-                platformUrl: "http://platform.anbaric-test.local:8788",
-            },
+            FARGATE_OPTIONS,
             CONSUMER_PORT_BASE,
             clients(),
             async () => true,
@@ -222,6 +224,71 @@ describe("FargateBuildLayer", () => {
         for await (const line of buildLayer.logs("crm", new AbortController().signal)) lines.push(line);
 
         expect(lines).toEqual(["hello from the app", "processing job 1"]);
+    });
+
+    it("rehydrates its registry from the running ECS services after a restart", async () => {
+        const appTaskDefinition = {
+            containerDefinitions: [{
+                environment: [
+                    { name: "PORT", value: "4000" },
+                    { name: "ANBARIC_ADMIN_PORT", value: "8791" },
+                    { name: "ANBARIC_CONSUMER_PORT", value: "8801" },
+                ],
+            }],
+        };
+        const ecs = {
+            send: async (command : any) => {
+                switch (command.constructor.name) {
+                    case "ListServicesCommand":
+                        return { serviceArns: [
+                            "arn:aws:ecs:eu-west-3:1:service/anbaric-test/anbaric-app-crm",
+                            "arn:aws:ecs:eu-west-3:1:service/anbaric-test/anbaric-staging-platform",
+                        ] };
+                    case "DescribeServicesCommand":
+                        return { services: [{ serviceName: "anbaric-app-crm", status: "ACTIVE", runningCount: 1, taskDefinition: "arn:task-def/crm:3" }] };
+                    case "DescribeTaskDefinitionCommand":
+                        return { taskDefinition: appTaskDefinition };
+                    default:
+                        return {};
+                }
+            },
+        };
+        const restarted = new FargateBuildLayer(
+            join(workDir, "apps"), FARGATE_OPTIONS, CONSUMER_PORT_BASE,
+            { ...clients(), ecs }, async () => true, 1,
+        );
+
+        expect(restarted.list()).toEqual([]);
+        await restarted.ensureHydrated();
+
+        expect(restarted.list()).toEqual([
+            { appName: "crm", status: "running", appPort: 4000, appHost: "crm.anbaric-test.local" },
+        ]);
+    });
+
+    it("only describes the app services, not the platform, and rehydrates once", async () => {
+        let listCalls = 0;
+        const ecs = {
+            send: async (command : any) => {
+                switch (command.constructor.name) {
+                    case "ListServicesCommand":
+                        listCalls++;
+                        return { serviceArns: ["arn:aws:ecs:eu-west-3:1:service/anbaric-test/anbaric-staging-platform"] };
+                    default:
+                        return {};
+                }
+            },
+        };
+        const restarted = new FargateBuildLayer(
+            join(workDir, "apps"), FARGATE_OPTIONS, CONSUMER_PORT_BASE,
+            { ...clients(), ecs }, async () => true, 1,
+        );
+
+        await restarted.ensureHydrated();
+        await restarted.ensureHydrated();
+
+        expect(restarted.list()).toEqual([]);
+        expect(listCalls).toBe(1);
     });
 
 });

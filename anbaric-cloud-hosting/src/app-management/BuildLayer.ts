@@ -9,6 +9,7 @@ type DeploymentSummary = {
 
 interface BuildLayer {
 
+    ensureHydrated() : Promise<void>;
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary;
     status(appName : string) : (DeploymentSummary & { log : Array<string> }) | undefined;
     list() : Array<DeploymentSummary>;

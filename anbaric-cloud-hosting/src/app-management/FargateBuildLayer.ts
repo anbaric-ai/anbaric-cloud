@@ -2,6 +2,7 @@ import {readFile, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {CodeBuildClient, BatchGetBuildsCommand, StartBuildCommand} from "@aws-sdk/client-codebuild";
 import {ECSClient, CreateServiceCommand, DeleteServiceCommand, DescribeServicesCommand,
+    DescribeTaskDefinitionCommand, ListServicesCommand as ListEcsServicesCommand,
     RegisterTaskDefinitionCommand, UpdateServiceCommand} from "@aws-sdk/client-ecs";
 import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
 import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCommand,
@@ -253,6 +254,67 @@ class FargateBuildLayer extends BaseBuildLayer {
             },
             serviceRegistries: [{ registryArn }],
         }));
+    }
+
+    /* ECS is the durable record of what is deployed, so on the first read after
+       a restart the registry is rebuilt from the running anbaric-app-* services
+       and their task definitions (ports come from the container environment the
+       platform set at deploy time). */
+    protected async rehydrate() : Promise<void> {
+        const serviceArns = await this.appServiceArns();
+
+        for (let batch = 0; batch < serviceArns.length; batch += 10) {
+            const {services} = await this.aws.ecs.send(new DescribeServicesCommand({
+                cluster: this.options.cluster,
+                services: serviceArns.slice(batch, batch + 10),
+            }));
+            for (const service of services ?? []) {
+                if (service.status !== "ACTIVE" || !service.serviceName?.startsWith("anbaric-app-")) continue;
+                const appName = service.serviceName.slice("anbaric-app-".length);
+                if (this.deployments.has(appName)) continue;
+                const deployment = await this.deploymentFromService(appName, service);
+                if (deployment) this.deployments.set(appName, deployment);
+            }
+        }
+    }
+
+    private async appServiceArns() : Promise<Array<string>> {
+        const arns : Array<string> = [];
+        let nextToken : string | undefined;
+        do {
+            const page = await this.aws.ecs.send(new ListEcsServicesCommand({ cluster: this.options.cluster, nextToken }));
+            for (const arn of page.serviceArns ?? []) {
+                if (arn.includes("/anbaric-app-")) arns.push(arn);
+            }
+            nextToken = page.nextToken;
+        } while (nextToken);
+        return arns;
+    }
+
+    private async deploymentFromService(appName : string, service : { taskDefinition : string, runningCount? : number }) : Promise<Deployment | undefined> {
+        const {taskDefinition} = await this.aws.ecs.send(new DescribeTaskDefinitionCommand({ taskDefinition: service.taskDefinition }));
+        const container = taskDefinition?.containerDefinitions?.[0];
+        if (!container) return undefined;
+
+        const environment = new Map<string, string>(
+            (container.environment ?? []).map((entry : { name : string, value : string }) => [entry.name, entry.value]),
+        );
+        const port = (name : string, fallback : number) => {
+            const value = Number(environment.get(name));
+            return Number.isInteger(value) ? value : fallback;
+        };
+        const appPort = Number(environment.get("PORT"));
+        if (!Number.isInteger(appPort)) return undefined;
+
+        return {
+            appName,
+            status: (service.runningCount ?? 0) > 0 ? "running" : "stopped",
+            appPort,
+            appHost: this.appHostFor(appName),
+            adminPort: port("ANBARIC_ADMIN_PORT", 8791),
+            consumerPort: port("ANBARIC_CONSUMER_PORT", 0),
+            log: [],
+        };
     }
 
     private serviceNameFor(appName : string) : string {

@@ -7,6 +7,7 @@ class AppsHandler implements RequestHandler {
     constructor(private buildLayer : BuildLayer) {}
 
     async handle(request : Request) : Promise<void> {
+        await this.buildLayer.ensureHydrated();
         switch (request.subresource) {
             case "deploy":
                 if (request.id) return this.handleDeploy(request, request.id);

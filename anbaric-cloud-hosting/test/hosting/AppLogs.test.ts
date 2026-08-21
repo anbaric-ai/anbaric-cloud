@@ -17,6 +17,7 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue
 }
 
 const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({
+    ensureHydrated: async () => {},
     deploy: () => { throw new Error("not deployable in this test"); },
     status: (name) => name === appName
         ? { appName, status: "running", appPort: 1, appHost: "localhost", log: [] }

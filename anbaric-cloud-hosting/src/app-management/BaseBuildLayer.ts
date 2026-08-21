@@ -31,10 +31,23 @@ abstract class BaseBuildLayer implements BuildLayer {
 
     protected deployments = new Map<string, Deployment>();
     private nextAppIndex = 0;
+    private hydration? : Promise<void>;
 
     constructor(protected appsDir : string, private consumerPortBase : number = 8800,
                 private probe : Probe = adminProbe,
                 private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS) {}
+
+    /* The deployments map is rebuilt from the durable backend the first time the
+       app registry is read, so apps survive a platform restart. A failed
+       rehydration is not cached, so a later request retries. */
+    ensureHydrated() : Promise<void> {
+        return this.hydration ??= this.rehydrate().catch(error => {
+            this.hydration = undefined;
+            console.warn(`Could not rehydrate the app registry: ${error instanceof Error ? error.message : error}`);
+        });
+    }
+
+    protected async rehydrate() : Promise<void> {}
 
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary {
         const existing = this.deployments.get(appName);

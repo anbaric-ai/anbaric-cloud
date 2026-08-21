@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { SideNav, type NavEntry } from '@anbaric/design-system/components/SideNav'
-import logoUrl from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
+import logoUrl from '@anbaric/design-system/shared/assets/anbaric-ident.svg'
 
 import { registry } from './plugins/PluginRegistry'
 
@@ -73,7 +73,7 @@ function PlatformNav({
         <img
           src={logoUrl}
           alt="Anbaric"
-          style={{ height: '1.05rem', display: 'block', width: 'auto' }}
+          style={{ height: '1.6rem', display: 'block', width: 'auto' }}
         />
       }
       items={items}
