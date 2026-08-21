@@ -224,7 +224,7 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
       },
       {
         Effect   = "Allow"
-        Action   = ["ecs:RegisterTaskDefinition", "ecs:DescribeServices", "ecs:DescribeTasks", "ecs:ListTasks"]
+        Action   = ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:ListServices", "ecs:DescribeServices", "ecs:DescribeTasks", "ecs:ListTasks"]
         Resource = "*"
       },
       {
