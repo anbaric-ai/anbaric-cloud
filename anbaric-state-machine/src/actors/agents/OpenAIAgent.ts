@@ -57,11 +57,11 @@ class OpenAIClient extends Agent.Client {
         });
 
         if (!response.ok) {
-            const problem = await response.json().catch(() => ({}));
+            const problem = await response.json().catch(() => ({})) as { error? : { message? : string } };
             throw new Error(`The OpenAI request failed with status ${response.status}${problem.error?.message ? `: ${problem.error.message}` : ""}`);
         }
 
-        const body = await response.json();
+        const body = await response.json() as { choices? : Array<{ message? : { content? : string } }> };
         const content = body.choices?.[0]?.message?.content;
         if (typeof content !== "string") throw new Error("The OpenAI response carried no structured content");
         return JSON.parse(content);

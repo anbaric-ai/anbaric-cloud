@@ -42,11 +42,11 @@ class AnbaricServicesClient extends Agent.Client {
         });
 
         if (!response.ok) {
-            const problem = await response.json().catch(() => ({}));
+            const problem = await response.json().catch(() => ({})) as { error? : string };
             throw new Error(`The Anbaric agent service failed with status ${response.status}${problem.error ? `: ${problem.error}` : ""}`);
         }
 
-        return (await response.json()).output;
+        return (await response.json() as { output : Record<string, any> }).output;
     }
 
 }

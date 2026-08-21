@@ -16,7 +16,7 @@ class CloudApiClient {
         });
 
         if (!response.ok) {
-            const problem = await response.json().catch(() => ({}));
+            const problem = await response.json().catch(() => ({})) as { error? : string };
             throw new Error(problem.error ?? `${method} ${path} failed with status ${response.status}`);
         }
 

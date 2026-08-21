@@ -44,7 +44,7 @@ class HttpCliKeyStore implements CliKeyStore {
         if (response.status === 404) return undefined;
         if (!response.ok) throw new Error(`The key lookup failed with status ${response.status}`);
 
-        const found = await response.json();
+        const found = await response.json() as { userId : string, clientName? : string, publicKey : string, tenant? : string };
         return new CliKey(id, found.userId, found.clientName ?? "", found.publicKey, found.tenant ?? undefined);
     }
 
