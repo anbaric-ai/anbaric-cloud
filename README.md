@@ -1,46 +1,174 @@
 # Anbaric
 
-Anbaric is a TypeScript framework for building stateful back-office
-applications, together with a platform for deploying them. An app is a plain
-Node/TypeScript program that models its work as **state machines**: jobs move
-through named states, actions run when a job is processed, and transitions
-decide which state a job moves to next. The same program runs against in-memory
-implementations on your machine and against a platform's Postgres, queue and
-stores once deployed — the application code does not change between the two.
+Anbaric is a TypeScript framework for building stateful enterprise applications. Anbaric is designed to help vibe-coded applications go the last mile, by providing persistence, state management, authentication and auditing.
 
-This README is for app developers. If you're working on the platform itself,
-start with `CLAUDE.md` and the package READMEs.
+We believe that fully bespoke software is the future, and this project was created to help a wider range of people build their own solutions, without compromising enterprise IT standards.
 
-## Write an app
+## Getting started
 
-Everything an app needs comes from one install:
+Install the Anbaric package and the CLI:
 
 ```bash
+npm init
 npm install anbaric
+npm install -g anbaric-cli
 ```
+
+Prompt your agent:
+
+```
+Use Anbaric to build me a CRM.
+```
+
+Run locally as usual (`npm run start`) or deploy to the Anbaric Cloud (`anbaric app deploy`).
+
+Anbaric is open source and you can self-host the platform or sign up at https://cloud.anbaric.ai to use the hosted version.
+
+## What the code looks like
+
+Anbaric has a collection of features that can be used in your application. Here are some examples:
+
+### Persist JSON
+
+In this example we will store a customer's details in a JSON document. Every change that is made in Anbaric requires an `Actor` to be specified, which is used to ensure a complete audit trail exists for any application built using Anbaric. In general, an actor will be either a "human" actor, an AI agent or code being executed by the system.
+
+```ts
+import {Human, JsonStoreFactory} from "anbaric";
+
+const actor = new Human("ada", "admin");
+const customers = JsonStoreFactory.instance("customers");
+
+await customers.create(actor, "ada", { name: "Ada Lovelace", email: "ada@example.com" });
+const ada = await customers.retrieve("ada", actor);
+```
+
+### Run a state machine
+
+A state machine models work as jobs moving through named states. Actions run while a job sits in a state, and transitions decide where it goes next. A state machine can combine steps using different types of actors, so humans can own some action, AI agents and code can automate others.
 
 ```ts
 import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from "anbaric";
 
-const sendWelcome = new Action("Send welcome email", new Code("send-welcome"));
-sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
+const sendWelcome = new Action("Send welcome email", new Code("welcome"));
+sendWelcome.run = async (job) => {
+    // Access properties stored against the job
+    const email = job.properties.get("email");
+    // Run some code
+    console.log(`Sending welcome email to ${email}`);
+    // Return new properties to add to the job
+    const newProperties = new Map();
+    newProperties.set("emailSent", true);
+    return newProperties;
+};
 
-const customers = new StateMachine(
-    "customer-onboarding",
-    [
-        new State("new", [sendWelcome], [new Transition("active", job => job.properties.get("welcomeSent") === true)]),
-        new State("active"),
-    ],
-    "new",
-    [new PropertyDefinition("email"), new PropertyDefinition("welcomeSent")],
-);
+const onboarding = new StateMachine("onboarding", [
+    new State("new", [sendWelcome], [new Transition("active", (job) => job.properties.get("emailSent") === true)]),
+    new State("active"),
+]);
 
-const customer = await customers.startJob(new Map([["email", "ada@example.com"]]));
+const customer = await onboarding.startJob(new Map([["email", "ada@example.com"]]));
 ```
 
-Every action declares an **actor** (`Code`, `Human` or `Agent` — pure
-identity objects) and a `run` function returning the properties it wants to
-set. There are three ways to influence a job:
+The job starts in `new`; when it is processed the action runs, sets `emailSent`, and the transition advances it to `active`.
+
+### Using AI agents to automate states
+
+An **agent** is an actor whose properties are produced by a model rather than by
+hand-written code. A `RemoteLLMAgenticAction` gives the agent a prompt and a JSON
+Schema, and applies the properties it returns to the job. Here an OpenAI-backed
+agent triages a support ticket:
+
+```ts
+import {OpenAIAgent, RemoteLLMAgenticAction, State, StateMachine, Transition} from "anbaric";
+
+const triager = new OpenAIAgent("triager", "support", {
+    apiKey: process.env.OPENAI_API_KEY!,
+    model: "gpt-5.4-mini",
+});
+
+const triage = new RemoteLLMAgenticAction(
+    "Triage the ticket",
+    triager,
+    [{ role: "system", content: "Decide the priority of the support ticket from its subject." }],
+    { type: "object", properties: { priority: { type: "string", enum: ["low", "high"] } } },
+);
+
+const support = new StateMachine("support", [
+    new State("open", [triage], [new Transition("prioritised", (job) => job.properties.has("priority"))]),
+    new State("prioritised"),
+]);
+```
+
+Because the agent is just another actor, its work is audited like any other —
+the triage decision is attributed to `triager`.
+
+### Use an RDBMS
+
+A full relational store is available for structured data. Locally it is SQLite; deployed, it is the tenant's PostgreSQL.
+
+```ts
+import {Human, SqlStoreFactory} from "anbaric";
+
+const actor = new Human("ada", "admin");
+const sql = SqlStoreFactory.instance();
+
+await sql.execute(actor, "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, body TEXT)");
+await sql.execute(actor, "INSERT INTO notes (body) VALUES (?)", ["hello"]);
+const rows = await sql.query(actor, "SELECT id, body FROM notes");
+```
+
+## Auditing
+
+Every write to a job, document, secret or the SQL store is recorded against the
+actor that made it — which is why the store methods take an actor. An audit
+record captures the actor, the resource, the interaction (create, update, state
+change, delete, kill…) and a short description. Locally the records print to the
+console; deployed, the platform persists them and they are browsable in the
+admin console. Reads and lists can be audited too, but the platform masks them
+by default to keep the volume down.
+
+## Using the CLI
+
+`anbaric-cli` authorizes your terminal against a platform, deploys apps, and
+inspects and drives their jobs. After a one-time `anbaric login` (a browser
+flow), a typical loop is:
+
+```bash
+anbaric app deploy            # deploy the current project and wait until it is live
+anbaric jobs list             # list jobs and their states
+anbaric jobs watch <job-id>   # follow a job as it progresses
+anbaric jobs stats            # counts per state and the queue depth
+```
+
+Every interactive prompt also has a flag, so the CLI runs unattended in scripts
+and CI. The full command list is in the [CLI reference](#cli-reference) below.
+
+## The Admin console and widgets
+
+The platform serves an admin console at its root — a dashboard assembled from
+**plugins**. The built-in `anbaric-plugins/state-machines` plugin lists your
+state machines and their jobs. You add your own pages and widgets by writing a
+small plugin — a `pages`/`widgets` object — and naming it in `ANBARIC_PLUGINS`.
+Widgets are React components, optionally backed by a server-side data function,
+rendered with the platform's design system. See
+[`anbaric-plugins`](anbaric-plugins/README.md).
+
+## State machine deep-dive
+
+A **`StateMachine`** is constructed from a workflow id, its `State`s, the start
+state, and the property schema for its jobs. A **`State`** holds the **actions**
+that run while a job sits in it and the **transitions** to other states. An
+**`Action`** has a `run` function returning the property changes to apply — it
+never mutates the job directly. A **`Transition`** names a target state and a
+predicate; the first transition whose predicate holds moves the job. A **`Job`**
+is one instance moving through the machine, carrying its `properties`, its
+current `state`, and its history. A state can be marked terminal (or use the
+`Terminal` helper, which carries a `SUCCESS`/`FAILURE` outcome); a job that
+reaches one stops and is not processed again.
+
+Every action also declares the **actor** it runs as (`Code`, `Human` or
+`Agent` — pure identity objects), recorded for auditing and authorization.
+There are three ways to influence a job:
 
 1. **Update it directly**, declaring who is acting:
    `machine.updateJob(jobId, new Map([["approved", true]]), new Human("chris", "manager"))`.
