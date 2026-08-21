@@ -5,6 +5,23 @@
 
 locals {
   additional_services_count = var.deploy_additional_services ? 1 : 0
+
+  additional_services_browserless = var.additional_services_browserless_token_secret_arn != ""
+
+  additional_services_secret_arns = concat(
+    [var.additional_services_api_key_secret_arn, var.additional_services_ai_gateway_token_secret_arn],
+    local.additional_services_browserless ? [var.additional_services_browserless_token_secret_arn] : [],
+  )
+
+  additional_services_secrets = concat(
+    [
+      { name = "ANBARIC_SERVICE_API_KEYS", valueFrom = var.additional_services_api_key_secret_arn },
+      { name = "ANBARIC_AI_GATEWAY_TOKEN", valueFrom = var.additional_services_ai_gateway_token_secret_arn },
+    ],
+    local.additional_services_browserless ? [
+      { name = "BROWSERLESS_API_TOKEN", valueFrom = var.additional_services_browserless_token_secret_arn },
+    ] : [],
+  )
 }
 
 resource "aws_security_group_rule" "apps_to_additional_services" {
@@ -42,7 +59,7 @@ resource "aws_iam_role_policy" "additional_services_secrets" {
     Statement = [{
       Effect   = "Allow"
       Action   = "secretsmanager:GetSecretValue"
-      Resource = [var.additional_services_api_key_secret_arn, var.additional_services_ai_gateway_token_secret_arn]
+      Resource = local.additional_services_secret_arns
     }]
   })
 }
@@ -73,10 +90,7 @@ resource "aws_ecs_task_definition" "additional_services" {
       { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
     ]
 
-    secrets = [
-      { name = "ANBARIC_SERVICE_API_KEYS", valueFrom = var.additional_services_api_key_secret_arn },
-      { name = "ANBARIC_AI_GATEWAY_TOKEN", valueFrom = var.additional_services_ai_gateway_token_secret_arn },
-    ]
+    secrets = local.additional_services_secrets
 
     logConfiguration = {
       logDriver = "awslogs"

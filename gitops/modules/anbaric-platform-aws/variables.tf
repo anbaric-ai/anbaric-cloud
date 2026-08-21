@@ -143,6 +143,12 @@ variable "additional_services_ai_gateway_token_secret_arn" {
   default     = ""
 }
 
+variable "additional_services_browserless_token_secret_arn" {
+  description = "Secrets Manager ARN of the Browserless API token used by additional-services /html; empty leaves /html unauthenticated"
+  type        = string
+  default     = ""
+}
+
 variable "additional_services_ai_gateway_url" {
   description = "OpenAI-compatible base URL additional-services calls (e.g. the Cloudflare AI Gateway /compat endpoint)"
   type        = string
