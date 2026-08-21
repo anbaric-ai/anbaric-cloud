@@ -4,7 +4,7 @@ import {AuditFilter, AuditRecordStore} from "../auditing/AuditRecordStore";
 
 /* The writes worth keeping in the durable trail; reads (READ, LIST, QUERY) are
    dropped by default. Interactions are plain strings chosen by each store. */
-const DEFAULT_WRITE_MASK : Array<string> = ["CREATE", "SAVE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE", "EXECUTE", "KILL"];
+const DEFAULT_WRITE_MASK : Array<string> = ["INITIALIZE", "CREATE", "SAVE", "UPDATE_PROPERTIES", "CHANGE_STATE", "DELETE", "EXECUTE", "KILL"];
 
 /* Persists audit records, subject to a write mask: only the interactions in
    the mask are stored, so high-volume reads can be audited at the call site

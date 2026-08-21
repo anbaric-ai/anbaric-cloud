@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Actor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Terminal, Transition} from "anbaric-tsapi";
+import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Terminal, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
@@ -28,6 +28,11 @@ const mockConsumer = () => ({
     subscribe: vi.fn(),
     cleanUp: vi.fn(async () => {}),
 }) satisfies Consumer;
+
+const mockAuditor = () => ({
+    audit: vi.fn(async (_resourceType : string, _resourceId : string, _actor : Actor,
+                        _interaction : Array<string>, _description : string, _details : any) => {}),
+}) satisfies Auditor;
 
 const requiredNumber = (id : string) => {
     const definition = new PropertyDefinition(id);
@@ -79,6 +84,34 @@ describe("StateMachine", () => {
             machineWith([new State("start")]);
 
             expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith(WORKFLOW_ID, expect.any(Function));
+        });
+
+        it("audits its graph with the system actor on initialisation", () => {
+            const auditor = mockAuditor();
+            const review = new Action("review", new Human("ada", "admin"));
+            review.description = "Ada reviews the submission";
+            const states = [
+                new State("start", [review], [new Transition("done", () => true)]),
+                new Terminal("done", Terminal.Outcome.SUCCESS),
+            ];
+
+            new StateMachine(WORKFLOW_ID, states, "start", [requiredNumber("score")],
+                persistence as unknown as JobPersistence, queue, 5 * 60_000, auditor);
+
+            expect(auditor.audit).toHaveBeenCalledOnce();
+            const [resourceType, resourceId, actor, interaction, , details] = auditor.audit.mock.calls[0];
+            expect(resourceType).toBe("state-machine");
+            expect(resourceId).toBe(WORKFLOW_ID);
+            expect(actor.type).toBe("SYSTEM");
+            expect(interaction).toEqual(["INITIALIZE"]);
+            expect(details.startState).toBe("start");
+            expect(details.dataSchema).toEqual([{ id: "score", required: true }]);
+            expect(details.states.map((state : any) => state.id)).toEqual(["start", "done"]);
+            expect(details.states[1].isTerminal).toBe(true);
+            expect(details.states[0].actions).toEqual([
+                { name: "review", description: "Ada reviews the submission",
+                  actor: { id: "ada", type: "HUMAN", role: "admin" } },
+            ]);
         });
 
         it("progresses a job when the consumer delivers its id", async () => {

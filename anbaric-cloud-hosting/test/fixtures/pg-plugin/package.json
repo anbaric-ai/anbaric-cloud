@@ -1,0 +1,6 @@
+{
+  "name": "pg-plugin-fixture",
+  "private": true,
+  "type": "module",
+  "main": "src/index.tsx"
+}

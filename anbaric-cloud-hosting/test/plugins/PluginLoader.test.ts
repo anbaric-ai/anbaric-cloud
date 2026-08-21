@@ -34,6 +34,20 @@ describe("PluginLoader", () => {
         expect(loaded.bundle).not.toContain("rebeccapurple");
     });
 
+    it("keeps pg and node builtins available to data functions server-side", async () => {
+        const [loaded] = await new PluginLoader().load(fixture("pg-plugin"));
+
+        expect(await loaded.plugin.widgets[0].data!({})).toEqual({ pool: "function", hash: "function" });
+    });
+
+    it("stubs pg and node builtins out of the browser bundle instead of bundling them", async () => {
+        const [loaded] = await new PluginLoader().load(fixture("pg-plugin"));
+
+        expect(loaded.bundle).toContain("window.AnbaricPluginRuntime");
+        expect(loaded.bundle).not.toContain("node_modules/pg");
+        expect(loaded.bundle).not.toContain("pg-pool");
+    });
+
     it("loads the state-machines plugin that ships with the platform", async () => {
         const [loaded] = await new PluginLoader().load("anbaric-plugins/state-machines");
 

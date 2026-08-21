@@ -1,16 +1,20 @@
 import {
     Action,
     Actor,
+    Auditor,
     Consumer,
     Job,
     JobPersistence,
     PropertyDefinition,
     Queue,
-    State
+    State,
+    SystemActor,
+    WorkflowDefinition
 } from "anbaric-tsapi";
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
 import {QueueFactory} from "./scheduling/QueueFactory";
 import {ConsumerFactory} from "./scheduling/ConsumerFactory";
+import {AuditorFactory} from "./auditing/AuditorFactory";
 import {Code} from "./actors/Code";
 
 class StateMachine {
@@ -25,8 +29,9 @@ class StateMachine {
     private consumer: Consumer;
     private machineActor: Code;
     private sameStateDelayMs: number;
+    private auditor: Auditor;
 
-    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000) {
+    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000, auditor : Auditor = AuditorFactory.instance()) {
 
         this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
@@ -36,9 +41,31 @@ class StateMachine {
         this.queue = queue;
         this.machineActor = new Code(workflowId, "state-machine");
         this.sameStateDelayMs = sameStateDelayMs;
+        this.auditor = auditor;
 
         this.consumer = ConsumerFactory.instance(queue)
         this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
+
+        void this.auditor.audit("state-machine", workflowId, SystemActor.actor, ["INITIALIZE"],
+            "State machine initialised", this.describe()).catch(() => {});
+    }
+
+    private describe() : WorkflowDefinition {
+        return {
+            workflowId: this.workflowId,
+            startState: this.startState,
+            dataSchema: [...this.dataSchema.values()].map(property => ({ id: property.id, required: property.required })),
+            states: [...this.states.values()].map(state => ({
+                id: state.id,
+                isTerminal: state.isTerminal,
+                actions: state.actions.map(action => ({
+                    name: action.name,
+                    description: action.description,
+                    actor: { id: action.actor.id, type: action.actor.type, role: action.actor.role },
+                })),
+                transitions: state.transitions.map(transition => ({ to: transition.to })),
+            })),
+        };
     }
 
     async startJob(properties?: Map<string, any>, actor : Actor = this.machineActor): Promise<Job> {

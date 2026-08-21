@@ -3,7 +3,9 @@ import {build, Plugin as EsbuildPlugin} from "esbuild";
 
 /* Compiles a plugin module twice: a browser ESM bundle whose react,
    react-dom and design-system imports are aliased to the dashboard's
-   window.AnbaricPluginRuntime global, and a node bundle whose UI imports
+   window.AnbaricPluginRuntime global (and whose server-only imports — pg and
+   node builtins used by widget data functions — are stubbed inert, since data
+   functions only ever run on the server), and a node bundle whose UI imports
    are replaced with inert stubs so the module can be imported server-side
    (for page metadata and widget data functions) without a DOM or CSS
    loader. */
@@ -14,7 +16,7 @@ class PluginBundler {
     async bundleForBrowser(moduleName : string) : Promise<string> {
         return this.bundle(moduleName, {
             platform: "browser",
-            plugins: [this.replacementPlugin(browserReplacement)],
+            plugins: [this.replacementPlugin(browserReplacement, /^react(-dom)?(\/|$)|^@anbaric\/design-system(\/|$)|^pg(\/|$)|^node:/)],
         });
     }
 
@@ -22,7 +24,7 @@ class PluginBundler {
         return this.bundle(moduleName, {
             platform: "node",
             packages: "external",
-            plugins: [this.replacementPlugin(serverReplacement)],
+            plugins: [this.replacementPlugin(serverReplacement, /^react(-dom)?(\/|$)|^@anbaric\/design-system(\/|$)/)],
         });
     }
 
@@ -39,11 +41,11 @@ class PluginBundler {
         return result.outputFiles[0].text;
     }
 
-    private replacementPlugin(replacement : (path : string) => string) : EsbuildPlugin {
+    private replacementPlugin(replacement : (path : string) => string, moduleFilter : RegExp) : EsbuildPlugin {
         return {
             name: "anbaric-plugin-runtime",
             setup(pluginBuild) {
-                pluginBuild.onResolve({ filter: /^react(-dom)?(\/|$)|^@anbaric\/design-system(\/|$)/ }, resolving =>
+                pluginBuild.onResolve({ filter: moduleFilter }, resolving =>
                     ({ path: resolving.path, namespace: "anbaric-runtime" }));
                 pluginBuild.onResolve({ filter: /\.css$/ }, resolving =>
                     ({ path: resolving.path, namespace: "anbaric-runtime" }));
@@ -57,6 +59,7 @@ class PluginBundler {
 
 const browserReplacement = (path : string) : string => {
     if (path.endsWith(".css")) return "";
+    if (path === "pg" || path.startsWith("pg/") || path.startsWith("node:")) return "module.exports = {};";
     if (path === "react/jsx-runtime" || path === "react/jsx-dev-runtime") {
         return "module.exports = window.AnbaricPluginRuntime.jsxRuntime;";
     }
