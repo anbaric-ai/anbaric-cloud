@@ -17,7 +17,7 @@ class AppsCommand {
         const apps = await this.client.get("/apps") as Array<{ appName : string, status : string, appPort : number }>;
 
         if (apps.length === 0) {
-            console.log(dim(`No apps deployed to ${this.client.platformUrl} — try "anbaric deploy"`));
+            console.log(dim(`No apps deployed to ${this.client.platformUrl} — try "anbaric app deploy"`));
             return 0;
         }
 
