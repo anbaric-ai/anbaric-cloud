@@ -26,9 +26,12 @@ npm install -g anbaric-cli
 | `anbaric state-machines` | list registered state machines |
 | `anbaric jobs create <state-machine-id> <start-state> [key=value ...]` | create a job in the given state machine and queue it for processing |
 | `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs stats` | job counts per state and the queue size |
 | `anbaric jobs watch <job-id>` | follow a job's state live |
 | `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |
 | `anbaric jobs update <job-id> <key=value ...>` | update job properties and re-queue |
+| `anbaric jobs kill <job-id>` | kill a job so it stops progressing |
+| `anbaric jobs kill-old <age>` | kill jobs not updated within `<age>` (e.g. `24h`, `7d`) |
 
 The `app configure`/`deploy`/`update` commands operate on the app for the
 current project — they walk up from the working directory to the nearest

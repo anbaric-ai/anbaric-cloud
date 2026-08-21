@@ -10,6 +10,9 @@ import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
 import {JobsCommand} from "./commands/JobsCommand";
 import {JobCreateCommand} from "./commands/JobCreateCommand";
+import {JobStatsCommand} from "./commands/JobStatsCommand";
+import {JobKillCommand} from "./commands/JobKillCommand";
+import {JobKillOldCommand} from "./commands/JobKillOldCommand";
 import {JobSetStateCommand} from "./commands/JobSetStateCommand";
 import {JobUpdateCommand} from "./commands/JobUpdateCommand";
 import {LoginCommand} from "./commands/LoginCommand";
@@ -36,9 +39,12 @@ ${bold("Usage")}
   anbaric state-machines                        list registered state machines
   anbaric jobs create <sm-id> <start-state> [k=v ...]  create a job and queue it for processing
   anbaric jobs list [state-machine-id]          list jobs, optionally for one state machine
+  anbaric jobs stats                            job counts per state and the queue size
   anbaric jobs watch <job-id>                   follow a job's state live
   anbaric jobs set-state <job-id> <state>       move a job to a state and re-queue it
   anbaric jobs update <job-id> <key=value ...>  update job properties and re-queue it
+  anbaric jobs kill <job-id>                    kill a job so it stops progressing
+  anbaric jobs kill-old <age>                   kill jobs not updated within <age> (e.g. 24h, 7d)
 
 ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and agents)")}
   -h, --help                                    show this help
@@ -144,9 +150,17 @@ const runJobCommand = async (args : Array<string>) : Promise<number> => {
             return new JobCreateCommand(await clientFromConfig()).run(jobId, rest[0], rest.slice(1));
         case "list":
             return new JobsCommand(await clientFromConfig()).run(jobId);
+        case "stats":
+            return new JobStatsCommand(await clientFromConfig()).run();
         case "watch":
             if (!jobId) return fail("usage: anbaric jobs watch <job-id>");
             return new WatchCommand(await clientFromConfig()).run(jobId);
+        case "kill":
+            if (!jobId) return fail("usage: anbaric jobs kill <job-id>");
+            return new JobKillCommand(await clientFromConfig()).run(jobId);
+        case "kill-old":
+            if (!jobId) return fail("usage: anbaric jobs kill-old <age>   e.g. 24h, 7d");
+            return new JobKillOldCommand(await clientFromConfig(), values.yes ?? false).run(jobId);
         case "set-state":
             if (!jobId || !rest[0]) return fail("usage: anbaric jobs set-state <job-id> <state>");
             return new JobSetStateCommand(await clientFromConfig()).run(jobId, rest[0]);

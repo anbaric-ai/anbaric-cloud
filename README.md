@@ -145,9 +145,12 @@ ports) — never hardcode these.
 | `anbaric state-machines` | list registered state machines |
 | `anbaric jobs create <sm-id> <start-state> [k=v ...]` | create a job and queue it for processing |
 | `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs stats` | job counts per state and the queue size |
 | `anbaric jobs watch <job-id>` | follow a job's state live |
 | `anbaric jobs set-state <job-id> <state>` | move a job and re-queue it |
 | `anbaric jobs update <job-id> <key=value ...>` | update job properties and re-queue |
+| `anbaric jobs kill <job-id>` | kill a job so it stops progressing |
+| `anbaric jobs kill-old <age>` | kill jobs not updated within `<age>` (e.g. `24h`, `7d`) |
 
 All commands accept `--platform-url` and `--tenant`; `login` sets the
 defaults. Manage your CLI keys in the browser at `<platform>/manage-keys`.

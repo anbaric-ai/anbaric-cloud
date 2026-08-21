@@ -179,9 +179,12 @@ principal commands are:
 | `anbaric state-machines` | list registered state machines |
 | `anbaric jobs create <sm-id> <start-state> [k=v ...]` | create a job and queue it for processing |
 | `anbaric jobs list [state-machine-id]` | list jobs |
+| `anbaric jobs stats` | job counts per state and the queue size |
 | `anbaric jobs watch <job-id>` | follow a job's state as it changes |
 | `anbaric jobs set-state <job-id> <state>` | move a job to a state and re-queue it |
 | `anbaric jobs update <job-id> <key=value ...>` | change job properties and re-queue |
+| `anbaric jobs kill <job-id>` | kill a job so it stops progressing |
+| `anbaric jobs kill-old <age>` | kill jobs not updated within `<age>` (e.g. `24h`, `7d`) |
 
 The `app configure`/`deploy`/`update` commands act on the application for the
 current project, located by walking up to the nearest `package.json`, so they
