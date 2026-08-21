@@ -54,6 +54,13 @@ describe("Job", () => {
             expect(job.lastUpdated).toBe(updated);
         });
 
+        it("is not killed by default, and keeps the given killed flag", () => {
+            expect(new Job("job-1", new Map(), "start").killed).toBe(false);
+
+            const started = new Date("2026-08-14T10:00:00Z");
+            expect(new Job("job-1", new Map(), "start", undefined, undefined, started, started, true).killed).toBe(true);
+        });
+
     });
 
 });

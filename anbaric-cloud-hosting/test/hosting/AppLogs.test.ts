@@ -10,6 +10,10 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue
     async confirm(_message : QueueMessage) : Promise<void> {
     }
 
+    async size() : Promise<number> {
+        return 0;
+    }
+
 }
 
 const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({

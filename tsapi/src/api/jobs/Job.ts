@@ -9,10 +9,11 @@ class Job {
     readonly startedAt : Date;
     readonly startedBy : string;
     readonly lastUpdated : Date;
+    readonly killed : boolean;
 
     constructor(id : string, properties : Map<string, any> = new Map(), state: string, workflowId? : string,
                 startedBy : string = "system", startedAt : Date = new Date(),
-                lastUpdated : Date = startedAt) {
+                lastUpdated : Date = startedAt, killed : boolean = false) {
 
         this.id = id;
         this.properties = properties;
@@ -21,6 +22,7 @@ class Job {
         this.startedBy = startedBy;
         this.startedAt = startedAt;
         this.lastUpdated = lastUpdated;
+        this.killed = killed;
     }
 
 }

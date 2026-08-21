@@ -42,10 +42,27 @@ abstract class JobPersistence {
             job.workflowId,
             job.startedBy,
             job.startedAt,
-            new Date()
+            new Date(),
+            job.killed
         )
 
         this.saveInternal(updatedJob);
+    }
+
+    async kill(id : string, actor : Actor) : Promise<void> {
+        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.KILL], "Job killed", null);
+        await this.killInternal(id);
+    }
+
+    async killOlderThan(lastUpdatedBefore : Date, actor : Actor) : Promise<number> {
+        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.KILL],
+            `Jobs not updated since ${lastUpdatedBefore.toISOString()} killed`, null);
+        return this.killOlderThanInternal(lastUpdatedBefore);
+    }
+
+    async countByState(actor : Actor) : Promise<Array<JobPersistence.StateCount>> {
+        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
+        return this.countByStateInternal();
     }
 
     private generatePropertiesDiff(oldVersion : Map<string, any>, newVersion : Map<string, any>) : Map<string, {from: any, to: any}> {
@@ -84,6 +101,9 @@ abstract class JobPersistence {
     protected abstract retrieveInternal(id : string) : Promise<Job>;
     protected abstract deleteInternal(id : string) : Promise<void>;
     protected abstract listInternal(pageSize? : number, page? : number) : Promise<Array<Job>>;
+    protected abstract killInternal(id : string) : Promise<void>;
+    protected abstract killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number>;
+    protected abstract countByStateInternal() : Promise<Array<JobPersistence.StateCount>>;
 
 }
 
@@ -96,7 +116,14 @@ namespace JobPersistence {
         DELETE = "DELETE",
         READ = "READ",
         LIST = "LIST",
+        KILL = "KILL",
     }
+
+    export type StateCount = {
+        state : string,
+        killed : boolean,
+        count : number,
+    };
 
 }
 

@@ -43,6 +43,15 @@ describe("job serialization", () => {
         expect(job.startedBy).toBe("system");
         expect(job.startedAt).toBeInstanceOf(Date);
         expect(job.lastUpdated).toEqual(job.startedAt);
+        expect(job.killed).toBe(false);
+    });
+
+    it("round-trips the killed flag", () => {
+        const started = new Date("2026-08-14T10:00:00Z");
+        const job = new Job("job-1", new Map(), "review", "onboarding", "app:crm", started, started, true);
+
+        expect(serializeJob(job).killed).toBe(true);
+        expect(deserializeJob(serializeJob(job)).killed).toBe(true);
     });
 
     it("round-trips a job", () => {

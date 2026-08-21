@@ -334,6 +334,18 @@ describe("StateMachine", () => {
             expect(queue.enqueue).not.toHaveBeenCalled();
         });
 
+        it("does not progress a killed job", async () => {
+            const job = new Job("job-1", new Map(), "start", WORKFLOW_ID, "system", new Date(), new Date(), true);
+            persistence.retrieve.mockResolvedValue(job);
+            machineWith([new State("start", [stampingAction("touched", true)])], [new PropertyDefinition("touched")]);
+
+            await progressJob("job-1");
+
+            expect(persistence.save).not.toHaveBeenCalled();
+            expect(queue.enqueue).not.toHaveBeenCalled();
+            expect(queue.schedule).not.toHaveBeenCalled();
+        });
+
         it("saves a property-only change with no new state and schedules a back-off re-enqueue", async () => {
             const job = jobInState("start");
             persistence.retrieve.mockResolvedValue(job);

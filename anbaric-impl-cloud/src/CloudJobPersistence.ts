@@ -28,6 +28,20 @@ class CloudJobPersistence extends JobPersistence {
         return serialized.map(deserializeJob);
     }
 
+    protected async killInternal(id : string) : Promise<void> {
+        await this.client.request("POST", `/jobs/${encodeURIComponent(id)}/kill`, {});
+    }
+
+    protected async killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number> {
+        const result = await this.client.request("POST", "/jobs/kill-old", { before: lastUpdatedBefore.toISOString() });
+        return result.killed;
+    }
+
+    protected async countByStateInternal() : Promise<Array<JobPersistence.StateCount>> {
+        const result = await this.client.request("GET", "/jobs/stats");
+        return result.states;
+    }
+
 }
 
 export { CloudJobPersistence }

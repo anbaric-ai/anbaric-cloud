@@ -22,6 +22,7 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS started_by TEXT NOT NULL DEFAULT 'system'");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS last_updated TIMESTAMPTZ NOT NULL DEFAULT now()");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS transitions JSONB NOT NULL DEFAULT '[]'");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS killed BOOLEAN NOT NULL DEFAULT false");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS documents (
             collection  TEXT NOT NULL,

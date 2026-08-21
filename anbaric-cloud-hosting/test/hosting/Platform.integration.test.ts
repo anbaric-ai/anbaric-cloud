@@ -40,6 +40,10 @@ class ConfirmableInMemoryQueue implements ConfirmableQueue {
         this.rows = this.rows.filter(row => row.position !== message.position);
     }
 
+    async size() : Promise<number> {
+        return this.rows.length;
+    }
+
 }
 
 const stampingAction = (key : string) => {

@@ -119,6 +119,54 @@ describe("InMemoryJobPersistence", () => {
 
     });
 
+    describe("killing", () => {
+
+        it("marks a job killed", async () => {
+            await persistence.create(actor, makeJob("job-1"));
+
+            await persistence.kill("job-1", actor);
+
+            expect((await persistence.retrieve("job-1", actor)).killed).toBe(true);
+        });
+
+        it("kills jobs last updated before the cutoff, skipping already-killed ones", async () => {
+            await persistence.create(actor, new Job("old", new Map(), "start", "wf", "system", new Date("2020-01-01"), new Date("2020-01-01")));
+            await persistence.create(actor, new Job("recent", new Map(), "start", "wf", "system", new Date(), new Date()));
+
+            const cutoff = new Date("2021-01-01");
+            expect(await persistence.killOlderThan(cutoff, actor)).toBe(1);
+            expect((await persistence.retrieve("old", actor)).killed).toBe(true);
+            expect((await persistence.retrieve("recent", actor)).killed).toBe(false);
+            expect(await persistence.killOlderThan(cutoff, actor)).toBe(0);
+        });
+
+        it("preserves the killed flag across a later save", async () => {
+            await persistence.create(actor, makeJob("job-1"));
+            await persistence.kill("job-1", actor);
+
+            await persistence.save(actor, "touch", await persistence.retrieve("job-1", actor), new Map([["x", 1]]));
+
+            expect((await persistence.retrieve("job-1", actor)).killed).toBe(true);
+        });
+
+    });
+
+    describe("countByState", () => {
+
+        it("counts jobs by state and killed flag", async () => {
+            await persistence.create(actor, makeJob("a"));
+            await persistence.create(actor, makeJob("b"));
+            await persistence.create(actor, new Job("c", new Map(), "done"));
+            await persistence.kill("c", actor);
+
+            const counts = await persistence.countByState(actor);
+
+            expect(counts).toContainEqual({ state: "start", killed: false, count: 2 });
+            expect(counts).toContainEqual({ state: "done", killed: true, count: 1 });
+        });
+
+    });
+
     describe("auditing", () => {
 
         it("audits each interaction against the injected auditor before touching the store", async () => {

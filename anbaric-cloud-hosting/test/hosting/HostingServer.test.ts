@@ -22,9 +22,14 @@ const actor = new Code("tester");
 class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
 
     confirmed : Array<QueueMessage> = [];
+    pendingSize = 0;
 
     async confirm(message : QueueMessage) : Promise<void> {
         this.confirmed.push(message);
+    }
+
+    async size() : Promise<number> {
+        return this.pendingSize;
     }
 
 }
@@ -98,6 +103,42 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
             expect((await persistence.list(actor)).map(job => job.id)).toEqual(["a", "b", "c"]);
             expect((await persistence.list(actor, 2, 1)).map(job => job.id)).toEqual(["c"]);
+        });
+
+    });
+
+    describe("killing and stats", () => {
+
+        it("kills a job through the cloud client", async () => {
+            await persistence.create(actor, makeJob("job-1"));
+
+            await persistence.kill("job-1", actor);
+
+            expect((await persistence.retrieve("job-1", actor)).killed).toBe(true);
+        });
+
+        it("kills jobs older than a cutoff and reports how many", async () => {
+            await persistence.create(actor, new Job("old", new Map(), "start", "wf", "system", new Date("2020-01-01"), new Date("2020-01-01")));
+            await persistence.create(actor, makeJob("recent"));
+
+            expect(await persistence.killOlderThan(new Date("2021-01-01"), actor)).toBe(1);
+            expect((await persistence.retrieve("old", actor)).killed).toBe(true);
+            expect((await persistence.retrieve("recent", actor)).killed).toBe(false);
+        });
+
+        it("counts jobs by state", async () => {
+            await persistence.create(actor, makeJob("a"));
+            await persistence.create(actor, makeJob("b"));
+
+            expect(await persistence.countByState(actor)).toContainEqual({ state: "start", killed: false, count: 2 });
+        });
+
+        it("reports the queue size", async () => {
+            backingQueue.pendingSize = 3;
+
+            const response = await fetch(`${baseUrl}/queue/size`);
+
+            expect(await response.json()).toEqual({ size: 3 });
         });
 
     });

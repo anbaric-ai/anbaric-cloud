@@ -7,7 +7,13 @@ class QueueHandler implements RequestHandler {
     constructor(private queue : ConfirmableQueue) {}
 
     async handle(request : Request) : Promise<void> {
-        if (request.method !== "POST" || !request.id || request.subresource) return request.notFound();
+        if (request.subresource) return request.notFound();
+
+        if (request.method === "GET" && request.id === "size") {
+            return request.reply(200, { size: await this.queue.size() });
+        }
+
+        if (request.method !== "POST" || !request.id) return request.notFound();
 
         switch (request.id) {
             case "enqueue": {

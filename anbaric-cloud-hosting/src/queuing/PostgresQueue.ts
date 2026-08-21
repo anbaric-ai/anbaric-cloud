@@ -47,6 +47,11 @@ class PostgresQueue implements ConfirmableQueue {
         await this.pool.query("DELETE FROM queue WHERE position = $1", [message.position]);
     }
 
+    async size() : Promise<number> {
+        const result = await this.pool.query("SELECT count(*)::int AS count FROM queue");
+        return result.rows[0].count;
+    }
+
 }
 
 export { PostgresQueue }

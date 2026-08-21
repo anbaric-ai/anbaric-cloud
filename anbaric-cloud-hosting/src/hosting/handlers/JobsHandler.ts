@@ -7,6 +7,21 @@ class JobsHandler implements RequestHandler {
     constructor(private persistence : JobPersistence) {}
 
     async handle(request : Request) : Promise<void> {
+        if (request.id === "stats" && !request.subresource) {
+            if (request.method !== "GET") return request.notFound();
+            return request.reply(200, { states: await this.persistence.countByState(SystemActor.actor) });
+        }
+        if (request.id === "kill-old" && !request.subresource) {
+            if (request.method !== "POST") return request.notFound();
+            const { before } = await request.body();
+            const killed = await this.persistence.killOlderThan(new Date(before), SystemActor.actor);
+            return request.reply(200, { killed });
+        }
+        if (request.id && request.subresource === "kill") {
+            if (request.method !== "POST") return request.notFound();
+            await this.persistence.kill(request.id, SystemActor.actor);
+            return request.reply(204);
+        }
         if (request.subresource) return request.notFound();
         if (request.id) return this.handleJob(request, request.id);
         return this.handleCollection(request);

@@ -113,6 +113,8 @@ class StateMachine {
         let pristine = true;
 
         const job = await this.persistence.retrieve(jobId, this.machineActor);
+        if (job.killed) return;
+
         const currentState = this.states.get(job.state);
 
         if (currentState?.isTerminal) return;
