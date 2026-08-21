@@ -35,7 +35,7 @@ In this example we will store a customer's details in a JSON document. Every cha
 ```ts
 import {Human, JsonStoreFactory} from "anbaric";
 
-const actor = new Human("ada", "admin");
+const actor = Human.fromSession();
 const customers = JsonStoreFactory.instance("customers");
 
 await customers.create(actor, "ada", { name: "Ada Lovelace", email: "ada@example.com" });
