@@ -27,7 +27,7 @@ class AppsHandler implements RequestHandler {
             case "POST": {
                 const appPort = Number(request.query("port"));
                 if (!Number.isInteger(appPort) || appPort <= 0) {
-                    return request.reply(400, { error: "Expected a numeric port query parameter" });
+                    return request.reply(400, { error: "Expected a numeric ?port query parameter - the app's internal port (\"internalPort\" in .anbaric/app-config.json)" });
                 }
                 const tarball = await request.rawBody();
                 if (tarball.length === 0) return request.reply(400, { error: "Expected a gzipped tarball body" });

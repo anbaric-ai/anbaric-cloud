@@ -1,11 +1,10 @@
 {
   "name": "anbaric-cli",
-  "version": "1.16.1",
+  "version": "1.16.2",
   "description": "The Anbaric platform CLI: deploy and operate state-machine apps on Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
   "type": "module",
-  "main": "src/main.ts",
   "bin": {
     "anbaric": "dist/main.js"
   },
@@ -15,6 +14,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   },
   "files": [

@@ -15,11 +15,28 @@ const configPath = (appDir : string) => join(appDir, ".anbaric", "app-config.jso
 const AppConfig = {
 
     async load(appDir : string) : Promise<AppConfigValues | undefined> {
+        const path = configPath(appDir);
+
+        let contents : string;
         try {
-            return JSON.parse(await readFile(configPath(appDir), "utf8"));
+            contents = await readFile(path, "utf8");
         } catch {
             return undefined;
         }
+
+        let parsed : any;
+        try {
+            parsed = JSON.parse(contents);
+        } catch {
+            throw new Error(`${path} is not valid JSON`);
+        }
+        if (typeof parsed?.name !== "string" || !isValidAppName(parsed.name)) {
+            throw new Error(`${path} needs a "name" of lowercase letters, digits, "-" or "_"`);
+        }
+        if (typeof parsed?.internalPort !== "number" || !Number.isInteger(parsed.internalPort) || parsed.internalPort <= 0) {
+            throw new Error(`${path} needs a numeric "internalPort" (the port your app listens on) - run \`anbaric app configure\` to set it`);
+        }
+        return { name: parsed.name, internalPort: parsed.internalPort };
     },
 
     async save(appDir : string, config : AppConfigValues) : Promise<string> {

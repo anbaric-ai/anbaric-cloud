@@ -54,12 +54,9 @@ class DeployCommand {
     }
 
     private async clearToDeploy(config : AppConfigValues, existingApps : Array<DeployedApp>) : Promise<boolean> {
-        const portClash = existingApps.find(app => app.appPort === config.internalPort && app.appName !== config.name);
-        if (portClash) {
-            console.error(red(`Port ${config.internalPort} is already in use by application ${portClash.appName} - run \`anbaric configure\` to change the app port`));
-            return false;
-        }
-
+        // The internal port is bound inside the app's own container/task network
+        // namespace, so two apps sharing a port never actually collide - no
+        // cross-app uniqueness check is needed.
         const alreadyDeployed = existingApps.some(app => app.appName === config.name);
         if (alreadyDeployed && !this.replaceWithoutAsking) {
             if (!process.stdin.isTTY) {

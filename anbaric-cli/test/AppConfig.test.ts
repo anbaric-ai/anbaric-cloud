@@ -27,6 +27,24 @@ describe("AppConfig", () => {
         expect(await AppConfig.load(appDir)).toBeUndefined();
     });
 
+    it("rejects a config that is missing internalPort, naming the field", async () => {
+        await AppConfig.save(appDir, { name: "crm" } as never);
+
+        await expect(AppConfig.load(appDir)).rejects.toThrowError(/needs a numeric "internalPort"/);
+    });
+
+    it("rejects a config whose port is not a positive integer", async () => {
+        await AppConfig.save(appDir, { name: "crm", internalPort: 0 });
+
+        await expect(AppConfig.load(appDir)).rejects.toThrowError(/internalPort/);
+    });
+
+    it("rejects a config with an invalid name", async () => {
+        await AppConfig.save(appDir, { name: "Bad Name", internalPort: 3000 });
+
+        await expect(AppConfig.load(appDir)).rejects.toThrowError(/needs a "name"/);
+    });
+
     it("suggests a sanitized name from package.json", async () => {
         await writeFile(join(appDir, "package.json"), JSON.stringify({ name: "My CRM App!" }));
 

@@ -30,7 +30,7 @@ ${bold("Usage")}
   anbaric login                                 configure platform URL and authorize this terminal
   anbaric logout                                revoke this terminal's key and remove it
   anbaric apps                                  list deployed apps
-  anbaric app configure                         create or update the app's .anbaric/app-config.json
+  anbaric app configure                         create or update .anbaric/app-config.json ({ "name", "internalPort" })
   anbaric app deploy                            deploy the app (run from anywhere inside the project)
   anbaric app update                            deploy, replacing a running app without prompting
   anbaric app status <name>                     show an app's deploy state and whether it is up
