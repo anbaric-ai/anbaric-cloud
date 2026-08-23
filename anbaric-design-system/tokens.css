@@ -20,6 +20,11 @@
   --color-accent: #5bc6ff;
   --color-accent-2: #ff5bbe;
 
+  /* --- Colour: Magister Violet ----------------------------- */
+  /* The imagination half of the Svalbard Blue pairing, sitting between
+     the blue accent and the coral primary. */
+  --color-magister: #8c6cff;
+
   /* --- Colour: Foreground — Shadowglass Navy ---------------- */
   /* Dark ink base, so two tints (a shade would read as black).
      Tint 1 is Asriel Ink; tint 2 is a lighter step of the same hue. */
