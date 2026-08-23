@@ -81,6 +81,7 @@ class DockerBuildLayer extends BaseBuildLayer {
         await this.docker(deployment, ["run", "--detach", "--name", container,
             "--network", this.options.network,
             "--env", `PORT=${deployment.appPort}`,
+            "--env", `ANBARIC_APP_ID=${deployment.appName}`,
             "--env", `ANBARIC_ADMIN_PORT=${deployment.adminPort}`,
             "--env", `ANBARIC_CLOUD_URL=${this.options.platformUrl}`,
             "--env", "ANBARIC_JOB_PERSISTENCE_TYPE=cloud",

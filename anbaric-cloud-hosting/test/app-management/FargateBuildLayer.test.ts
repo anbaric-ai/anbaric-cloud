@@ -168,6 +168,7 @@ describe("FargateBuildLayer", () => {
         expect(container.image).toBe("123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-apps:crm");
         expect(container.environment).toContainEqual({ name: "ANBARIC_CLOUD_URL", value: "http://platform.anbaric-test.local:8788" });
         expect(container.environment).toContainEqual({ name: "PORT", value: String(APP_PORT) });
+        expect(container.environment).toContainEqual({ name: "ANBARIC_APP_ID", value: "crm" });
         expect(container.environment).toContainEqual({ name: "ANBARIC_CONSUMER_URL", value: `http://crm.anbaric-test.local:${CONSUMER_PORT_BASE}` });
     });
 

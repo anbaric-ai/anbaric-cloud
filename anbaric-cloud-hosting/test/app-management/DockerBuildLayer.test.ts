@@ -93,6 +93,7 @@ CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-host
         ]);
         expect(run).toContain("anbaric-test-net");
         expect(run).toContain(`PORT=${APP_PORT}`);
+        expect(run).toContain("ANBARIC_APP_ID=fixture-app");
         expect(run).toContain("ANBARIC_CLOUD_URL=http://platform:8787");
         expect(run).toContain("ANBARIC_JOB_PERSISTENCE_TYPE=cloud");
         expect(run).toContain("ANBARIC_QUEUE_TYPE=cloud");

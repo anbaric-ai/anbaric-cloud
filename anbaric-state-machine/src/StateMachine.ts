@@ -33,20 +33,24 @@ class StateMachine {
 
     constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000, auditor : Auditor = AuditorFactory.instance()) {
 
-        this.workflowId = workflowId;
+        // A deployed app namespaces its state machines by app id, so the same
+        // workflow id used in two different apps never collides. Run locally
+        // (no app id in the environment) the id is used as given.
+        const appId = process.env.ANBARIC_APP_ID;
+        this.workflowId = appId ? `${appId}/${workflowId}` : workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
         this.startState = startState ?? states[0].id;
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
-        this.machineActor = new Code(workflowId, "state-machine");
+        this.machineActor = new Code(this.workflowId, "state-machine");
         this.sameStateDelayMs = sameStateDelayMs;
         this.auditor = auditor;
 
         this.consumer = ConsumerFactory.instance(queue)
-        this.consumer.subscribe(workflowId, jobId => this.progressJob(jobId));
+        this.consumer.subscribe(this.workflowId, jobId => this.progressJob(jobId));
 
-        void this.auditor.audit("state-machine", workflowId, SystemActor.actor, ["INITIALIZE"],
+        void this.auditor.audit("state-machine", this.workflowId, SystemActor.actor, ["INITIALIZE"],
             "State machine initialised", this.describe()).catch(() => {});
     }
 

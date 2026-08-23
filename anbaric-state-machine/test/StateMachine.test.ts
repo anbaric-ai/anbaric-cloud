@@ -114,6 +114,21 @@ describe("StateMachine", () => {
             ]);
         });
 
+        it("namespaces the workflow id by the app id when deployed", () => {
+            const auditor = mockAuditor();
+            process.env.ANBARIC_APP_ID = "my-app";
+            try {
+                const machine = new StateMachine(WORKFLOW_ID, [new State("start")], "start", [],
+                    persistence as unknown as JobPersistence, queue, 5 * 60_000, auditor);
+
+                expect(machine.workflowId).toBe("my-app/workflow-1");
+                expect(consumer.subscribe).toHaveBeenCalledWith("my-app/workflow-1", expect.any(Function));
+                expect(auditor.audit.mock.calls[0][1]).toBe("my-app/workflow-1");
+            } finally {
+                delete process.env.ANBARIC_APP_ID;
+            }
+        });
+
         it("progresses a job when the consumer delivers its id", async () => {
             const job = new Job("job-1", new Map(), "start");
             persistence.retrieve.mockResolvedValue(job);

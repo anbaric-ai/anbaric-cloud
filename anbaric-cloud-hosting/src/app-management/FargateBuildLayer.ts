@@ -170,6 +170,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                 ],
                 environment: [
                     { name: "PORT", value: String(deployment.appPort) },
+                    { name: "ANBARIC_APP_ID", value: deployment.appName },
                     { name: "ANBARIC_ADMIN_PORT", value: String(deployment.adminPort) },
                     { name: "ANBARIC_CLOUD_URL", value: this.options.platformUrl },
                     { name: "ANBARIC_JOB_PERSISTENCE_TYPE", value: "cloud" },
