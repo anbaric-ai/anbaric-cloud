@@ -1,4 +1,5 @@
 import {Authenticator} from "../../auth/Authenticator";
+import {SessionSigner} from "../../auth/SessionSigner";
 import {TokenAuthenticator} from "../../auth/TokenAuthenticator";
 import {Middleware} from "../Middleware";
 import {Request} from "../Request";
@@ -6,15 +7,18 @@ import {Request} from "../Request";
 type OpenRequestPredicate = (request : Request) => boolean;
 
 /* Decorates the request with its authenticated user and tenant - bearer
-   tokens first, sessions otherwise - and enforces authorization. Requests
-   matching the open predicate (ping, the one-time CLI key poll) pass
-   through untouched, as does everything when no authenticator is
-   configured. */
+   tokens first, then a valid platform session cookie, then the authenticator -
+   and enforces authorization. A valid platform session short-circuits the
+   authenticator entirely (no identity-provider round-trip) and slides its
+   expiry; a fresh authenticator login mints one. Requests matching the open
+   predicate (ping, the one-time CLI key poll) pass through untouched, as does
+   everything when no authenticator is configured. */
 class AuthenticationMiddleware implements Middleware {
 
     constructor(private authenticator? : Authenticator,
                 private tokenAuthenticator? : TokenAuthenticator,
-                private isOpen : OpenRequestPredicate = () => false) {}
+                private isOpen : OpenRequestPredicate = () => false,
+                private sessionSigner : SessionSigner = new SessionSigner()) {}
 
     async apply(request : Request) : Promise<boolean> {
         if (this.isOpen(request)) return true;
@@ -26,12 +30,24 @@ class AuthenticationMiddleware implements Middleware {
             return this.authorized(request);
         }
 
+        if (this.sessionSigner.configured) {
+            const session = this.sessionSigner.verify(request.session);
+            if (session) {
+                [request.user, request.tenant] = session;
+                this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
+                return this.authorized(request);
+            }
+        }
+
         if (!this.authenticator) return true;
 
         const authenticated = await this.authenticator.authenticate(request.session, request.raw, request.rawResponse);
         if (!authenticated) return false;
 
         [request.user, request.tenant] = authenticated;
+        if (this.sessionSigner.configured && !request.handled) {
+            this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
+        }
         return this.authorized(request);
     }
 

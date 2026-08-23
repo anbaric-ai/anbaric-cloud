@@ -11,6 +11,7 @@ export * from "./auth/InMemoryCliKeyStore";
 export * from "./auth/AuthenticatorLoader";
 export * from "./auth/KeyPair";
 export * from "./auth/Role";
+export * from "./auth/SessionSigner";
 export * from "./auth/StubAuthenticator";
 export * from "./auth/Tenant";
 export * from "./auth/TokenAuthenticator";

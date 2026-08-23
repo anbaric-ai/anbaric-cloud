@@ -44,6 +44,23 @@ resource "aws_secretsmanager_secret_version" "auth0_client_secret" {
   secret_string = var.auth0_client_secret == "" ? "unused" : var.auth0_client_secret
 }
 
+# Signs the platform's stateless session cookies. Generated here so no secret
+# value is handled by hand; rotating it (tofu taint) just forces re-login.
+resource "random_password" "session_signing" {
+  length  = 48
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "session_signing" {
+  name                    = "anbaric-${var.environment}/session-signing-secret"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "session_signing" {
+  secret_id     = aws_secretsmanager_secret.session_signing.id
+  secret_string = random_password.session_signing.result
+}
+
 resource "aws_cloudwatch_log_group" "platform" {
   name              = "/anbaric/${var.environment}/platform"
   retention_in_days = 30
@@ -80,6 +97,7 @@ resource "aws_iam_role_policy" "read_secrets" {
         aws_secretsmanager_secret.database_url.arn,
         aws_secretsmanager_secret.app_db_password.arn,
         aws_secretsmanager_secret.auth0_client_secret.arn,
+        aws_secretsmanager_secret.session_signing.arn,
       ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [])
     }]
   })
@@ -151,6 +169,7 @@ resource "aws_ecs_task_definition" "platform" {
     secrets = concat([
       { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
       { name = "ANBARIC_APP_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.app_db_password.arn },
+      { name = "ANBARIC_SESSION_SIGNING_SECRET", valueFrom = aws_secretsmanager_secret.session_signing.arn },
       ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
       ], var.deploy_additional_services ? [
