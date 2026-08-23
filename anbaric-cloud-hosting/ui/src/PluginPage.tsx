@@ -15,7 +15,7 @@ function dataFetcher(widget: RenderableWidget) {
   return async (parameters: Record<string, string> = {}) => {
     if (!widget.hasData) return null
     const query = new URLSearchParams({ plugin: widget.pluginName, widget: widget.id, ...parameters })
-    const response = await fetch(`/plugins/data?${query}`)
+    const response = await fetch(`/api/v2/plugins/data?${query}`)
     if (!response.ok) {
       throw new Error(`The data function of widget "${widget.id}" failed with status ${response.status}`)
     }

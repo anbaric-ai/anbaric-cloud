@@ -18,7 +18,7 @@ class PluginsHandler implements RequestHandler {
     private manifest(request : Request) : void {
         request.reply(200, this.plugins.map(({ name, plugin }) => ({
             name,
-            bundle: `/plugins/${name}.js`,
+            bundle: `/api/v2/plugins/${name}.js`,
             pages: plugin.pages,
             widgets: plugin.widgets.map(({ page, id, title, position, data }) =>
                 ({ page, id, title, position, hasData: data !== undefined })),

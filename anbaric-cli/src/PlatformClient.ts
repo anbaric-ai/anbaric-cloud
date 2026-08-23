@@ -1,6 +1,8 @@
 import {CliOptions} from "./CliConfig";
 import {TokenSigner} from "./TokenSigner";
 
+const API_PREFIX = "/api/v2";
+
 class PlatformClient {
 
     constructor(private options : CliOptions) {}
@@ -42,7 +44,7 @@ class PlatformClient {
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
         if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
 
-        const response = await fetch(`${this.options.platformUrl}${path}`, { method: "GET", headers, signal });
+        const response = await fetch(`${this.options.platformUrl}${API_PREFIX}${path}`, { method: "GET", headers, signal });
         if (this.deniedForAuthentication(response)) {
             throw new Error(`You're not signed in to ${this.options.platformUrl} - run \`anbaric login\` to authorize this terminal`);
         }
@@ -63,7 +65,7 @@ class PlatformClient {
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
         if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
 
-        const response = await fetch(`${this.options.platformUrl}${path}`, {
+        const response = await fetch(`${this.options.platformUrl}${API_PREFIX}${path}`, {
             method,
             headers,
             body,

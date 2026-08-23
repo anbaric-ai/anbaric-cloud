@@ -23,13 +23,14 @@ const startStubPlatform = (respond : (method : string, path : string) => any, re
             request.on("data", chunk => chunks.push(chunk));
             request.on("end", () => {
                 const raw = Buffer.concat(chunks).toString();
+                const path = (request.url ?? "").replace(/^\/api\/v2/, "");
                 recorded.push({
                     method: request.method ?? "",
-                    path: request.url ?? "",
+                    path,
                     body: raw ? JSON.parse(raw) : undefined,
                 });
                 response.writeHead(200, { "content-type": "application/json" });
-                response.end(JSON.stringify(respond(request.method ?? "", request.url ?? "")));
+                response.end(JSON.stringify(respond(request.method ?? "", path)));
             });
         });
         server.listen(0, () => resolve({

@@ -50,7 +50,7 @@ describe("app runtime log streaming through the hosting server", () => {
         const started = await serve(appWithLogs("crm", ["line one", "line two"]));
         server = started.server;
 
-        const response = await fetch(`${started.baseUrl}/apps/crm/logs`);
+        const response = await fetch(`${started.baseUrl}/api/v2/apps/crm/logs`);
 
         expect(response.headers.get("content-type")).toContain("text/plain");
         expect(await response.text()).toBe("line one\nline two\n");
@@ -60,7 +60,7 @@ describe("app runtime log streaming through the hosting server", () => {
         const started = await serve(appWithLogs("crm", []));
         server = started.server;
 
-        expect((await fetch(`${started.baseUrl}/apps/ghost/logs`)).status).toBe(404);
+        expect((await fetch(`${started.baseUrl}/api/v2/apps/ghost/logs`)).status).toBe(404);
     });
 
 });

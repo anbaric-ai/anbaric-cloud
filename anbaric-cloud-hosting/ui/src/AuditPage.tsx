@@ -104,7 +104,7 @@ function AuditPage() {
     query.set('pageSize', String(PAGE_SIZE))
     query.set('page', String(pageToLoad))
     try {
-      const response = await fetch(`/audits?${query}`)
+      const response = await fetch(`/api/v2/audits?${query}`)
       if (!response.ok) {
         setFailed(true)
         return

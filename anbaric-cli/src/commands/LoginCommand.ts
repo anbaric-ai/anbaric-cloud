@@ -55,7 +55,7 @@ class LoginCommand {
 
     private async requiresAuthentication(platformUrl : string) : Promise<boolean> {
         try {
-            const response = await fetch(`${platformUrl}/whoami`, {
+            const response = await fetch(`${platformUrl}/api/v2/whoami`, {
                 redirect: "manual",
                 signal: AbortSignal.timeout(PING_TIMEOUT_MS),
             });

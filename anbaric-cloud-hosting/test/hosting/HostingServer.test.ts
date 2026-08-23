@@ -136,7 +136,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("reports the queue size", async () => {
             backingQueue.pendingSize = 3;
 
-            const response = await fetch(`${baseUrl}/queue/size`);
+            const response = await fetch(`${baseUrl}/api/v2/queue/size`);
 
             expect(await response.json()).toEqual({ size: 3 });
         });
@@ -163,7 +163,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("passes confirm messages through to the backing queue", async () => {
-            const response = await fetch(`${baseUrl}/queue/confirm`, {
+            const response = await fetch(`${baseUrl}/api/v2/queue/confirm`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ jobId: "job-1", workflowId: "workflow-1" }),
@@ -249,7 +249,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("rejects a non-string secret value", async () => {
-            const response = await fetch(`${baseUrl}/secrets/api-key`, {
+            const response = await fetch(`${baseUrl}/api/v2/secrets/api-key`, {
                 method: "PUT",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ value: 42 }),
@@ -261,13 +261,13 @@ describe("HostingServer round-trip via the cloud clients", () => {
     });
 
     it("lists registered state machines", async () => {
-        await fetch(`${baseUrl}/consumers`, {
+        await fetch(`${baseUrl}/api/v2/consumers`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ workflowId: "workflow-1", url: "http://app:8788" }),
         });
 
-        const stateMachines = await (await fetch(`${baseUrl}/state-machines`)).json();
+        const stateMachines = await (await fetch(`${baseUrl}/api/v2/state-machines`)).json();
 
         expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
     });
@@ -308,14 +308,14 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("redirects any resource access without a session to the login flow", async () => {
-            const response = await fetch(`${authenticatedUrl}/jobs`, { redirect: "manual" });
+            const response = await fetch(`${authenticatedUrl}/api/v2/jobs`, { redirect: "manual" });
 
             expect(response.status).toBe(302);
             expect(response.headers.get("location")).toBe("https://login.example/authorize");
         });
 
         it("serves resources when a valid session cookie is presented", async () => {
-            const response = await fetch(`${authenticatedUrl}/jobs`, {
+            const response = await fetch(`${authenticatedUrl}/api/v2/jobs`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             });
 
@@ -324,7 +324,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("identifies the session's user on whoami", async () => {
-            const response = await fetch(`${authenticatedUrl}/whoami`, {
+            const response = await fetch(`${authenticatedUrl}/api/v2/whoami`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             });
 
@@ -343,7 +343,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 undefined, undefined, undefined, undefined, new DenyingAuthenticator());
             const denyingUrl = `http://127.0.0.1:${await denying.listen(0)}`;
 
-            const response = await fetch(`${denyingUrl}/jobs`, {
+            const response = await fetch(`${denyingUrl}/api/v2/jobs`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             });
 
@@ -352,7 +352,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("has no whoami on a platform without an authenticator", async () => {
-            const response = await fetch(`${baseUrl}/whoami`);
+            const response = await fetch(`${baseUrl}/api/v2/whoami`);
 
             expect(response.status).toBe(404);
         });
@@ -433,14 +433,12 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect(response.status).toBe(302);
         });
 
-        it("serves the authorization and manage-keys pages to a session", async () => {
-            for (const path of ["/authorize-cli/req-1", "/manage-keys"]) {
-                const response = await fetch(`${baseUrl}${path}`, {
-                    headers: { cookie: "anbaric_session=valid-session" },
-                });
-                expect(response.status).toBe(200);
-                expect(response.headers.get("content-type")).toBe("text/html");
-            }
+        it("serves the authorization page to a session", async () => {
+            const response = await fetch(`${baseUrl}/authorize-cli/req-1`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+            });
+            expect(response.status).toBe(200);
+            expect(response.headers.get("content-type")).toBe("text/html");
         });
 
         it("rejects an approval without a client name", async () => {
@@ -456,18 +454,18 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("lists and revokes the session user's keys", async () => {
             await approve("req-1", "chris laptop");
 
-            const listed = await (await fetch(`${baseUrl}/keys`, {
+            const listed = await (await fetch(`${baseUrl}/api/v2/keys`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             })).json();
             expect(listed).toHaveLength(1);
             expect(listed[0].clientName).toBe("chris laptop");
 
-            await fetch(`${baseUrl}/keys/${listed[0].id}`, {
+            await fetch(`${baseUrl}/api/v2/keys/${listed[0].id}`, {
                 method: "DELETE",
                 headers: { cookie: "anbaric_session=valid-session" },
             });
 
-            expect(await (await fetch(`${baseUrl}/keys`, {
+            expect(await (await fetch(`${baseUrl}/api/v2/keys`, {
                 headers: { cookie: "anbaric_session=valid-session" },
             })).json()).toEqual([]);
         });
@@ -516,7 +514,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("serves resources for a valid bearer token instead of redirecting to login", async () => {
-            const response = await fetch(`${tokenUrl}/jobs`, {
+            const response = await fetch(`${tokenUrl}/api/v2/jobs`, {
                 headers: { authorization: `Bearer ${mintToken("key-1")}` },
             });
 
@@ -525,7 +523,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("identifies the token's user on whoami", async () => {
-            const response = await fetch(`${tokenUrl}/whoami`, {
+            const response = await fetch(`${tokenUrl}/api/v2/whoami`, {
                 headers: { authorization: `Bearer ${mintToken("key-1")}` },
             });
 
@@ -534,7 +532,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("rejects an invalid bearer token with 401 rather than a login redirect", async () => {
-            const response = await fetch(`${tokenUrl}/jobs`, {
+            const response = await fetch(`${tokenUrl}/api/v2/jobs`, {
                 headers: { authorization: `Bearer ${mintToken("key-1", -10)}` },
                 redirect: "manual",
             });
@@ -544,7 +542,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("falls back to the session flow when no bearer token is sent", async () => {
-            const response = await fetch(`${tokenUrl}/jobs`, { redirect: "manual" });
+            const response = await fetch(`${tokenUrl}/api/v2/jobs`, { redirect: "manual" });
 
             expect(response.status).toBe(302);
         });
@@ -582,7 +580,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("serves workflow resources without any credentials", async () => {
-            const response = await fetch(`${internalUrl}/jobs`);
+            const response = await fetch(`${internalUrl}/api/v2/jobs`);
 
             expect(response.status).toBe(200);
             expect(await response.json()).toEqual([]);
@@ -605,7 +603,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("refuses deployment uploads", async () => {
-            const response = await fetch(`${internalUrl}/apps/crm/deploy`, {
+            const response = await fetch(`${internalUrl}/api/v2/apps/crm/deploy`, {
                 method: "POST",
                 body: new Uint8Array([1]),
             });
@@ -614,7 +612,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("keeps the public entry point behind authentication", async () => {
-            const response = await fetch(`${publicUrl}/jobs`, { redirect: "manual" });
+            const response = await fetch(`${publicUrl}/api/v2/jobs`, { redirect: "manual" });
 
             expect(response.status).toBe(302);
         });
@@ -630,44 +628,31 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const publicUrl = `http://127.0.0.1:${await audited.listen(0)}`;
             const internalUrl = `http://127.0.0.1:${await audited.listenInternal(0)}`;
 
-            const posted = await fetch(`${internalUrl}/audits`, {
+            const posted = await fetch(`${internalUrl}/api/v2/audits`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: ["UPDATE_PROPERTIES"], description: "Properties updated", details: { age: 42 } }),
             });
             expect(posted.status).toBe(204);
 
-            const listed = await (await fetch(`${publicUrl}/audits?resourceId=job-1`)).json();
+            const listed = await (await fetch(`${publicUrl}/api/v2/audits?resourceId=job-1`)).json();
             expect(listed).toHaveLength(1);
             expect(listed[0].description).toBe("Properties updated");
             expect(listed[0].actorId).toBe("chris");
 
-            expect(await (await fetch(`${publicUrl}/audits?resourceId=other`)).json()).toEqual([]);
-            expect(await (await fetch(`${publicUrl}/audits?search=updated`)).json()).toHaveLength(1);
-            expect(await (await fetch(`${publicUrl}/audits?interaction=UPDATE_PROPERTIES`)).json()).toHaveLength(1);
-            expect(await (await fetch(`${publicUrl}/audits?interaction=DELETE`)).json()).toEqual([]);
+            expect(await (await fetch(`${publicUrl}/api/v2/audits?resourceId=other`)).json()).toEqual([]);
+            expect(await (await fetch(`${publicUrl}/api/v2/audits?search=updated`)).json()).toHaveLength(1);
+            expect(await (await fetch(`${publicUrl}/api/v2/audits?interaction=UPDATE_PROPERTIES`)).json()).toHaveLength(1);
+            expect(await (await fetch(`${publicUrl}/api/v2/audits?interaction=DELETE`)).json()).toEqual([]);
 
-            const rejected = await fetch(`${internalUrl}/audits`, { method: "POST", body: "{}" });
+            const rejected = await fetch(`${internalUrl}/api/v2/audits`, { method: "POST", body: "{}" });
             expect(rejected.status).toBe(400);
 
-            const badInteraction = await fetch(`${internalUrl}/audits`, {
+            const badInteraction = await fetch(`${internalUrl}/api/v2/audits`, {
                 method: "POST",
                 body: JSON.stringify({ resourceType: "job", resourceId: "job-1", actorId: "chris", actorType: "HUMAN", interaction: [], description: "x" }),
             });
             expect(badInteraction.status).toBe(400);
-
-            await audited.close();
-        });
-
-        it("serves the audit page", async () => {
-            const audits = new InMemoryAuditRecordStore();
-            const audited = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
-                undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, audits);
-            const url = `http://127.0.0.1:${await audited.listen(0)}`;
-
-            const response = await fetch(`${url}/audit`);
-            expect(response.status).toBe(200);
-            expect(response.headers.get("content-type")).toContain("text/html");
 
             await audited.close();
         });

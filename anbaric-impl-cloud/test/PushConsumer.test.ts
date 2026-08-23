@@ -13,10 +13,10 @@ const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array
             request.on("data", chunk => chunks.push(chunk));
             request.on("end", () => {
                 const body = () => JSON.parse(Buffer.concat(chunks).toString());
-                if (request.method === "POST" && request.url === "/queue/confirm") {
+                if (request.method === "POST" && request.url === "/api/v2/queue/confirm") {
                     confirms.push(body());
                     response.statusCode = 204;
-                } else if (request.method === "POST" && request.url === "/consumers") {
+                } else if (request.method === "POST" && request.url === "/api/v2/consumers") {
                     registrations.push(body());
                     response.statusCode = 204;
                 } else {

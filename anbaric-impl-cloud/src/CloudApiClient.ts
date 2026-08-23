@@ -1,4 +1,5 @@
 const DEFAULT_BASE_URL = "http://localhost:8787";
+const API_PREFIX = "/api/v2";
 
 class CloudApiClient {
 
@@ -9,7 +10,7 @@ class CloudApiClient {
     }
 
     async request(method : string, path : string, body? : unknown) : Promise<any> {
-        const response = await fetch(`${this.baseUrl}${path}`, {
+        const response = await fetch(`${this.baseUrl}${API_PREFIX}${path}`, {
             method,
             headers: body === undefined ? undefined : { "content-type": "application/json" },
             body: body === undefined ? undefined : JSON.stringify(body),

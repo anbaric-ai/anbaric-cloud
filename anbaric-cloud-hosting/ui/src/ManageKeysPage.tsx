@@ -15,7 +15,7 @@ function ManageKeysPage() {
   const [failed, setFailed] = useState(false)
 
   const refresh = async () => {
-    const response = await fetch('/keys')
+    const response = await fetch('/api/v2/keys')
     if (!response.ok) {
       setFailed(true)
       return
@@ -28,7 +28,7 @@ function ManageKeysPage() {
   }, [])
 
   const revoke = async (id: string) => {
-    await fetch(`/keys/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    await fetch(`/api/v2/keys/${encodeURIComponent(id)}`, { method: 'DELETE' })
     await refresh()
   }
 

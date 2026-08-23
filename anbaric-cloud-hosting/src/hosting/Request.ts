@@ -14,6 +14,8 @@ class Request {
     user? : User;
     tenant? : Tenant;
 
+    readonly api : boolean;
+
     private parsed : URL;
     private segments : Array<string>;
 
@@ -21,7 +23,11 @@ class Request {
                 rayId : string = randomUUID()) {
         this.rayId = rayId;
         this.parsed = new URL(incoming.url ?? "/", "http://localhost");
-        this.segments = this.parsed.pathname.split("/").filter(Boolean);
+        const raw = this.parsed.pathname.split("/").filter(Boolean);
+        // The API lives under /api/v2; strip that prefix so resource/id/subresource
+        // address the resource, and flag it so the router serves API handlers only there.
+        this.api = raw[0] === "api" && raw[1] === "v2";
+        this.segments = this.api ? raw.slice(2) : raw;
     }
 
     get method() : string {

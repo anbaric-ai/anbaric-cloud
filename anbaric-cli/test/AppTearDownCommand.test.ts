@@ -34,7 +34,7 @@ describe("AppTearDownCommand", () => {
         const code = await new AppTearDownCommand(new PlatformClient({ platformUrl: stub.baseUrl }), true).run("crm");
 
         expect(code).toBe(0);
-        expect(recorded).toContainEqual({ method: "DELETE", path: "/apps/crm" });
+        expect(recorded).toContainEqual({ method: "DELETE", path: "/api/v2/apps/crm" });
     });
 
     it("aborts without deleting when not confirmed (non-interactive, no --yes)", async () => {

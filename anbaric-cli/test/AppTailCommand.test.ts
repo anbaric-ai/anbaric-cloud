@@ -39,7 +39,7 @@ describe("AppTailCommand", () => {
         const code = await new AppTailCommand(new PlatformClient({ platformUrl: platform.baseUrl })).run("crm");
 
         expect(code).toBe(0);
-        expect(platform.path).toBe("/apps/crm/logs");
+        expect(platform.path).toBe("/api/v2/apps/crm/logs");
         expect(stdout.join("")).toContain("hello from the app");
         expect(stdout.join("")).toContain("processing job 1");
     });

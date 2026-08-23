@@ -23,7 +23,6 @@ import {StateMachinesHandler} from "./handlers/StateMachinesHandler";
 import {PluginsHandler} from "./handlers/PluginsHandler";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
-import {PageDirectory} from "../plugins/PageDirectory";
 import {LoadedPlugin} from "../plugins/Plugin";
 import {Request} from "./Request";
 import {Router} from "./Router";
@@ -64,41 +63,34 @@ class HostingServer {
 
         const publicRouter = new Router();
         publicRouter.registerRoot(pages);
-        if (plugins.length > 0) {
-            for (const segment of new PageDirectory(plugins).topLevelSegments) {
-                publicRouter.register(segment, pages);
-            }
-            publicRouter.register("plugins", new PluginsHandler(plugins));
-        }
         publicRouter.register("ping", ping);
-        publicRouter.register("audit", pages);
-        publicRouter.register("whoami", new WhoamiHandler());
-        publicRouter.register("jobs", jobs);
-        publicRouter.register("queue", queueHandler);
-        publicRouter.register("consumers", consumers);
-        publicRouter.register("state-machines", stateMachines);
-        if (documents) publicRouter.register("documents", documents);
-        if (secrets) publicRouter.register("secrets", secrets);
-        if (audits) publicRouter.register("audits", audits);
+        if (plugins.length > 0) publicRouter.registerApi("plugins", new PluginsHandler(plugins));
+        publicRouter.registerApi("whoami", new WhoamiHandler());
+        publicRouter.registerApi("jobs", jobs);
+        publicRouter.registerApi("queue", queueHandler);
+        publicRouter.registerApi("consumers", consumers);
+        publicRouter.registerApi("state-machines", stateMachines);
+        if (documents) publicRouter.registerApi("documents", documents);
+        if (secrets) publicRouter.registerApi("secrets", secrets);
+        if (audits) publicRouter.registerApi("audits", audits);
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
-            publicRouter.register("keys", new KeysHandler(cliAuthorizer));
-            publicRouter.register("manage-keys", pages);
+            publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
         }
         if (buildLayer) {
-            publicRouter.register("apps", new AppsHandler(buildLayer));
-            publicRouter.registerFallback(new AppProxyHandler(buildLayer));
+            publicRouter.registerApi("apps", new AppsHandler(buildLayer));
+            publicRouter.register("app", new AppProxyHandler(buildLayer));
         }
 
         const internalRouter = new Router();
         internalRouter.register("ping", ping);
-        internalRouter.register("jobs", jobs);
-        internalRouter.register("queue", queueHandler);
-        internalRouter.register("consumers", consumers);
-        internalRouter.register("state-machines", stateMachines);
-        if (documents) internalRouter.register("documents", documents);
-        if (secrets) internalRouter.register("secrets", secrets);
-        if (audits) internalRouter.register("audits", audits);
+        internalRouter.registerApi("jobs", jobs);
+        internalRouter.registerApi("queue", queueHandler);
+        internalRouter.registerApi("consumers", consumers);
+        internalRouter.registerApi("state-machines", stateMachines);
+        if (documents) internalRouter.registerApi("documents", documents);
+        if (secrets) internalRouter.registerApi("secrets", secrets);
+        if (audits) internalRouter.registerApi("audits", audits);
 
         const openRequests = (request : Request) =>
             request.url.pathname === "/ping" ||

@@ -68,11 +68,11 @@ describe("app proxy through the hosting server", () => {
         const started = await serve(runningApp("myapp", "127.0.0.1", port));
         server = started.server;
 
-        const response = await fetch(`${started.baseUrl}/myapp/hello?x=1`, { headers: { cookie: "s=1" } });
+        const response = await fetch(`${started.baseUrl}/app/myapp/hello?x=1`, { headers: { cookie: "s=1" } });
 
         expect(received[0].url).toBe("/hello?x=1");
-        expect(received[0].headers["x-forwarded-prefix"]).toBe("/myapp");
-        expect(await response.text()).toBe("prefix=/myapp cookie=s=1");
+        expect(received[0].headers["x-forwarded-prefix"]).toBe("/app/myapp");
+        expect(await response.text()).toBe("prefix=/app/myapp cookie=s=1");
     });
 
     it("passes the app's Set-Cookie back to the client", async () => {
@@ -80,7 +80,7 @@ describe("app proxy through the hosting server", () => {
         const started = await serve(runningApp("myapp", "127.0.0.1", port));
         server = started.server;
 
-        const response = await fetch(`${started.baseUrl}/myapp/`);
+        const response = await fetch(`${started.baseUrl}/app/myapp/`);
 
         expect(response.headers.get("set-cookie")).toContain("sid=abc");
     });
@@ -91,7 +91,7 @@ describe("app proxy through the hosting server", () => {
         server = started.server;
 
         const redirect = await new Promise<{ status : number, location : string }>((resolve) => {
-            get(`${started.baseUrl}/myapp/go`, response => {
+            get(`${started.baseUrl}/app/myapp/go`, response => {
                 response.resume();
                 resolve({ status: response.statusCode ?? 0, location: response.headers.location ?? "" });
             });

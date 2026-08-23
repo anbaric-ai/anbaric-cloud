@@ -32,7 +32,7 @@ function PlatformNav({
   const [apps, setApps] = useState<App[]>([])
 
   useEffect(() => {
-    void fetch('/apps')
+    void fetch('/api/v2/apps')
       .then(async (response) => {
         if (response.ok) setApps(await response.json())
       })
@@ -46,8 +46,8 @@ function PlatformNav({
           { section: 'Apps' },
           ...apps.map((app) => ({
             label: app.appName,
-            value: `/${app.appName}`,
-            href: `/${app.appName}`,
+            value: `/app/${app.appName}`,
+            href: `/app/${app.appName}`,
             external: true,
             icon: <Sym name="deployed_code" />,
             disabled: app.status !== 'running',

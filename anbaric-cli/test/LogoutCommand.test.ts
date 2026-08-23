@@ -62,7 +62,7 @@ describe("LogoutCommand", () => {
         expect(exitCode).toBe(0);
         expect(received).toHaveLength(1);
         expect(received[0].method).toBe("DELETE");
-        expect(received[0].url).toBe("/keys/key-1");
+        expect(received[0].url).toBe("/api/v2/keys/key-1");
         expect(received[0].authorization).toMatch(/^Bearer /);
         expect(await CliConfig.loadKey()).toBeUndefined();
         expect((await CliConfig.load()).tenant).toBeUndefined();

@@ -34,7 +34,7 @@ describe("CloudAuditor", () => {
         await auditor.audit("job", "job-1", new Human("chris", "admin"), ["UPDATE_PROPERTIES"], "Properties updated", { age: 42 });
 
         expect(received).toHaveLength(1);
-        expect(received[0].url).toBe("/audits");
+        expect(received[0].url).toBe("/api/v2/audits");
         expect(received[0].body).toEqual({
             resourceType: "job",
             resourceId: "job-1",

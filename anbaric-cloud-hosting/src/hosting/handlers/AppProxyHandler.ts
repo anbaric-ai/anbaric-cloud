@@ -10,22 +10,24 @@ const HOP_BY_HOP = new Set([
     "te", "trailer", "transfer-encoding", "upgrade",
 ]);
 
-/* The router's fallback: any unregistered top-level path naming a running app
-   is reverse-proxied to it. The app is exposed at /<appName>; that prefix is
-   stripped before forwarding (the app sees the sub-path) and surfaced to the
-   app as X-Forwarded-Prefix so it can rebuild public URLs. Request and response
-   headers pass through both ways - notably cookies, Set-Cookie and Location - so
-   sessions and redirects work from app-served HTML. */
+/* Serves /app/<name>: the named running app is reverse-proxied to. The
+   /app/<name> prefix is stripped before forwarding (the app sees the sub-path)
+   and surfaced as X-Forwarded-Prefix so the app can rebuild public URLs.
+   Request and response headers pass through both ways - notably cookies,
+   Set-Cookie and Location - so sessions and redirects work from app-served
+   HTML. */
 class AppProxyHandler implements RequestHandler {
 
     constructor(private buildLayer : BuildLayer) {}
 
     async handle(request : Request) : Promise<void> {
-        const appName = request.resource!;
+        await this.buildLayer.ensureHydrated();
+        const appName = request.id;
+        if (!appName) return request.notFound();
         const app = this.buildLayer.status(appName);
         if (!app || app.status !== "running") return request.notFound();
 
-        const appPath = request.url.pathname.slice(`/${appName}`.length) || "/";
+        const appPath = request.url.pathname.slice(`/app/${appName}`.length) || "/";
         const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.rawBody();
 
         await new Promise<void>((resolve, reject) => {
@@ -50,7 +52,7 @@ class AppProxyHandler implements RequestHandler {
     private forwardHeaders(request : Request, appName : string) : OutgoingHttpHeaders {
         const headers = this.passThrough(request.raw.headers);
         delete headers.host;
-        headers["x-forwarded-prefix"] = `/${appName}`;
+        headers["x-forwarded-prefix"] = `/app/${appName}`;
         headers["x-forwarded-host"] = request.raw.headers.host;
         headers["x-forwarded-proto"] = "https";
         return headers;

@@ -67,11 +67,11 @@ describe("PluginsHandler through the hosting server", () => {
     });
 
     it("serves the manifest describing pages and widgets without their code", async () => {
-        const manifest = await (await fetch(`${baseUrl}/plugins`)).json();
+        const manifest = await (await fetch(`${baseUrl}/api/v2/plugins`)).json();
 
         expect(manifest).toEqual([{
             name: "test-plugin",
-            bundle: "/plugins/test-plugin.js",
+            bundle: "/api/v2/plugins/test-plugin.js",
             pages: [{ path: "/testing", title: "Testing", icon: "info", navOrder: 5 }],
             widgets: [
                 { page: "/testing", id: "counter", title: "Counter", position: 1, hasData: true },
@@ -81,45 +81,40 @@ describe("PluginsHandler through the hosting server", () => {
     });
 
     it("serves the compiled bundle as javascript", async () => {
-        const response = await fetch(`${baseUrl}/plugins/test-plugin.js`);
+        const response = await fetch(`${baseUrl}/api/v2/plugins/test-plugin.js`);
 
         expect(response.headers.get("content-type")).toBe("text/javascript");
         expect(await response.text()).toContain("compiled-test-plugin-bundle");
     });
 
     it("404s an unknown bundle", async () => {
-        expect((await fetch(`${baseUrl}/plugins/unknown.js`)).status).toBe(404);
+        expect((await fetch(`${baseUrl}/api/v2/plugins/unknown.js`)).status).toBe(404);
     });
 
     it("runs a widget data function with the remaining query parameters", async () => {
-        const response = await fetch(`${baseUrl}/plugins/data?plugin=test-plugin&widget=counter&colour=red`);
+        const response = await fetch(`${baseUrl}/api/v2/plugins/data?plugin=test-plugin&widget=counter&colour=red`);
 
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual({ echoed: { colour: "red" } });
     });
 
     it("404s a data call for a widget without a data function", async () => {
-        const response = await fetch(`${baseUrl}/plugins/data?plugin=test-plugin&widget=plain`);
+        const response = await fetch(`${baseUrl}/api/v2/plugins/data?plugin=test-plugin&widget=plain`);
 
         expect(response.status).toBe(404);
         expect((await response.json()).error).toContain('No data function found for widget "plain"');
     });
 
     it("404s a data call for an unknown plugin", async () => {
-        expect((await fetch(`${baseUrl}/plugins/data?plugin=nope&widget=counter`)).status).toBe(404);
+        expect((await fetch(`${baseUrl}/api/v2/plugins/data?plugin=nope&widget=counter`)).status).toBe(404);
     });
 
-    it("serves the plugin page path ahead of a running app with the same name", async () => {
-        const response = await fetch(`${baseUrl}/testing`);
-
-        expect([200, 501]).toContain(response.status);
-        expect(response.headers.get("content-type")).not.toBe("application/octet-stream");
+    it("does not serve plugin page paths - the console routes them client-side", async () => {
+        expect((await fetch(`${baseUrl}/testing`)).status).toBe(404);
     });
 
-    it("still proxies unregistered paths to apps", async () => {
-        const response = await fetch(`${baseUrl}/other-app`);
-
-        expect(response.status).toBe(404);
+    it("404s an unknown app under /app", async () => {
+        expect((await fetch(`${baseUrl}/app/other-app`)).status).toBe(404);
     });
 
 });
