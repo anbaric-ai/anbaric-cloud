@@ -11,6 +11,7 @@ import {AppsHandler} from "./handlers/AppsHandler";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
 import {KeysHandler} from "./handlers/auth/KeysHandler";
+import {SessionsHandler} from "./handlers/auth/SessionsHandler";
 import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
 import {ConsumersHandler} from "./handlers/ConsumersHandler";
 import {DocumentsHandler} from "./handlers/DocumentsHandler";
@@ -60,12 +61,14 @@ class HostingServer {
         const documents = documentStoreFor && new DocumentsHandler(documentStoreFor);
         const secrets = secretStore && new SecretsHandler(secretStore);
         const audits = auditRecords && new AuditsHandler(auditRecords);
+        const sessions = new SessionsHandler();
 
         const publicRouter = new Router();
         publicRouter.registerRoot(pages);
         publicRouter.register("ping", ping);
         if (plugins.length > 0) publicRouter.registerApi("plugins", new PluginsHandler(plugins));
         publicRouter.registerApi("whoami", new WhoamiHandler());
+        publicRouter.registerApi("sessions", sessions);
         publicRouter.registerApi("jobs", jobs);
         publicRouter.registerApi("queue", queueHandler);
         publicRouter.registerApi("consumers", consumers);
@@ -84,6 +87,7 @@ class HostingServer {
 
         const internalRouter = new Router();
         internalRouter.register("ping", ping);
+        internalRouter.registerApi("sessions", sessions);
         internalRouter.registerApi("jobs", jobs);
         internalRouter.registerApi("queue", queueHandler);
         internalRouter.registerApi("consumers", consumers);
@@ -113,7 +117,7 @@ class HostingServer {
 
     async close() : Promise<void> {
         if (this.internalServer.listening) await this.internalServer.close();
-        await this.publicServer.close();
+        if (this.publicServer.listening) await this.publicServer.close();
     }
 
 }

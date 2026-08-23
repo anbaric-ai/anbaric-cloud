@@ -4,11 +4,11 @@ class Code implements Actor {
 
     readonly type = "CODE" as const;
     readonly id : string;
-    readonly role : string;
+    readonly roles : Array<string>;
 
-    constructor(id : string, role : string = "code") {
+    constructor(id : string, roles : Array<string> | string = "code") {
         this.id = id;
-        this.role = role;
+        this.roles = typeof roles === "string" ? [roles] : roles;
     }
 
 }

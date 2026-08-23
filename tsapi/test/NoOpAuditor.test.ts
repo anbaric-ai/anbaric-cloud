@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {Actor} from "../src/api/actors/Actor";
 import {NoOpAuditor} from "../src/api/auditing/NoOpAuditor";
 
-const actor : Actor = { type: "CODE", id: "sys", role: "code" };
+const actor : Actor = { type: "CODE", id: "sys", roles: ["code"] };
 
 describe("NoOpAuditor", () => {
 

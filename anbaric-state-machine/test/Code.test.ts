@@ -8,11 +8,11 @@ describe("Code", () => {
 
         expect(actor.type).toBe("CODE");
         expect(actor.id).toBe("stamper");
-        expect(actor.role).toBe("code");
+        expect(actor.roles).toEqual(["code"]);
     });
 
     it("keeps a given role", () => {
-        expect(new Code("stamper", "backoffice").role).toBe("backoffice");
+        expect(new Code("stamper", "backoffice").roles).toEqual(["backoffice"]);
     });
 
 });

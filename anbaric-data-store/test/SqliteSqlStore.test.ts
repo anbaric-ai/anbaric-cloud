@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Actor, Auditor, NoOpAuditor} from "anbaric-tsapi";
 import {SqliteSqlStore} from "../src/SqliteSqlStore";
 
-const actor : Actor = { type: "CODE", id: "tester", role: "code" };
+const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 
 describe("SqliteSqlStore", () => {
 

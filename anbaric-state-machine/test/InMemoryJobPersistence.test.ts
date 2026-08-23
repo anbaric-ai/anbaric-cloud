@@ -3,7 +3,7 @@ import {Actor, Auditor, Job} from "anbaric-tsapi";
 import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
-const actor : Actor = { type: "CODE", id: "tester", role: "code" };
+const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 
 describe("InMemoryJobPersistence", () => {
 

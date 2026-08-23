@@ -5,7 +5,7 @@ import {Job} from "../src/api/jobs/Job";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-const human : Actor = { type: "HUMAN", id: "chris", role: "admin" };
+const human : Actor = { type: "HUMAN", id: "chris", roles: ["admin"] };
 
 describe("Action", () => {
 

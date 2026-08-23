@@ -10,7 +10,7 @@ type WorkflowDefinition = {
     states : Array<{
         id : string,
         isTerminal : boolean,
-        actions : Array<{ name : string, description : string, actor : { id : string, type : string, role : string } }>,
+        actions : Array<{ name : string, description : string, actor : { id : string, type : string, roles : Array<string> } }>,
         transitions : Array<{ to : string }>,
     }>,
 

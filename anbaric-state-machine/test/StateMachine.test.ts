@@ -110,7 +110,7 @@ describe("StateMachine", () => {
             expect(details.states[1].isTerminal).toBe(true);
             expect(details.states[0].actions).toEqual([
                 { name: "review", description: "Ada reviews the submission",
-                  actor: { id: "ada", type: "HUMAN", role: "admin" } },
+                  actor: { id: "ada", type: "HUMAN", roles: ["admin"] } },
             ]);
         });
 

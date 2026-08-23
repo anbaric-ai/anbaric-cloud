@@ -65,7 +65,7 @@ class StateMachine {
                 actions: state.actions.map(action => ({
                     name: action.name,
                     description: action.description,
-                    actor: { id: action.actor.id, type: action.actor.type, role: action.actor.role },
+                    actor: { id: action.actor.id, type: action.actor.type, roles: action.actor.roles },
                 })),
                 transitions: state.transitions.map(transition => ({ to: transition.to })),
             })),

@@ -8,12 +8,12 @@ class Agent implements Actor {
 
     readonly type = "AGENT" as const;
     readonly id : string;
-    readonly role : string;
+    readonly roles : Array<string>;
     readonly client : Agent.Client;
 
-    constructor(id : string, role : string, client : Agent.Client) {
+    constructor(id : string, roles : Array<string> | string, client : Agent.Client) {
         this.id = id;
-        this.role = role;
+        this.roles = typeof roles === "string" ? [roles] : roles;
         this.client = client;
     }
 

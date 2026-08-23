@@ -4,7 +4,7 @@ import {Actor} from "../src/api/actors/Actor";
 import {State} from "../src/api/states/State";
 import {Transition} from "../src/api/transitions/Transition";
 
-const human : Actor = { type: "HUMAN", id: "chris", role: "admin" };
+const human : Actor = { type: "HUMAN", id: "chris", roles: ["admin"] };
 
 describe("State", () => {
 

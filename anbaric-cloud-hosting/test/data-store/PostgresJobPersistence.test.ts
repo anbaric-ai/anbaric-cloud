@@ -3,7 +3,7 @@ import {Actor, Job} from "anbaric-tsapi";
 import {Pool} from "pg";
 import {PostgresJobPersistence} from "../../src/data-store/PostgresJobPersistence";
 
-const actor : Actor = { type: "CODE", id: "test", role: "test" };
+const actor : Actor = { type: "CODE", id: "test", roles: ["test"] };
 
 const mockPool = () => {
     const query = vi.fn(async (_sql : string, _params? : Array<any>) => ({ rows: [] as Array<any>, rowCount: 0 }));

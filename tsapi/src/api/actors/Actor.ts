@@ -4,7 +4,7 @@ interface Actor {
 
     type : ActorType;
     id : string;
-    role : string;
+    roles : Array<string>;
 
 }
 

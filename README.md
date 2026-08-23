@@ -32,10 +32,13 @@ Anbaric has a collection of features that can be used in your application. Here 
 
 In this example we will store a customer's details in a JSON document. Every change that is made in Anbaric requires an `Actor` to be specified, which is used to ensure a complete audit trail exists for any application built using Anbaric. In general, an actor will be either a "human" actor, an AI agent or code being executed by the system.
 
+When your app serves a page to a signed-in user, `Human.fromSession` turns that request into the human actor behind it — it resolves the browser's platform session (the `anbaric_session` cookie) against the platform, so the audit trail names the real user. Pass it the incoming request (or the session token directly). Outside a request — a seed script or system code — construct the actor yourself, e.g. `new Human("ada", ["admin"])` or a `Code` actor.
+
 ```ts
 import {Human, JsonStoreFactory} from "anbaric";
 
-const actor = Human.fromSession();
+// inside your app's HTTP handler, `request` is the incoming browser request
+const actor = await Human.fromSession(request);
 const customers = JsonStoreFactory.instance("customers");
 
 await customers.create(actor, "ada", { name: "Ada Lovelace", email: "ada@example.com" });

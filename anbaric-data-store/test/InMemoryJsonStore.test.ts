@@ -8,7 +8,7 @@ const customerSchema : JsonSchema = {
     properties: { name: { type: "string" } },
 };
 
-const actor : Actor = { type: "CODE", id: "tester", role: "code" };
+const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 
 describe("InMemoryJsonStore", () => {
 

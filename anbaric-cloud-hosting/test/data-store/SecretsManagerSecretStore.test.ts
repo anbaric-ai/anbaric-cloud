@@ -13,7 +13,7 @@ import {SecretsManagerSecretStore} from "../../src/data-store/SecretsManagerSecr
 
 const notFound = () => new ResourceNotFoundException({ message: "not found", $metadata: {} });
 const alreadyExists = () => new ResourceExistsException({ message: "exists", $metadata: {} });
-const actor : Actor = { type: "CODE", id: "tester", role: "code" };
+const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 
 describe("SecretsManagerSecretStore", () => {
 

@@ -3,7 +3,7 @@ import {randomBytes} from "node:crypto";
 import {Actor} from "anbaric-tsapi";
 import {InMemorySecretStore} from "../src/InMemorySecretStore";
 
-const actor : Actor = { type: "CODE", id: "tester", role: "code" };
+const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 
 describe("InMemorySecretStore", () => {
 

@@ -4,3 +4,4 @@ export * from "./CloudJsonStore";
 export * from "./CloudSecretStore";
 export * from "./CloudQueue";
 export * from "./CloudAuditor";
+export * from "./CloudSessionResolver";

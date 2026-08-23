@@ -89,6 +89,7 @@ class DockerBuildLayer extends BaseBuildLayer {
             "--env", "ANBARIC_JSON_STORE_TYPE=cloud",
             "--env", "ANBARIC_SECRET_STORE_TYPE=cloud",
             "--env", "ANBARIC_AUDITOR_TYPE=cloud",
+            "--env", "ANBARIC_SESSION_RESOLVER_TYPE=cloud",
             "--env", `ANBARIC_CONSUMER_PORT=${deployment.consumerPort}`,
             "--env", `ANBARIC_CONSUMER_URL=http://${container}:${deployment.consumerPort}`,
             ...sqlEnv,

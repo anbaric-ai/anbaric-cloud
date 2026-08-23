@@ -11,3 +11,6 @@ export * from "./scheduling/InMemoryQueue";
 export * from "./scheduling/PullConsumer";
 export * from "./scheduling/ConsumerFactory";
 export * from "./scheduling/QueueFactory";
+export * from "./sessions/InMemorySessionResolver";
+export * from "./sessions/SessionResolverFactory";
+export * from "./sessions/sessionCookie";

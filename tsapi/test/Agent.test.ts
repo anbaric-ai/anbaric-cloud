@@ -12,12 +12,12 @@ class StubClient extends Agent.Client {
 
 describe("Agent", () => {
 
-    it("is an AGENT actor with an id and role", () => {
+    it("is an AGENT actor with an id and roles", () => {
         const agent = new Agent("helper", "assistant", new StubClient());
 
         expect(agent.type).toBe("AGENT");
         expect(agent.id).toBe("helper");
-        expect(agent.role).toBe("assistant");
+        expect(agent.roles).toEqual(["assistant"]);
     });
 
     it("holds a client that carries the functional detail", async () => {
