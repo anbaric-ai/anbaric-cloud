@@ -16,6 +16,14 @@ import { PluginRegistry, registry, setRegistry } from './plugins/PluginRegistry'
 const MOBILE_MAX = 640
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_MAX
 
+// The admin console routes on the URL hash (#/jobs), so a hard refresh always
+// loads the SPA at "/" and never collides with an API route or the app proxy.
+// The CLI-authorize flow is the one exception: it is a real server-served path.
+const routeFromLocation = () => {
+  if (window.location.pathname.startsWith('/authorize-cli/')) return window.location.pathname
+  return window.location.hash.replace(/^#/, '') || '/'
+}
+
 function pageFor(path: string): { title: string; width: string; body: ReactNode } {
   if (path === '/manage-keys') return { title: 'Manage keys', width: '30rem', body: <ManageKeysPage /> }
   if (path === '/audit') return { title: 'Audit', width: '64rem', body: <AuditPage /> }
@@ -33,15 +41,19 @@ function pageFor(path: string): { title: string; width: string; body: ReactNode 
 }
 
 function App() {
-  const [path, setPath] = useState(window.location.pathname)
+  const [path, setPath] = useState(routeFromLocation)
   // Nav collapse is app state: it survives client-side navigation (the shell
   // stays mounted) but resets on a hard reload. Collapsed by default on mobile.
   const [collapsed, setCollapsed] = useState(isMobile)
 
   useEffect(() => {
-    const onPopState = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
+    const onRoute = () => setPath(routeFromLocation())
+    window.addEventListener('hashchange', onRoute)
+    window.addEventListener('popstate', onRoute)
+    return () => {
+      window.removeEventListener('hashchange', onRoute)
+      window.removeEventListener('popstate', onRoute)
+    }
   }, [])
 
   // The CLI-authorize flow is a standalone page reached directly, outside the nav.
@@ -50,8 +62,8 @@ function App() {
   }
 
   const navigate = (to: string) => {
-    if (to === window.location.pathname) return
-    window.history.pushState({}, '', to)
+    if (to === path) return
+    window.location.hash = to
     setPath(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     if (isMobile()) setCollapsed(true)
