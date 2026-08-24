@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition} from "anbaric-tsapi";
+import {Action, Await, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine";
 import {Code} from "../src/actors/Code";
 import {Human} from "../src/actors/Human";
@@ -236,6 +236,88 @@ describe("StateMachine with in-memory collaborators", () => {
         const escalated = await persistence.retrieve(urgentTicket.id, actor);
         expect(escalated.state).toBe("escalated");
         expect(escalated.properties.has("assignee")).toBe(false);
+    });
+
+    const approvalMachine = () => {
+        const approval = new Await("Approve the order", "HUMAN");
+        approval.fields = ["approved"];
+        approval.resolveUrl = (job) => `/approve?job=${job.id}`;
+        approval.metadata = (job) => new Map([["orderState", job.state]]);
+
+        return new StateMachine(
+            "approvals",
+            [
+                new State("review", [approval], [new Transition("approved", (job) => job.properties.get("approved") === true)]),
+                new State("approved"),
+            ],
+            "review",
+            [optionalFlag("approved")],
+            persistence,
+            queue,
+        );
+    };
+
+    it("parks a job in Awaiting input when it reaches an Await, without enqueuing", async () => {
+        const machine = approvalMachine();
+        const enqueue = vi.spyOn(queue, "enqueue");
+        const schedule = vi.spyOn(queue, "schedule");
+
+        const job = await machine.startJob();
+        enqueue.mockClear();
+        await progress(job.id);
+
+        const parked = await persistence.retrieve(job.id, actor);
+        expect(parked.status).toBe(Job.Status.AWAITING_INPUT);
+        expect(parked.state).toBe("review");
+        expect(parked.waitingFor).toBeDefined();
+        expect(parked.awaitMetadata?.waitingFor).toBe("HUMAN");
+        expect(parked.awaitMetadata?.fields).toEqual(["approved"]);
+        expect(parked.awaitMetadata?.resolveUrl).toBe(`/approve?job=${job.id}`);
+        expect(parked.awaitMetadata?.metadataMap.get("orderState")).toBe("review");
+        expect(enqueue).not.toHaveBeenCalled();
+        expect(schedule).not.toHaveBeenCalled();
+    });
+
+    it("resumes a parked job via a transition when its properties are updated, clearing the await", async () => {
+        const machine = approvalMachine();
+        const job = await machine.startJob();
+        await progress(job.id);
+
+        await machine.updateJob(job.id, new Map([["approved", true]]), new Human("chris", "admin"));
+        await progress(job.id);
+
+        const resumed = await persistence.retrieve(job.id, actor);
+        expect(resumed.state).toBe("approved");
+        expect(resumed.status).toBe(Job.Status.ACTIVE);
+        expect(resumed.waitingFor).toBeUndefined();
+        expect(resumed.awaitMetadata).toBeUndefined();
+    });
+
+    it("does not run actions placed after an Await when resuming", async () => {
+        const afterAwait = new Action("post-await", new Code("post-await"));
+        const ran = vi.fn(async () => new Map([["progressed", true]]));
+        afterAwait.run = ran;
+
+        const machine = new StateMachine(
+            "await-then-act",
+            [
+                new State("review", [new Await("Wait", "HUMAN"), afterAwait],
+                    [new Transition("done", (job) => job.properties.get("approved") === true)]),
+                new State("done"),
+            ],
+            "review",
+            [optionalFlag("approved"), optionalFlag("progressed")],
+            persistence,
+            queue,
+        );
+
+        const job = await machine.startJob();
+        await progress(job.id);
+        await machine.updateJob(job.id, new Map([["approved", true]]), new Human("chris", "admin"));
+        await progress(job.id);
+
+        expect(ran).not.toHaveBeenCalled();
+        expect((await persistence.retrieve(job.id, actor)).state).toBe("done");
     });
 
     it("a rejected startJob leaves persistence and queue untouched", async () => {

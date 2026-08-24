@@ -105,6 +105,46 @@ const support = new StateMachine("support", [
 Because the agent is just another actor, its work is audited like any other —
 the triage decision is attributed to `triager`.
 
+### Wait for human input
+
+Sometimes a job cannot progress by itself — it needs a person to approve
+something, fill in a form, or make a decision. An **`Await`** is a step in a
+state's action list that *pauses* the job instead of running: when a job reaches
+it, the job is parked in the **`Awaiting input`** status and is not processed
+again until its properties are updated. Point people at wherever they provide
+that input with a **`resolveUrl`** — a function of the job, so you can build a
+per-job link with the job id (and anything else) in the query string.
+
+Here an order waits for a human to approve it. The app serves a small approval
+UI at `/approve` (any framework — the page itself is omitted here); it reads the
+job id from the query string, collects the decision, and calls
+`updateJob(jobId, { approved: true }, actor)`. The `Await` sends the reviewer
+there, and a transition moves the job on once `approved` is set:
+
+```ts
+import {Await, State, StateMachine, Transition} from "anbaric";
+
+const approve = new Await("Approve the order", "HUMAN");
+approve.fields = ["approved"];                                  // the input we expect back
+approve.resolveUrl = (job) => `/approve?job=${job.id}`;         // where the human provides it
+
+const fulfilment = new StateMachine("fulfilment", [
+    new State("review", [approve], [new Transition("approved", (job) => job.properties.get("approved") === true)]),
+    new State("approved"),
+]);
+
+const order = await fulfilment.startJob(new Map([["total", 4200]]));
+// The job reaches `approve`, parks in "Awaiting input", and waits.
+// When the approval UI calls updateJob(order.id, { approved: true }, actor),
+// the job resumes, the transition fires, and it advances to `approved`.
+```
+
+The pause is recorded in the audit trail, and the [awaiting-input
+widget](#the-admin-console-and-widgets) lists every parked job — with a
+clickable `resolveUrl` for those awaiting a human. Pass `"EXTERNAL_SYSTEM"`
+instead of `"HUMAN"` when the input will come from another service rather than a
+person.
+
 ### Use an RDBMS
 
 A full relational store is available for structured data. Locally it is SQLite; deployed, it is the tenant's PostgreSQL.
@@ -204,6 +244,17 @@ There are three ways to influence a job:
 Whichever way, property changes are schema-validated and audited, and each
 job carries its history: who started it, every from→to transition and the
 actor that made it.
+
+A state's action list may also contain an **`Await`** — a pause point rather
+than an actor acting. When a job reaches one it stops running actions and is
+parked: its `status` becomes `Awaiting input` (distinct from its `state`), and
+it holds a **`WaitForInput`** describing what is expected — the `fields`, a
+resolved `resolveUrl`, whether a `HUMAN` or `EXTERNAL_SYSTEM` is expected, and
+any metadata the `Await` computed for the job. A parked job is not re-processed
+until an `updateJob` arrives; on resume it skips its actions and only
+re-evaluates its transitions, so the input drives it on and the wait clears once
+it moves to another state. Actions placed after an `Await` in the same state do
+not run when the job resumes.
 
 Everything is pluggable through env-driven factories: locally (no env vars)
 you get in-memory persistence and queueing; deployed, the same factories talk

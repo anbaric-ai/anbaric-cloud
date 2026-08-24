@@ -1,6 +1,7 @@
 import {Actor} from "../actors/Actor";
 import {Auditor} from "../auditing/Auditor";
 import {Job} from "./Job";
+import {serializeWaitForInput} from "../actions/WaitForInput";
 
 /* Persists jobs and audits every interaction. Public methods record the
    interaction against the injected auditor and then defer to the abstract
@@ -24,7 +25,7 @@ abstract class JobPersistence {
                properties? : Map<string, any>,
                state? : string) : Promise<void> {
 
-        const change = {
+        const change : { properties? : any, state? : any, metadata? : Record<string, any> } = {
             properties: properties ? this.generatePropertiesDiff(job.properties, properties) : undefined,
             state: state ? {from : job.state, to : state} : undefined
         }
@@ -32,6 +33,10 @@ abstract class JobPersistence {
         const interaction : Array<string> = [];
         if (properties) interaction.push(JobPersistence.Interaction.UPDATE_PROPERTIES);
         if (state) interaction.push(JobPersistence.Interaction.CHANGE_STATE);
+        if (job.status === Job.Status.AWAITING_INPUT && job.awaitMetadata) {
+            interaction.push(JobPersistence.Interaction.AWAIT);
+            change.metadata = serializeWaitForInput(job.awaitMetadata);
+        }
 
         await this.auditor.audit("job", job.id, actor, interaction, changeDescription, change);
 
@@ -43,7 +48,10 @@ abstract class JobPersistence {
             job.startedBy,
             job.startedAt,
             new Date(),
-            job.killed
+            job.killed,
+            job.status,
+            job.awaitMetadata,
+            job.waitingFor
         )
 
         this.saveInternal(updatedJob);
@@ -113,6 +121,7 @@ namespace JobPersistence {
         CREATE = "CREATE",
         UPDATE_PROPERTIES = "UPDATE_PROPERTIES",
         CHANGE_STATE = "CHANGE_STATE",
+        AWAIT = "AWAIT",
         DELETE = "DELETE",
         READ = "READ",
         LIST = "LIST",

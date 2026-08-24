@@ -14,6 +14,7 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             started_by   TEXT NOT NULL DEFAULT 'system',
             last_updated TIMESTAMPTZ NOT NULL DEFAULT now(),
             transitions  JSONB NOT NULL DEFAULT '[]',
+            status       TEXT NOT NULL DEFAULT 'active',
             inserted_at  BIGINT GENERATED ALWAYS AS IDENTITY
         )
     `);
@@ -23,6 +24,16 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS last_updated TIMESTAMPTZ NOT NULL DEFAULT now()");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS transitions JSONB NOT NULL DEFAULT '[]'");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS killed BOOLEAN NOT NULL DEFAULT false");
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+    // The await a job is parked on; its metadata is normalised here rather than on the job.
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS awaits (
+            id         UUID PRIMARY KEY,
+            metadata   JSONB NOT NULL DEFAULT '{}',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    `);
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS waiting_for UUID REFERENCES awaits(id) ON DELETE SET NULL");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS documents (
             collection  TEXT NOT NULL,

@@ -7,20 +7,24 @@ const actor : Actor = { type: "CODE", id: "test", roles: ["test"] };
 
 const mockPool = () => {
     const query = vi.fn(async (_sql : string, _params? : Array<any>) => ({ rows: [] as Array<any>, rowCount: 0 }));
-    return { pool: { query } as unknown as Pool, query };
+    let release : () => void = () => {};
+    const released = new Promise<void>(resolve => { release = resolve; });
+    const connect = vi.fn(async () => ({ query, release }));
+    return { pool: { query, connect } as unknown as Pool, query, released };
 };
 
 describe("PostgresJobPersistence", () => {
 
     it("writes the killed flag when saving a job", async () => {
-        const { pool, query } = mockPool();
+        const { pool, query, released } = mockPool();
 
         await new PostgresJobPersistence(pool).create(actor,
             new Job("job-1", new Map(), "start", "wf", "system", new Date(), new Date(), true));
+        await released;
 
-        const [sql, params] = query.mock.calls[0];
-        expect(sql).toContain("killed");
-        expect(params![7]).toBe(true);
+        const insert = query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO jobs"));
+        expect(insert).toBeDefined();
+        expect(insert![1]![7]).toBe(true);
     });
 
     it("kills a job by id", async () => {
