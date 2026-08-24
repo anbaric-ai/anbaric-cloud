@@ -357,6 +357,29 @@ ports) — never hardcode these.
 All commands accept `--platform-url` and `--tenant`; `login` sets the
 defaults. Manage your CLI keys in the browser at `<platform>/manage-keys`.
 
+## Packages
+
+`anbaric` is the umbrella install for writing an application — it re-exports the
+app-facing surface of the packages below. Install them individually for a
+narrower dependency.
+
+- [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi) — the interfaces
+  and value classes: `Job`, `State`, `Action`, `Await`, `Transition`, `Actor`,
+  `JobPersistence`, `JsonStore`, `SecretStore`, `Auditor`.
+- [`anbaric-state-machine`](https://npmjs.com/package/anbaric-state-machine) —
+  the `StateMachine`, actors, and in-memory implementations.
+- [`anbaric-data-store`](https://npmjs.com/package/anbaric-data-store) — the
+  document and secret stores.
+- [`anbaric-impl-cloud`](https://npmjs.com/package/anbaric-impl-cloud) — the
+  clients used when an application is deployed to a platform.
+- [`anbaric-cli`](https://npmjs.com/package/anbaric-cli) — the platform CLI.
+- [`anbaric-hosting`](https://npmjs.com/package/anbaric-hosting) — run a
+  platform yourself.
+
+Applications should not set the `ANBARIC_*` factory variables themselves; the
+platform sets them when the application is deployed, so the same code runs
+in-memory locally and platform-backed once deployed.
+
 ## Run your own platform
 
 `npm install -g anbaric-hosting` provides the full hosting service - API,
