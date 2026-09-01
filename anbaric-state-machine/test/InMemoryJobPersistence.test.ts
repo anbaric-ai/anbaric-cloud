@@ -130,8 +130,8 @@ describe("InMemoryJobPersistence", () => {
         });
 
         it("kills jobs last updated before the cutoff, skipping already-killed ones", async () => {
-            await persistence.create(actor, new Job("old", new Map(), "start", "wf", "system", new Date("2020-01-01"), new Date("2020-01-01")));
-            await persistence.create(actor, new Job("recent", new Map(), "start", "wf", "system", new Date(), new Date()));
+            await persistence.create(actor, new Job("old", new Map(), "start", "wf", undefined, "system", new Date("2020-01-01"), new Date("2020-01-01")));
+            await persistence.create(actor, new Job("recent", new Map(), "start", "wf", undefined, "system", new Date(), new Date()));
 
             const cutoff = new Date("2021-01-01");
             expect(await persistence.killOlderThan(cutoff, actor)).toBe(1);
@@ -170,8 +170,8 @@ describe("InMemoryJobPersistence", () => {
     describe("auditing", () => {
 
         it("audits each interaction against the injected auditor before touching the store", async () => {
-            const audit = vi.fn(async (_resourceType : string, _resourceId : string, _actor : any,
-                                       _interaction : any, _description : string, _details : any) => {});
+            const audit = vi.fn(async (_appId : string | undefined, _resourceType : string, _resourceId : string,
+                                       _actor : any, _interaction : any, _description : string, _details : any) => {});
             const audited = new InMemoryJobPersistence({ audit } as unknown as Auditor);
 
             await audited.create(actor, makeJob("job-1"));
@@ -179,7 +179,7 @@ describe("InMemoryJobPersistence", () => {
             await audited.delete("job-1", actor);
             await audited.list(actor);
 
-            expect(audit.mock.calls.map(call => [call[0], call[1], call[3]])).toEqual([
+            expect(audit.mock.calls.map(call => [call[1], call[2], call[4]])).toEqual([
                 ["job", "job-1", ["CREATE"]],
                 ["job", "job-1", ["READ"]],
                 ["job", "job-1", ["DELETE"]],

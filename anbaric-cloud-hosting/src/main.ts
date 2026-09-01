@@ -61,9 +61,15 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
     })
     : undefined;
 
-const secretStore : SecretStore = process.env.AWS_REGION
-    ? new SecretsManagerSecretStore(new SecretsManagerClient({}))
-    : new InMemorySecretStore();
+// Secrets are owned by an app: each app gets its own namespace. AWS-backed
+// stores fold the app into their name prefix (stateless, built per request);
+// the in-memory local store is cached per app so its data persists.
+const secretsManagerClient = process.env.AWS_REGION ? new SecretsManagerClient({}) : undefined;
+const localSecretStores = new Map<string, InMemorySecretStore>();
+const secretStoreFor = (appId : string) : SecretStore =>
+    secretsManagerClient
+        ? new SecretsManagerSecretStore(secretsManagerClient, `anbaric/${appId}/`)
+        : localSecretStores.get(appId) ?? localSecretStores.set(appId, new InMemorySecretStore()).get(appId)!;
 
 const authenticator = await loadAuthenticator(process.env.ANBARIC_AUTHENTICATOR);
 const cliKeyStore = process.env.ANBARIC_CLI_KEY_LOOKUP_URL
@@ -75,7 +81,7 @@ const tokenAuthenticator = new TokenAuthenticator(cliKeyStore, process.env.ANBAR
 const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "anbaric-plugins/state-machines");
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
-    (collection) => new PostgresJsonStore(pool, collection), secretStore, authenticator, cliAuthorizer,
+    (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);

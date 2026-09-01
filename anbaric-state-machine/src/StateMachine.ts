@@ -1,9 +1,11 @@
 import {
     Action,
     Actor,
+    AppAware,
     Auditor,
     Await,
     Consumer,
+    currentAppId,
     Job,
     JobPersistence,
     PropertyDefinition,
@@ -19,7 +21,7 @@ import {ConsumerFactory} from "./scheduling/ConsumerFactory";
 import {AuditorFactory} from "./auditing/AuditorFactory";
 import {Code} from "./actors/Code";
 
-class StateMachine {
+class StateMachine implements AppAware {
 
     readonly workflowId: string;
     readonly states: Map<string, State>;
@@ -30,44 +32,51 @@ class StateMachine {
     private queue: Queue;
     private consumer: Consumer;
     private machineActor: Code;
-    private sameStateDelayMs: number;
     private auditor: Auditor;
 
-    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), sameStateDelayMs : number = 5 * 60_000, auditor : Auditor = AuditorFactory.instance()) {
+    private readonly NO_TRANSITION_REQUEUE_DELAY: number = 5 * 60_000;
 
-        const appId = process.env.ANBARIC_APP_ID;
-        this.workflowId = appId ? `${appId}/${workflowId}` : workflowId;
+    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), auditor : Auditor = AuditorFactory.instance()) {
+
+        // The workflow's identity is the composite (appId, workflowId): the app
+        // it is deployed in (from the environment, via getAppId()) and the
+        // machine's own id, kept as separate values rather than a concatenated
+        // string.
+        this.workflowId = workflowId;
         this.states = new Map(states.map(state => [state.id, state]));
         this.startState = startState ?? states[0].id;
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
         this.machineActor = new Code(this.workflowId, "state-machine");
-        this.sameStateDelayMs = sameStateDelayMs;
         this.auditor = auditor;
 
         this.consumer = ConsumerFactory.instance(queue)
-        this.consumer.subscribe(this.workflowId, jobId => this.progressJob(jobId));
+        this.consumer.subscribe(this.getAppId(), this.workflowId, jobId => this.progressJob(jobId));
 
-        void this.auditor.audit("state-machine", this.workflowId, SystemActor.actor, ["INITIALIZE"],
+        void this.auditor.audit(this.getAppId(), "state-machine", this.workflowId, SystemActor.actor, ["INITIALIZE"],
             "State machine initialised", this.describe()).catch(() => {});
     }
 
+    getAppId() : string {
+        return currentAppId();
+    }
+
     private describe() : WorkflowDefinition {
-        return WorkflowDefinition.describe(this.workflowId, this.startState,
+        return WorkflowDefinition.describe(this.getAppId(), this.workflowId, this.startState,
             [...this.states.values()], [...this.dataSchema.values()]);
     }
 
     async startJob(properties?: Map<string, any>, actor : Actor = this.machineActor): Promise<Job> {
 
         const job = new Job(crypto.randomUUID(), properties, this.startState, this.workflowId,
-            actor?.id ?? this.workflowId);
+            this.getAppId(), actor?.id ?? this.workflowId);
 
         if (! this.validateProperties(properties ?? new Map(), true)) throw new Error("Invalid properties");
         if (! this.authorizeActor(actor, job)) throw new Error("Unauthorized");
 
         await this.persistence.create(actor, job);
-        await this.queue.enqueue(job.id, this.workflowId);
+        await this.queue.enqueue(job.id, this.getAppId(), this.workflowId);
 
         return job;
     }
@@ -161,7 +170,7 @@ class StateMachine {
             job.waitingFor = undefined;
             await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
                 job, propertiesChanged ? job.properties : undefined, newState);
-            if (! this.states.get(newState)?.isTerminal) await this.queue.enqueue(job.id, this.workflowId);
+            if (! this.states.get(newState)?.isTerminal) await this.queue.enqueue(job.id, this.getAppId(), this.workflowId);
             return;
         }
 
@@ -171,7 +180,7 @@ class StateMachine {
 
         await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
             job, job.properties);
-        await this.queue.schedule(job.id, this.workflowId, new Date(Date.now() + this.sameStateDelayMs));
+        await this.queue.schedule(job.id, this.getAppId(), this.workflowId, new Date(Date.now() + this.NO_TRANSITION_REQUEUE_DELAY));
     }
 
     private async updateJobInternal(actor: Actor, message : string, job: Job, newProperties?: Map<string, any>, newState? : string) {
@@ -179,7 +188,7 @@ class StateMachine {
         if (newProperties && !this.validateProperties(newProperties, false)) throw new Error("Invalid properties");
 
         await this.persistence.save(actor, "Properties Updated", job, newProperties, newState)
-        await this.queue.enqueue(job.id, this.workflowId);
+        await this.queue.enqueue(job.id, this.getAppId(), this.workflowId);
     }
 
     private validateProperties(properties : Map<string, any>, isNew : boolean) : boolean {

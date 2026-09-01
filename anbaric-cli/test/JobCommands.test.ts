@@ -54,6 +54,7 @@ describe("job commands", () => {
         ] };
         if (path === "/queue/size") return { size: 7 };
         if (path === "/jobs/kill-old") return { killed: 4 };
+        if (path === "/state-machines") return [{ workflowId: "onboarding", url: "http://consumer" }];
         return job;
     };
 
@@ -76,9 +77,9 @@ describe("job commands", () => {
             const exitCode = await new JobCreateCommand(client).run("onboarding", "review", ['name="Ada"', "age=42"]);
 
             expect(exitCode).toBe(0);
-            expect(recorded.map(request => request.method)).toEqual(["PUT", "POST"]);
+            expect(recorded.map(request => request.method)).toEqual(["GET", "PUT", "POST"]);
 
-            const [put, enqueue] = recorded;
+            const [, put, enqueue] = recorded;
             expect(put.path).toBe(`/jobs/${put.body.id}`);
             expect(put.body).toMatchObject({
                 state: "review",

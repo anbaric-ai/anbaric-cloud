@@ -9,12 +9,12 @@ class CloudQueue implements Queue {
         this.client = new CloudApiClient(baseUrl);
     }
 
-    async enqueue(jobId : string, workflowId : string) : Promise<void> {
-        await this.client.request("POST", "/queue/enqueue", { jobId, workflowId });
+    async enqueue(jobId : string, appId : string | undefined, workflowId : string) : Promise<void> {
+        await this.client.request("POST", "/queue/enqueue", { jobId, appId, workflowId });
     }
 
-    async schedule(jobId : string, workflowId : string, due : Date) : Promise<void> {
-        await this.client.request("POST", "/queue/schedule", { jobId, workflowId, due: due.toISOString() });
+    async schedule(jobId : string, appId : string | undefined, workflowId : string, due : Date) : Promise<void> {
+        await this.client.request("POST", "/queue/schedule", { jobId, appId, workflowId, due: due.toISOString() });
     }
 
 }

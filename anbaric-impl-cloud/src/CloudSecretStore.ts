@@ -1,13 +1,17 @@
-import {Auditor, NoOpAuditor, SecretStore} from "anbaric-tsapi";
+import {AppAware, Auditor, currentAppId, NoOpAuditor, SecretStore} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient";
 
-class CloudSecretStore extends SecretStore {
+class CloudSecretStore extends SecretStore implements AppAware {
 
     private client : CloudApiClient;
 
     constructor(baseUrl : string = CloudApiClient.defaultBaseUrl(), auditor : Auditor = new NoOpAuditor()) {
         super(auditor);
         this.client = new CloudApiClient(baseUrl);
+    }
+
+    getAppId() : string {
+        return currentAppId();
     }
 
     protected async saveInternal(name : string, value : string) : Promise<void> {

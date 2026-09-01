@@ -46,7 +46,7 @@ class DeployCommand {
         for (const line of outcome.log ?? []) console.log(dim(`  ${line}`));
 
         if (outcome.status === "running") {
-            console.log(`${check} ${bold(config.name)} is live at ${bold(`${this.client.platformUrl}/${config.name}`)}`);
+            console.log(`${check} ${bold(config.name)} is live at ${bold(`${this.client.platformUrl}/app/${config.name}`)}`);
             return 0;
         }
         console.log(`${cross} Deployment of ${bold(config.name)} ${outcome.status}`);

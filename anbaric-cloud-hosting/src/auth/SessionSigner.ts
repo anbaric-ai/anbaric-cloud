@@ -7,6 +7,11 @@ import {User} from "./User";
 
 const DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60;
 
+const configuredTtlSeconds = () => {
+    const seconds = Number(process.env.ANBARIC_SESSION_TTL_SECONDS);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_TTL_SECONDS;
+};
+
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 const base64url = (input : Buffer | string) => Buffer.from(input).toString("base64url");
@@ -18,11 +23,13 @@ const base64url = (input : Buffer | string) => Buffer.from(input).toString("base
    store. The signing secret lives in the environment
    (ANBARIC_SESSION_SIGNING_SECRET, sourced from a secret manager); with none
    set the signer is inert and the platform falls back to the authenticator.
-   Sessions slide: a valid one is re-issued with a fresh expiry on each request. */
+   Sessions slide: a valid one is re-issued with a fresh expiry on each request.
+   The lifetime defaults to 30 days and can be tuned with
+   ANBARIC_SESSION_TTL_SECONDS. */
 class SessionSigner {
 
     constructor(private secret : string = process.env.ANBARIC_SESSION_SIGNING_SECRET ?? "",
-                private ttlSeconds : number = DEFAULT_TTL_SECONDS) {}
+                private ttlSeconds : number = configuredTtlSeconds()) {}
 
     get configured() : boolean {
         return this.secret.length > 0;

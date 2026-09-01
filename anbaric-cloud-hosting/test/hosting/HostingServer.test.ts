@@ -1,4 +1,5 @@
 import {generateKeyPairSync, sign} from "node:crypto";
+import {get as httpGet} from "node:http";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-impl-cloud";
@@ -18,6 +19,19 @@ import {HostingServer} from "../../src/hosting/HostingServer";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
 const actor = new Code("tester");
+
+const rawGet = (url : string, headers : Record<string, string> = {}) =>
+    new Promise<{ status : number, location? : string, cacheControl? : string, vary? : string }>((resolve, reject) => {
+        httpGet(url, { headers }, (response) => {
+            response.resume();
+            resolve({
+                status: response.statusCode ?? 0,
+                location: response.headers.location,
+                cacheControl: response.headers["cache-control"],
+                vary: response.headers["vary"],
+            });
+        }).on("error", reject);
+    });
 
 class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
 
@@ -45,12 +59,14 @@ describe("HostingServer round-trip via the cloud clients", () => {
     beforeEach(async () => {
         backingQueue = new ConfirmableInMemoryQueue();
         const documentStores = new Map<string, JsonStore>();
+        const secretStores = new Map<string, InMemorySecretStore>();
         server = new HostingServer(new InMemoryJobPersistence(), backingQueue, undefined, undefined,
-            (collection) => {
-                if (!documentStores.has(collection)) documentStores.set(collection, new InMemoryJsonStore());
-                return documentStores.get(collection)!;
+            (appId, collection) => {
+                const key = `${appId}/${collection}`;
+                if (!documentStores.has(key)) documentStores.set(key, new InMemoryJsonStore());
+                return documentStores.get(key)!;
             },
-            new InMemorySecretStore());
+            (appId) => secretStores.get(appId) ?? secretStores.set(appId, new InMemorySecretStore()).get(appId)!);
         const port = await server.listen(0);
         baseUrl = `http://127.0.0.1:${port}`;
         persistence = new CloudJobPersistence(baseUrl);
@@ -59,6 +75,26 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     afterEach(async () => {
         await server.close();
+    });
+
+    describe("app-internal link recovery", () => {
+
+        it("redirects an unrouted absolute path carrying an app Referer back onto its app, uncacheably", async () => {
+            const { status, location, cacheControl, vary } = await rawGet(`${baseUrl}/styles.css`, { referer: `${baseUrl}/app/crm/dashboard` });
+
+            expect(status).toBe(307);
+            expect(location).toBe("/app/crm/styles.css");
+            // The mapping is Referer-dependent, so it must never be cached and served cross-app.
+            expect(cacheControl).toBe("no-store");
+            expect(vary).toBe("Referer");
+        });
+
+        it("still 404s an unrouted path with no app Referer", async () => {
+            const { status } = await rawGet(`${baseUrl}/styles.css`);
+
+            expect(status).toBe(404);
+        });
+
     });
 
     describe("job persistence", () => {
@@ -118,7 +154,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("kills jobs older than a cutoff and reports how many", async () => {
-            await persistence.create(actor, new Job("old", new Map(), "start", "wf", "system", new Date("2020-01-01"), new Date("2020-01-01")));
+            await persistence.create(actor, new Job("old", new Map(), "start", "wf", undefined, "system", new Date("2020-01-01"), new Date("2020-01-01")));
             await persistence.create(actor, makeJob("recent"));
 
             expect(await persistence.killOlderThan(new Date("2021-01-01"), actor)).toBe(1);
@@ -146,8 +182,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
     describe("queue", () => {
 
         it("enqueues messages into the platform's queue in order", async () => {
-            await queue.enqueue("job-1", "workflow-1");
-            await queue.enqueue("job-2", "workflow-2");
+            await queue.enqueue("job-1", undefined, "workflow-1");
+            await queue.enqueue("job-2", undefined, "workflow-2");
 
             expect(await backingQueue.dequeueSome()).toEqual([
                 { jobId: "job-1", workflowId: "workflow-1" },
@@ -156,8 +192,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
         });
 
         it("schedules messages for later release", async () => {
-            await queue.schedule("past-due", "workflow-1", new Date(Date.now() - 1000));
-            await queue.schedule("future", "workflow-1", new Date(Date.now() + 60_000));
+            await queue.schedule("past-due", undefined, "workflow-1", new Date(Date.now() - 1000));
+            await queue.schedule("future", undefined, "workflow-1", new Date(Date.now() + 60_000));
 
             expect(await backingQueue.dequeueSome()).toEqual([{ jobId: "past-due", workflowId: "workflow-1" }]);
         });
@@ -569,7 +605,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         beforeEach(async () => {
             walledServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, () => new InMemoryJsonStore(),
-                new InMemorySecretStore(), new WallAuthenticator(),
+                () => new InMemorySecretStore(), new WallAuthenticator(),
                 new CliAuthorizer(new InMemoryCliKeyStore()));
             publicUrl = `http://127.0.0.1:${await walledServer.listen(0)}`;
             internalUrl = `http://127.0.0.1:${await walledServer.listenInternal(0)}`;

@@ -22,7 +22,8 @@ const fakeRequest = (session? : string) => {
 const spyAuthenticator = (result? : [User, Tenant]) => ({
     authenticate: vi.fn(async () => result),
     authorize: vi.fn(async () => true),
-}) as unknown as Authenticator & { authenticate : ReturnType<typeof vi.fn>, authorize : ReturnType<typeof vi.fn> };
+    redirectsToLoginOnFailure: () => false,
+}) as unknown as Authenticator & { authenticate : ReturnType<typeof vi.fn>, authorize : ReturnType<typeof vi.fn>, redirectsToLoginOnFailure : () => boolean };
 
 describe("AuthenticationMiddleware platform sessions", () => {
 
@@ -49,6 +50,30 @@ describe("AuthenticationMiddleware platform sessions", () => {
         expect(authenticator.authenticate).toHaveBeenCalledOnce();
         expect(request.user?.id).toBe("grace");
         expect(request.setCookie()).toContain("anbaric_session=");
+    });
+
+    it("rejects a state-changing request with no session instead of losing its body to a login redirect", async () => {
+        const authenticator = spyAuthenticator([new User("grace"), new Tenant("acme")]);
+        authenticator.redirectsToLoginOnFailure = () => true;
+        const middleware = new AuthenticationMiddleware(authenticator, undefined, () => false, signer);
+        const request = fakeRequest(undefined);
+        let replied : { status : number, body : any } | undefined;
+        (request as any).method = "POST";
+        (request as any).reply = (status : number, body : any) => { replied = { status, body }; (request as any).handled = true; };
+
+        expect(await middleware.apply(request)).toBe(false);
+        expect(replied?.status).toBe(401);
+        expect(authenticator.authenticate).not.toHaveBeenCalled();
+    });
+
+    it("still lets a state-changing request through an inline (non-redirecting) authenticator", async () => {
+        const authenticator = spyAuthenticator([new User("grace"), new Tenant("acme")]);
+        const middleware = new AuthenticationMiddleware(authenticator, undefined, () => false, signer);
+        const request = fakeRequest(undefined);
+        (request as any).method = "POST";
+
+        expect(await middleware.apply(request)).toBe(true);
+        expect(authenticator.authenticate).toHaveBeenCalledOnce();
     });
 
     it("ignores the session cookie when no signing secret is set", async () => {

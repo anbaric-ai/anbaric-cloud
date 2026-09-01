@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "tsapi",
+    "anbaric-web",
     "anbaric-state-machine",
     "anbaric-data-store",
     "anbaric-impl-cloud",
@@ -22,5 +23,5 @@
     "esbuild": "^0.28.2",
     "vitest": "^4.1.10"
   },
-  "version": "1.20.1"
+  "version": "1.21.0"
 }

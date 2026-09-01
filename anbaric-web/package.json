@@ -1,0 +1,24 @@
+{
+  "name": "anbaric-web",
+  "version": "1.21.0",
+  "description": "Shared platform web utilities: the app-proxy URL helpers and a safely-pooled Postgres client for plugin data functions",
+  "license": "MIT",
+  "author": "chris@anbaric.ai",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.15.0",
+    "typescript": "^7.0.2"
+  },
+  "files": [
+    "src"
+  ]
+}

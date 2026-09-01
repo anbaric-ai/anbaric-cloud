@@ -15,6 +15,7 @@ class InMemoryAuditRecordStore implements AuditRecordStore {
         const page = filter.page ?? 0;
 
         return this.records
+            .filter(record => !filter.appId || record.appId === filter.appId)
             .filter(record => !filter.resourceType || record.resourceType === filter.resourceType)
             .filter(record => !filter.resourceId || record.resourceId === filter.resourceId)
             .filter(record => !filter.actorId || record.actorId === filter.actorId)

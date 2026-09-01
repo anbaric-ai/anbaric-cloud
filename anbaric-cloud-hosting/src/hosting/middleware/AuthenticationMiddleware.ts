@@ -39,6 +39,15 @@ class AuthenticationMiddleware implements Middleware {
             }
         }
 
+        // A state-changing request with no valid session, bound for an
+        // authenticator that redirects to an interactive login, would have its
+        // body silently discarded across that redirect. Fail it loudly instead
+        // so the client can re-authenticate (a fresh GET) and retry.
+        if (this.isStateChanging(request.method) && this.authenticator?.redirectsToLoginOnFailure() && !request.handled) {
+            request.reply(401, { error: "Your session has expired or you are not signed in. Reload the page and try again." });
+            return false;
+        }
+
         if (!this.authenticator) return true;
 
         const authenticated = await this.authenticator.authenticate(request.session, request.raw, request.rawResponse);
@@ -49,6 +58,10 @@ class AuthenticationMiddleware implements Middleware {
             this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
         }
         return this.authorized(request);
+    }
+
+    private isStateChanging(method : string) : boolean {
+        return method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE";
     }
 
     private async authorized(request : Request) : Promise<boolean> {

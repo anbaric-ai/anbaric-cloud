@@ -25,6 +25,14 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS transitions JSONB NOT NULL DEFAULT '[]'");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS killed BOOLEAN NOT NULL DEFAULT false");
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+    // A workflow is keyed by the composite (app_id, workflow_id). Older rows
+    // stored "appId/workflowId" in workflow_id; split that once into the two
+    // columns (best effort - a bare workflow id with no app is left as-is).
+    await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS app_id TEXT");
+    await pool.query(`UPDATE jobs
+        SET app_id = split_part(workflow_id, '/', 1),
+            workflow_id = substring(workflow_id from position('/' in workflow_id) + 1)
+        WHERE app_id IS NULL AND workflow_id LIKE '%/%'`);
     // The await a job is parked on; its metadata is normalised here rather than on the job.
     await pool.query(`
         CREATE TABLE IF NOT EXISTS awaits (
@@ -36,13 +44,24 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS waiting_for UUID REFERENCES awaits(id) ON DELETE SET NULL");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS documents (
+            app_id      TEXT NOT NULL DEFAULT '',
             collection  TEXT NOT NULL,
             id          TEXT NOT NULL,
             document    JSONB NOT NULL,
             inserted_at BIGINT GENERATED ALWAYS AS IDENTITY,
-            PRIMARY KEY (collection, id)
+            PRIMARY KEY (app_id, collection, id)
         )
     `);
+    // Documents are owned by an app: widen the key to (app_id, collection, id).
+    await pool.query("ALTER TABLE documents ADD COLUMN IF NOT EXISTS app_id TEXT NOT NULL DEFAULT ''");
+    await pool.query(`DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.key_column_usage
+                       WHERE table_name = 'documents' AND constraint_name = 'documents_pkey'
+                         AND column_name = 'app_id') THEN
+            ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_pkey;
+            ALTER TABLE documents ADD PRIMARY KEY (app_id, collection, id);
+        END IF;
+    END $$`);
     await pool.query(`
         CREATE TABLE IF NOT EXISTS queue (
             position     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -52,6 +71,11 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             leased_until TIMESTAMPTZ
         )
     `);
+    await pool.query("ALTER TABLE queue ADD COLUMN IF NOT EXISTS app_id TEXT");
+    await pool.query(`UPDATE queue
+        SET app_id = split_part(workflow_id, '/', 1),
+            workflow_id = substring(workflow_id from position('/' in workflow_id) + 1)
+        WHERE app_id IS NULL AND workflow_id LIKE '%/%'`);
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (
@@ -86,6 +110,8 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     `);
     await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS resource_type TEXT");
     await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS resource_id TEXT");
+    // The app that owns the audited resource; part of every resource's composite identity.
+    await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS app_id TEXT");
     await pool.query("ALTER TABLE anbaric_system.audit_records ADD COLUMN IF NOT EXISTS interaction TEXT[]");
     await pool.query(`
         DO $$ BEGIN

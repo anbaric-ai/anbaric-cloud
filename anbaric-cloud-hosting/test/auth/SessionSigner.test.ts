@@ -60,4 +60,25 @@ describe("SessionSigner", () => {
         expect(cookie()).toContain("SameSite=Lax");
     });
 
+    it("uses the configured ttl for the cookie lifetime", () => {
+        const { response, cookie } = cookieResponse();
+
+        new SessionSigner("test-secret", 3600).issue(response, new User("ada"));
+
+        expect(cookie()).toContain("Max-Age=3600");
+    });
+
+    it("reads the ttl from ANBARIC_SESSION_TTL_SECONDS", () => {
+        const previous = process.env.ANBARIC_SESSION_TTL_SECONDS;
+        process.env.ANBARIC_SESSION_TTL_SECONDS = "120";
+        try {
+            const { response, cookie } = cookieResponse();
+            new SessionSigner("test-secret").issue(response, new User("ada"));
+            expect(cookie()).toContain("Max-Age=120");
+        } finally {
+            if (previous === undefined) delete process.env.ANBARIC_SESSION_TTL_SECONDS;
+            else process.env.ANBARIC_SESSION_TTL_SECONDS = previous;
+        }
+    });
+
 });

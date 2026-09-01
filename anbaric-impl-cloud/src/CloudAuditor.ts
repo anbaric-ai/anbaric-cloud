@@ -9,9 +9,10 @@ class CloudAuditor implements Auditor {
         this.client = new CloudApiClient(baseUrl);
     }
 
-    async audit(resourceType : string, resourceId : string, actor : Actor, interaction : Array<string>,
-                description : string, details : any) : Promise<void> {
+    async audit(appId : string | undefined, resourceType : string, resourceId : string, actor : Actor,
+                interaction : Array<string>, description : string, details : any) : Promise<void> {
         await this.client.request("POST", "/audits", {
+            appId: appId || undefined,
             resourceType,
             resourceId,
             actorId: actor.id,

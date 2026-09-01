@@ -31,11 +31,12 @@ describe("CloudAuditor", () => {
         const received : Array<{ url? : string, body : any }> = [];
         const auditor = new CloudAuditor(await startPlatform(received));
 
-        await auditor.audit("job", "job-1", new Human("chris", "admin"), ["UPDATE_PROPERTIES"], "Properties updated", { age: 42 });
+        await auditor.audit("crm", "job", "job-1", new Human("chris", "admin"), ["UPDATE_PROPERTIES"], "Properties updated", { age: 42 });
 
         expect(received).toHaveLength(1);
         expect(received[0].url).toBe("/api/v2/audits");
         expect(received[0].body).toEqual({
+            appId: "crm",
             resourceType: "job",
             resourceId: "job-1",
             actorId: "chris",
@@ -50,7 +51,7 @@ describe("CloudAuditor", () => {
         const received : Array<{ url? : string, body : any }> = [];
         const auditor = new CloudAuditor(await startPlatform(received));
 
-        await auditor.audit("job", "job-1", new Code("workflow-1", "state-machine"), ["CHANGE_STATE"], 'Transitioned to "done"', null);
+        await auditor.audit("crm", "job", "job-1", new Code("workflow-1", "state-machine"), ["CHANGE_STATE"], 'Transitioned to "done"', null);
 
         expect(received[0].body.actorId).toBe("workflow-1");
         expect(received[0].body.interaction).toEqual(["CHANGE_STATE"]);

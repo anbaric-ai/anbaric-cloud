@@ -17,7 +17,7 @@ describe("job serialization", () => {
     it("serializes the job metadata", () => {
         const startedAt = new Date("2026-08-14T10:00:00Z");
         const updated = new Date("2026-08-14T11:30:00Z");
-        const job = new Job("job-1", new Map(), "review", "onboarding", "app:crm", startedAt, updated);
+        const job = new Job("job-1", new Map(), "review", "onboarding", "crm", "app:crm", startedAt, updated);
 
         expect(serializeJob(job)).toMatchObject({
             startedAt: "2026-08-14T10:00:00.000Z",
@@ -28,13 +28,15 @@ describe("job serialization", () => {
 
     it("round-trips the job metadata", () => {
         const startedAt = new Date("2026-08-14T10:00:00Z");
-        const job = new Job("job-1", new Map(), "review", "onboarding", "app:crm", startedAt, startedAt);
+        const job = new Job("job-1", new Map(), "review", "onboarding", "crm", "app:crm", startedAt, startedAt);
 
         const roundTripped = deserializeJob(serializeJob(job));
 
         expect(roundTripped.startedAt).toEqual(startedAt);
         expect(roundTripped.startedBy).toBe("app:crm");
         expect(roundTripped.lastUpdated).toEqual(startedAt);
+        expect(roundTripped.workflowId).toBe("onboarding");
+        expect(roundTripped.appId).toBe("crm");
     });
 
     it("fills sensible defaults when deserializing a legacy payload", () => {
@@ -48,7 +50,7 @@ describe("job serialization", () => {
 
     it("round-trips the killed flag", () => {
         const started = new Date("2026-08-14T10:00:00Z");
-        const job = new Job("job-1", new Map(), "review", "onboarding", "app:crm", started, started, true);
+        const job = new Job("job-1", new Map(), "review", "onboarding", "crm", "app:crm", started, started, true);
 
         expect(serializeJob(job).killed).toBe(true);
         expect(deserializeJob(serializeJob(job)).killed).toBe(true);

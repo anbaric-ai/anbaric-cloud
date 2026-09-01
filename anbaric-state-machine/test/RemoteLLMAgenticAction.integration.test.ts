@@ -30,7 +30,7 @@ describe("RemoteLLMAgenticAction inside a StateMachine", () => {
         await machine.executeAction(job.id, action);
 
         expect((await persistence.retrieve(job.id, agent)).properties.get("summary")).toBe("all clear");
-        expect(auditor.audit).toHaveBeenCalledWith("job", job.id, agent, ["UPDATE_PROPERTIES"], expect.any(String), expect.anything());
+        expect(auditor.audit).toHaveBeenCalledWith("", "job", job.id, agent, ["UPDATE_PROPERTIES"], expect.any(String), expect.anything());
     });
 
 });

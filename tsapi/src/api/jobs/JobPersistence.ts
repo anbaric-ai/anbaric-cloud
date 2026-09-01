@@ -2,6 +2,7 @@ import {Actor} from "../actors/Actor";
 import {Auditor} from "../auditing/Auditor";
 import {Job} from "./Job";
 import {serializeWaitForInput} from "../actions/WaitForInput";
+import {currentAppId} from "../cloud/AppAware";
 
 /* Persists jobs and audits every interaction. Public methods record the
    interaction against the injected auditor and then defer to the abstract
@@ -14,7 +15,7 @@ abstract class JobPersistence {
     async create(actor : Actor,
                job : Job) : Promise<void> {
 
-        await this.auditor.audit("job", job.id, actor, [JobPersistence.Interaction.CREATE], "Job created", job);
+        await this.auditor.audit(job.appId, "job", job.id, actor, [JobPersistence.Interaction.CREATE], "Job created", job);
 
         this.saveInternal(job);
     }
@@ -38,13 +39,14 @@ abstract class JobPersistence {
             change.metadata = serializeWaitForInput(job.awaitMetadata);
         }
 
-        await this.auditor.audit("job", job.id, actor, interaction, changeDescription, change);
+        await this.auditor.audit(job.appId, "job", job.id, actor, interaction, changeDescription, change);
 
         const updatedJob = new Job(
             job.id,
             properties ? this.updateProperties(job.properties, properties) : job.properties,
             state ? state : job.state,
             job.workflowId,
+            job.appId,
             job.startedBy,
             job.startedAt,
             new Date(),
@@ -58,18 +60,18 @@ abstract class JobPersistence {
     }
 
     async kill(id : string, actor : Actor) : Promise<void> {
-        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.KILL], "Job killed", null);
+        await this.auditor.audit(currentAppId(), "job", id, actor, [JobPersistence.Interaction.KILL], "Job killed", null);
         await this.killInternal(id);
     }
 
     async killOlderThan(lastUpdatedBefore : Date, actor : Actor) : Promise<number> {
-        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.KILL],
+        await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.KILL],
             `Jobs not updated since ${lastUpdatedBefore.toISOString()} killed`, null);
         return this.killOlderThanInternal(lastUpdatedBefore);
     }
 
     async countByState(actor : Actor) : Promise<Array<JobPersistence.StateCount>> {
-        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
+        await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
         return this.countByStateInternal();
     }
 
@@ -91,17 +93,17 @@ abstract class JobPersistence {
     }
 
     async retrieve(id : string, actor : Actor) : Promise<Job> {
-        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.READ], "", null);
+        await this.auditor.audit(currentAppId(), "job", id, actor, [JobPersistence.Interaction.READ], "", null);
         return this.retrieveInternal(id);
     }
 
     async delete(id : string, actor : Actor) : Promise<void> {
-        await this.auditor.audit("job", id, actor, [JobPersistence.Interaction.DELETE], "", null);
+        await this.auditor.audit(currentAppId(), "job", id, actor, [JobPersistence.Interaction.DELETE], "", null);
         await this.deleteInternal(id);
     }
 
     async list(actor : Actor, pageSize? : number, page? : number) : Promise<Array<Job>> {
-        await this.auditor.audit("job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
+        await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
         return this.listInternal(pageSize, page);
     }
 

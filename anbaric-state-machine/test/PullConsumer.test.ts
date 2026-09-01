@@ -20,9 +20,9 @@ describe("PullConsumer", () => {
 
     it("forwards messages to the subscriber for their workflow", async () => {
         const processJob = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", processJob);
+        consumer.subscribe(undefined, "workflow-1", processJob);
 
-        await queue.enqueue("job-1", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
 
         await vi.waitFor(() => expect(processJob).toHaveBeenCalledExactlyOnceWith("job-1"));
     });
@@ -30,11 +30,11 @@ describe("PullConsumer", () => {
     it("routes each message only to its own workflow's subscriber", async () => {
         const first = vi.fn(async () => {});
         const second = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", first);
-        consumer.subscribe("workflow-2", second);
+        consumer.subscribe(undefined, "workflow-1", first);
+        consumer.subscribe(undefined, "workflow-2", second);
 
-        await queue.enqueue("job-1", "workflow-1");
-        await queue.enqueue("job-2", "workflow-2");
+        await queue.enqueue("job-1", undefined, "workflow-1");
+        await queue.enqueue("job-2", undefined, "workflow-2");
 
         await vi.waitFor(() => {
             expect(first).toHaveBeenCalledExactlyOnceWith("job-1");
@@ -44,14 +44,14 @@ describe("PullConsumer", () => {
 
     it("keeps messages for unsubscribed workflows until a subscriber appears", async () => {
         const subscribed = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", subscribed);
+        consumer.subscribe(undefined, "workflow-1", subscribed);
 
-        await queue.enqueue("job-x", "workflow-2");
+        await queue.enqueue("job-x", undefined, "workflow-2");
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS * 5));
         expect(subscribed).not.toHaveBeenCalled();
 
         const lateSubscriber = vi.fn(async () => {});
-        consumer.subscribe("workflow-2", lateSubscriber);
+        consumer.subscribe(undefined, "workflow-2", lateSubscriber);
 
         await vi.waitFor(() => expect(lateSubscriber).toHaveBeenCalledExactlyOnceWith("job-x"));
     });
@@ -59,9 +59,9 @@ describe("PullConsumer", () => {
     it("retries a message whose processing fails", async () => {
         const processJob = vi.fn(async () => {})
             .mockRejectedValueOnce(new Error("transient failure"));
-        consumer.subscribe("workflow-1", processJob);
+        consumer.subscribe(undefined, "workflow-1", processJob);
 
-        await queue.enqueue("job-1", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
 
         await vi.waitFor(() => expect(processJob).toHaveBeenCalledTimes(2));
         expect(processJob).toHaveBeenLastCalledWith("job-1");
@@ -69,10 +69,10 @@ describe("PullConsumer", () => {
 
     it("processes nothing after cleanUp", async () => {
         const processJob = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", processJob);
+        consumer.subscribe(undefined, "workflow-1", processJob);
 
         await consumer.cleanUp();
-        await queue.enqueue("job-1", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS * 5));
 
         expect(processJob).not.toHaveBeenCalled();

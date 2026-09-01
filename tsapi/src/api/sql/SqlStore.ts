@@ -1,5 +1,6 @@
 import {Actor} from "../actors/Actor";
 import {Auditor} from "../auditing/Auditor";
+import {currentAppId} from "../cloud/AppAware";
 
 /* A relational (SQL) store for application data. Public methods audit the
    interaction then defer to the abstract ...Internal. `query` returns rows;
@@ -12,12 +13,12 @@ abstract class SqlStore {
     }
 
     async query(actor : Actor, sql : string, parameters : Array<any> = []) : Promise<Array<Record<string, any>>> {
-        await this.auditor.audit("sql", "*", actor, [SqlStore.Interaction.QUERY], sql, null);
+        await this.auditor.audit(currentAppId(), "sql", "*", actor, [SqlStore.Interaction.QUERY], sql, null);
         return this.queryInternal(sql, parameters);
     }
 
     async execute(actor : Actor, sql : string, parameters : Array<any> = []) : Promise<number> {
-        await this.auditor.audit("sql", "*", actor, [SqlStore.Interaction.EXECUTE], sql, null);
+        await this.auditor.audit(currentAppId(), "sql", "*", actor, [SqlStore.Interaction.EXECUTE], sql, null);
         return this.executeInternal(sql, parameters);
     }
 

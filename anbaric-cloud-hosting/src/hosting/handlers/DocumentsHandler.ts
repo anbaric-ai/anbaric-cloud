@@ -4,12 +4,14 @@ import {RequestHandler} from "../RequestHandler";
 
 class DocumentsHandler implements RequestHandler {
 
-    constructor(private storeFor : (collection : string) => JsonStore) {}
+    constructor(private storeFor : (appId : string, collection : string) => JsonStore) {}
 
     async handle(request : Request) : Promise<void> {
         if (!request.id) return request.notFound();
 
-        const store = this.storeFor(request.id);
+        // Documents are owned by the calling app (the ambient app header); the
+        // store is scoped to (appId, collection) so ids never collide across apps.
+        const store = this.storeFor(request.appId ?? "", request.id);
         if (request.subresource) return this.handleDocument(request, store, request.subresource);
         return this.handleCollection(request, store);
     }

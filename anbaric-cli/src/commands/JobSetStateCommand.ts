@@ -16,7 +16,7 @@ class JobSetStateCommand {
         await this.client.put(`/jobs/${encodeURIComponent(jobId)}`, job);
 
         console.log(`${check} job ${jobId}: state ${dim(previousState)} ${cyan("→")} ${bold(state)}`);
-        return this.requeue(jobId, job.workflowId);
+        return this.requeue(jobId, job.appId, job.workflowId);
     }
 
     private async actor() : Promise<string> {
@@ -24,12 +24,12 @@ class JobSetStateCommand {
         return key ? `cli:${key.clientName}` : "anbaric-cli";
     }
 
-    private async requeue(jobId : string, workflowId? : string) : Promise<number> {
+    private async requeue(jobId : string, appId : string | undefined, workflowId? : string) : Promise<number> {
         if (!workflowId) {
             console.log(dim("  job has no workflow id, so it was not re-queued for processing"));
             return 0;
         }
-        await this.client.post("/queue/enqueue", { jobId, workflowId });
+        await this.client.post("/queue/enqueue", { jobId, appId, workflowId });
         console.log(dim(`  re-queued for processing by ${workflowId}`));
         return 0;
     }

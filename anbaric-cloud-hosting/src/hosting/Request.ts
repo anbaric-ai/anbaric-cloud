@@ -67,6 +67,12 @@ class Request {
         return value === undefined ? undefined : String(value);
     }
 
+    // The calling app's id, sent as an ambient header by the cloud clients, used
+    // to scope app-owned resources (documents, secrets) server-side.
+    get appId() : string | undefined {
+        return this.header("x-anbaric-app");
+    }
+
     query(name : string) : string | undefined {
         return this.parsed.searchParams.get(name) ?? undefined;
     }
@@ -103,6 +109,11 @@ class Request {
     replyJavaScript(script : string) : void {
         this.response.writeHead(200, { "content-type": "text/javascript" });
         this.response.end(script);
+    }
+
+    redirect(location : string, status : number = 302, headers : Record<string, string> = {}) : void {
+        this.response.writeHead(status, { location, ...headers });
+        this.response.end();
     }
 
     notFound() : void {

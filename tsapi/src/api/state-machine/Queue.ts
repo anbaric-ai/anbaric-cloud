@@ -2,8 +2,8 @@ import {QueueMessage} from "../cloud/QueueMessage";
 
 interface Queue {
 
-    enqueue(jobId : string, workflowId : string) : Promise<void>;
-    schedule(jobId : string, workflowId : string, due : Date) : Promise<void>;
+    enqueue(jobId : string, appId : string | undefined, workflowId : string) : Promise<void>;
+    schedule(jobId : string, appId : string | undefined, workflowId : string, due : Date) : Promise<void>;
 
 }
 

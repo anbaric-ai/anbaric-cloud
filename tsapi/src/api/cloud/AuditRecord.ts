@@ -1,5 +1,6 @@
 type AuditRecord = {
     id? : string,
+    appId? : string,
     resourceType : string,
     resourceId : string,
     actorId : string,

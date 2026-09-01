@@ -65,7 +65,7 @@ describe("PushConsumer", () => {
     };
 
     it("registers each subscription with the platform", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
 
         await vi.waitFor(() => expect(registrations).toEqual([
             { workflowId: "workflow-1", url: `http://localhost:${consumer.port}` },
@@ -73,7 +73,7 @@ describe("PushConsumer", () => {
     });
 
     it("accepts pushed messages with a 202 listing the job ids", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
 
         const response = await push([message("job-1"), message("job-2")]);
 
@@ -83,7 +83,7 @@ describe("PushConsumer", () => {
 
     it("processes each message with its workflow's subscriber and confirms it", async () => {
         const processJob = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", processJob);
+        consumer.subscribe(undefined, "workflow-1", processJob);
 
         await push([message("job-1"), message("job-2")]);
 
@@ -95,7 +95,7 @@ describe("PushConsumer", () => {
 
     it("does not confirm messages for unsubscribed workflows", async () => {
         const processJob = vi.fn(async () => {});
-        consumer.subscribe("workflow-1", processJob);
+        consumer.subscribe(undefined, "workflow-1", processJob);
 
         await push([message("job-1"), message("job-other", "workflow-2")]);
 
@@ -104,7 +104,7 @@ describe("PushConsumer", () => {
     });
 
     it("does not confirm a message whose processing fails", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async (jobId : string) => {
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async (jobId : string) => {
             if (jobId === "job-bad") throw new Error("processing failed");
         }));
 
@@ -114,7 +114,7 @@ describe("PushConsumer", () => {
     });
 
     it("rejects a malformed body with 400", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
 
         const response = await fetch(`${await listenerUrl()}/process`, {
             method: "POST",
@@ -126,7 +126,7 @@ describe("PushConsumer", () => {
     });
 
     it("returns 404 for unknown routes", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
 
         const response = await fetch(`${await listenerUrl()}/unknown`);
 
@@ -134,7 +134,7 @@ describe("PushConsumer", () => {
     });
 
     it("stops listening after cleanUp", async () => {
-        consumer.subscribe("workflow-1", vi.fn(async () => {}));
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
         const url = await listenerUrl();
 
         await consumer.cleanUp();

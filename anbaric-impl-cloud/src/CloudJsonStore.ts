@@ -1,7 +1,7 @@
-import {Auditor, JsonSchema, JsonStore, NoOpAuditor, validateDocument} from "anbaric-tsapi";
+import {AppAware, Auditor, currentAppId, JsonSchema, JsonStore, NoOpAuditor, validateDocument} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient";
 
-class CloudJsonStore extends JsonStore {
+class CloudJsonStore extends JsonStore implements AppAware {
 
     private client : CloudApiClient;
     private schema? : JsonSchema;
@@ -11,6 +11,10 @@ class CloudJsonStore extends JsonStore {
         super(auditor, collection);
         this.schema = schema;
         this.client = new CloudApiClient(baseUrl);
+    }
+
+    getAppId() : string {
+        return currentAppId();
     }
 
     protected async saveInternal(id : string, document : any) : Promise<void> {

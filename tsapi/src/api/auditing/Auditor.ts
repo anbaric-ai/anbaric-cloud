@@ -5,8 +5,8 @@ import {Actor} from "../actors/Actor";
    defines no vocabulary. */
 interface Auditor {
 
-    audit(resourceType : string, resourceId : string, actor : Actor, interaction : Array<string>,
-          description : string, details : any) : Promise<void>;
+    audit(appId : string | undefined, resourceType : string, resourceId : string, actor : Actor,
+          interaction : Array<string>, description : string, details : any) : Promise<void>;
 
 }
 

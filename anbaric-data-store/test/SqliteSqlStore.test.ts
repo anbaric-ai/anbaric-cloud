@@ -35,8 +35,8 @@ describe("SqliteSqlStore", () => {
         await audited.query(actor, "SELECT * FROM t");
         await audited.close();
 
-        expect(auditor.audit).toHaveBeenCalledWith("sql", "*", actor, ["EXECUTE"], expect.stringContaining("CREATE TABLE"), null);
-        expect(auditor.audit).toHaveBeenCalledWith("sql", "*", actor, ["QUERY"], "SELECT * FROM t", null);
+        expect(auditor.audit).toHaveBeenCalledWith("", "sql", "*", actor, ["EXECUTE"], expect.stringContaining("CREATE TABLE"), null);
+        expect(auditor.audit).toHaveBeenCalledWith("", "sql", "*", actor, ["QUERY"], "SELECT * FROM t", null);
     });
 
 });

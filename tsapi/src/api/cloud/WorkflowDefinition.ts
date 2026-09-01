@@ -9,6 +9,7 @@ import {Await} from "../actions/Await";
    not part of the graph - awaiting jobs are surfaced separately. */
 type WorkflowDefinition = {
 
+    appId? : string,
     workflowId : string,
     startState : string,
     dataSchema : Array<{ id : string, required : boolean }>,
@@ -23,8 +24,9 @@ type WorkflowDefinition = {
 
 namespace WorkflowDefinition {
 
-    export const describe = (workflowId : string, startState : string,
+    export const describe = (appId : string | undefined, workflowId : string, startState : string,
                              states : Array<State>, dataSchema : Array<PropertyDefinition>) : WorkflowDefinition => ({
+        appId,
         workflowId,
         startState,
         dataSchema: dataSchema.map(property => ({ id: property.id, required: property.required })),

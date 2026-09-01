@@ -38,7 +38,7 @@ describe("Job", () => {
 
         it("defaults startedBy to system and lastUpdated to startedAt", () => {
             const started = new Date("2026-08-14T10:00:00Z");
-            const job = new Job("job-1", new Map(), "start", undefined, undefined, started);
+            const job = new Job("job-1", new Map(), "start", undefined, undefined, undefined, started);
 
             expect(job.startedBy).toBe("system");
             expect(job.startedAt).toBe(started);
@@ -48,7 +48,7 @@ describe("Job", () => {
         it("keeps the given metadata", () => {
             const started = new Date("2026-08-14T10:00:00Z");
             const updated = new Date("2026-08-14T11:00:00Z");
-            const job = new Job("job-1", new Map(), "done", "onboarding", "chris", started, updated);
+            const job = new Job("job-1", new Map(), "done", "onboarding", undefined, "chris", started, updated);
 
             expect(job.startedBy).toBe("chris");
             expect(job.lastUpdated).toBe(updated);
@@ -58,7 +58,7 @@ describe("Job", () => {
             expect(new Job("job-1", new Map(), "start").killed).toBe(false);
 
             const started = new Date("2026-08-14T10:00:00Z");
-            expect(new Job("job-1", new Map(), "start", undefined, undefined, started, started, true).killed).toBe(true);
+            expect(new Job("job-1", new Map(), "start", undefined, undefined, undefined, started, started, true).killed).toBe(true);
         });
 
     });

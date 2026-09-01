@@ -20,8 +20,8 @@ const mockPersistence = () => ({
 });
 
 const mockQueue = () => ({
-    enqueue: vi.fn(async (_jobId : string, _workflowId : string) => {}),
-    schedule: vi.fn(async (_jobId : string, _workflowId : string, _due : Date) => {}),
+    enqueue: vi.fn(async (_jobId : string, _appId : string | undefined, _workflowId : string) => {}),
+    schedule: vi.fn(async (_jobId : string, _appId : string | undefined, _workflowId : string, _due : Date) => {}),
 }) satisfies Queue;
 
 const mockConsumer = () => ({
@@ -30,7 +30,7 @@ const mockConsumer = () => ({
 }) satisfies Consumer;
 
 const mockAuditor = () => ({
-    audit: vi.fn(async (_resourceType : string, _resourceId : string, _actor : Actor,
+    audit: vi.fn(async (_appId : string | undefined, _resourceType : string, _resourceId : string, _actor : Actor,
                         _interaction : Array<string>, _description : string, _details : any) => {}),
 }) satisfies Auditor;
 
@@ -74,7 +74,7 @@ describe("StateMachine", () => {
     const savedState = () => persistence.save.mock.calls[0][4];
 
     const progressJob = async (jobId : string) => {
-        const processJob = consumer.subscribe.mock.calls[0][1];
+        const processJob = consumer.subscribe.mock.calls[0][2];
         await processJob(jobId);
     };
 
@@ -83,7 +83,7 @@ describe("StateMachine", () => {
         it("subscribes to the consumer with its workflow id", () => {
             machineWith([new State("start")]);
 
-            expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith(WORKFLOW_ID, expect.any(Function));
+            expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith("", WORKFLOW_ID, expect.any(Function));
         });
 
         it("audits its graph with the system actor on initialisation", () => {
@@ -96,10 +96,10 @@ describe("StateMachine", () => {
             ];
 
             new StateMachine(WORKFLOW_ID, states, "start", [requiredNumber("score")],
-                persistence as unknown as JobPersistence, queue, 5 * 60_000, auditor);
+                persistence as unknown as JobPersistence, queue, auditor);
 
             expect(auditor.audit).toHaveBeenCalledOnce();
-            const [resourceType, resourceId, actor, interaction, , details] = auditor.audit.mock.calls[0];
+            const [, resourceType, resourceId, actor, interaction, , details] = auditor.audit.mock.calls[0];
             expect(resourceType).toBe("state-machine");
             expect(resourceId).toBe(WORKFLOW_ID);
             expect(actor.type).toBe("SYSTEM");
@@ -114,16 +114,18 @@ describe("StateMachine", () => {
             ]);
         });
 
-        it("namespaces the workflow id by the app id when deployed", () => {
+        it("carries the app id as a separate key alongside the workflow id when deployed", () => {
             const auditor = mockAuditor();
             process.env.ANBARIC_APP_ID = "my-app";
             try {
                 const machine = new StateMachine(WORKFLOW_ID, [new State("start")], "start", [],
-                    persistence as unknown as JobPersistence, queue, 5 * 60_000, auditor);
+                    persistence as unknown as JobPersistence, queue, auditor);
 
-                expect(machine.workflowId).toBe("my-app/workflow-1");
-                expect(consumer.subscribe).toHaveBeenCalledWith("my-app/workflow-1", expect.any(Function));
-                expect(auditor.audit.mock.calls[0][1]).toBe("my-app/workflow-1");
+                expect(machine.getAppId()).toBe("my-app");
+                expect(machine.workflowId).toBe("workflow-1");
+                expect(consumer.subscribe).toHaveBeenCalledWith("my-app", "workflow-1", expect.any(Function));
+                expect(auditor.audit.mock.calls[0][0]).toBe("my-app");
+                expect(auditor.audit.mock.calls[0][6].appId).toBe("my-app");
             } finally {
                 delete process.env.ANBARIC_APP_ID;
             }
@@ -203,7 +205,7 @@ describe("StateMachine", () => {
 
             const job = await machine.startJob();
 
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith(job.id, WORKFLOW_ID);
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith(job.id, "", WORKFLOW_ID);
         });
 
         it("keeps the given properties", async () => {
@@ -260,7 +262,7 @@ describe("StateMachine", () => {
             expect(persistence.save).toHaveBeenCalledOnce();
             expect(savedProperties()?.get("colour")).toBe("blue");
             expect(persistence.save.mock.calls[0][0]).toBe(actor);
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", "", WORKFLOW_ID);
         });
 
         it("does not demand required properties on update", async () => {
@@ -306,7 +308,7 @@ describe("StateMachine", () => {
 
             expect(persistence.save).toHaveBeenCalledOnce();
             expect(savedProperties()?.get("approved")).toBe(true);
-            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
+            expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", "", WORKFLOW_ID);
         });
 
         it("refuses when the action's predicate is unmet", async () => {
@@ -383,7 +385,7 @@ describe("StateMachine", () => {
         });
 
         it("does not progress a killed job", async () => {
-            const job = new Job("job-1", new Map(), "start", WORKFLOW_ID, "system", new Date(), new Date(), true);
+            const job = new Job("job-1", new Map(), "start", WORKFLOW_ID, undefined, "system", new Date(), new Date(), true);
             persistence.retrieve.mockResolvedValue(job);
             machineWith([new State("start", [stampingAction("touched", true)])], [new PropertyDefinition("touched")]);
 
@@ -405,7 +407,7 @@ describe("StateMachine", () => {
             expect(savedProperties()?.get("touched")).toBe(true);
             expect(savedState()).toBeUndefined();
             expect(queue.enqueue).not.toHaveBeenCalled();
-            expect(queue.schedule).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID, expect.any(Date));
+            expect(queue.schedule).toHaveBeenCalledExactlyOnceWith("job-1", "", WORKFLOW_ID, expect.any(Date));
         });
 
         it("does not save or re-enqueue when an action rewrites an unchanged value", async () => {
@@ -520,7 +522,7 @@ describe("StateMachine", () => {
 
                 expect(persistence.save).toHaveBeenCalledOnce();
                 expect(savedState()).toBe("done");
-                expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", WORKFLOW_ID);
+                expect(queue.enqueue).toHaveBeenCalledExactlyOnceWith("job-1", "", WORKFLOW_ID);
             });
 
         });

@@ -24,6 +24,13 @@ Run locally as usual (`npm run start`) or deploy to the Anbaric Cloud (`anbaric 
 
 Anbaric is open source and you can self-host the platform or sign up at https://cloud.anbaric.ai to use the hosted version.
 
+## Documentation
+
+A full user guide — split into **features**, **patterns** and **API reference**
+(TypeScript and web) — lives in [`anbaric/docs`](anbaric/docs/README.md). Start
+with [Core concepts](anbaric/docs/features/core-concepts.md), then the
+[Build your first app](anbaric/docs/patterns/first-app.md) walkthrough.
+
 ## What the code looks like
 
 Anbaric has a collection of features that can be used in your application. Here are some examples:
@@ -163,8 +170,11 @@ const rows = await sql.query(actor, "SELECT id, body FROM notes");
 ### Serve a web UI
 
 An app can serve its own HTTP frontend. Listen on `process.env.PORT` and the
-platform's app proxy routes `<platform>/<app-name>/*` to it — combine it with
-the persistence and state-machine APIs above to put your data on a page.
+platform's app proxy serves it at `<platform>/app/<name>/*`, stripping the
+`/app/<name>` prefix before the request reaches your app — combine it with the
+persistence and state-machine APIs above to put your data on a page. See
+[Web APIs](anbaric/docs/api/web.md) for the full proxy contract (forwarded
+headers, the absolute-URL caveat).
 
 ```ts
 import {createServer} from "node:http";
@@ -263,14 +273,14 @@ to the platform automatically. The same applies to `JsonStoreFactory`
 `SqlStoreFactory` (a relational store) from `anbaric-data-store`.
 
 The SQL store is backed by SQLite locally (in-memory by default) and, once
-deployed, by the tenant's PostgreSQL in a dedicated `anbaric_app_data` schema
-shared by all of the tenant's apps. Write portable SQL where you can — the two
+deployed, by the tenant's PostgreSQL in a schema named after your app — its own,
+isolated from every other app in the tenant. Write portable SQL where you can — the two
 differ in a few places, notably parameter placeholders (`?` for SQLite, `$1`
 for PostgreSQL); see the [`anbaric-data-store`](anbaric-data-store/README.md)
 docs for the full list.
 
 If your app serves HTTP, listen on `process.env.PORT` and users reach it at
-`<platform>/<app-name>`. All front-end must be React and use the Anbaric
+`<platform>/app/<name>`. All front-end must be React and use the Anbaric
 design system (`anbaric-design-system`) — see the living style guide by
 opening `anbaric-design-system/dist/index.html`.
 

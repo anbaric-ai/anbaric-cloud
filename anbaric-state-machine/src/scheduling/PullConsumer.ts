@@ -10,8 +10,14 @@ class PullConsumer implements Consumer {
 
     constructor(private queue : Dequeue, private pollIntervalMs : number = 1000) {}
 
-    subscribe(workflowId : string, processJob : ProcessJob) : void {
-        this.subscribers.set(workflowId, processJob);
+    // Subscribers are keyed by the (appId, workflowId) composite, encoded as a
+    // tuple so an app and a machine id can never collide.
+    private key(appId : string | undefined, workflowId : string) : string {
+        return JSON.stringify([appId || null, workflowId]);
+    }
+
+    subscribe(appId : string | undefined, workflowId : string, processJob : ProcessJob) : void {
+        this.subscribers.set(this.key(appId, workflowId), processJob);
         if (!this.ticker) {
             this.ticker = setInterval(() => void this.drain(), this.pollIntervalMs);
             this.ticker.unref();
@@ -37,15 +43,15 @@ class PullConsumer implements Consumer {
     }
 
     private async forward(message : QueueMessage) : Promise<void> {
-        const processJob = this.subscribers.get(message.workflowId);
+        const processJob = this.subscribers.get(this.key(message.appId, message.workflowId));
         if (!processJob) {
-            await this.queue.enqueue(message.jobId, message.workflowId);
+            await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
             return;
         }
         try {
             await processJob(message.jobId);
         } catch {
-            await this.queue.enqueue(message.jobId, message.workflowId);
+            await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
         }
     }
 

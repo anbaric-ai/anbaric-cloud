@@ -6,6 +6,7 @@ type JobRow = {
     state : string,
     properties : Record<string, any>,
     workflow_id? : string,
+    app_id? : string,
     started_at : Date,
     started_by : string,
     last_updated : Date,
@@ -19,7 +20,7 @@ type JobRow = {
    carry a waiting_for foreign key, the metadata lives once in awaits, and the
    job's awaitMetadata is rejoined on read. */
 const JOB_SELECT =
-    `SELECT j.id, j.state, j.properties, j.workflow_id, j.started_at, j.started_by, j.last_updated,
+    `SELECT j.id, j.state, j.properties, j.workflow_id, j.app_id, j.started_at, j.started_by, j.last_updated,
             j.killed, j.status, j.waiting_for, a.metadata AS await_metadata
      FROM jobs j LEFT JOIN awaits a ON a.id = j.waiting_for`;
 
@@ -46,12 +47,12 @@ class PostgresJobPersistence extends JobPersistence {
             }
 
             await client.query(
-                `INSERT INTO jobs (id, state, properties, workflow_id, started_at, started_by, last_updated, killed, status, waiting_for)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                `INSERT INTO jobs (id, state, properties, workflow_id, app_id, started_at, started_by, last_updated, killed, status, waiting_for)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                  ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, properties = EXCLUDED.properties,
-                     workflow_id = EXCLUDED.workflow_id, last_updated = EXCLUDED.last_updated, killed = EXCLUDED.killed,
-                     status = EXCLUDED.status, waiting_for = EXCLUDED.waiting_for`,
-                [job.id, job.state, Object.fromEntries(job.properties), job.workflowId,
+                     workflow_id = EXCLUDED.workflow_id, app_id = EXCLUDED.app_id, last_updated = EXCLUDED.last_updated,
+                     killed = EXCLUDED.killed, status = EXCLUDED.status, waiting_for = EXCLUDED.waiting_for`,
+                [job.id, job.state, Object.fromEntries(job.properties), job.workflowId, job.appId || null,
                     job.startedAt, job.startedBy, job.lastUpdated, job.killed, job.status, job.waitingFor ?? null],
             );
 
@@ -112,6 +113,7 @@ class PostgresJobPersistence extends JobPersistence {
         return deserializeJob({
             ...row,
             workflowId: row.workflow_id ?? undefined,
+            appId: row.app_id ?? undefined,
             startedAt: row.started_at.toISOString(),
             startedBy: row.started_by,
             lastUpdated: row.last_updated.toISOString(),

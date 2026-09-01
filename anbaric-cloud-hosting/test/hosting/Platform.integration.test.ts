@@ -19,12 +19,12 @@ class ConfirmableInMemoryQueue implements ConfirmableQueue {
     private nextPosition = 1;
     confirmed : Array<QueueMessage> = [];
 
-    async enqueue(jobId : string, workflowId : string) : Promise<void> {
-        this.rows.push({ position: this.nextPosition++, message: { jobId, workflowId } });
+    async enqueue(jobId : string, appId : string | undefined, workflowId : string) : Promise<void> {
+        this.rows.push({ position: this.nextPosition++, message: { jobId, appId, workflowId } });
     }
 
-    async schedule(jobId : string, workflowId : string, due : Date) : Promise<void> {
-        this.rows.push({ position: this.nextPosition++, message: { jobId, workflowId }, due });
+    async schedule(jobId : string, appId : string | undefined, workflowId : string, due : Date) : Promise<void> {
+        this.rows.push({ position: this.nextPosition++, message: { jobId, appId, workflowId }, due });
     }
 
     async dequeueSome() : Promise<Array<QueueMessage>> {

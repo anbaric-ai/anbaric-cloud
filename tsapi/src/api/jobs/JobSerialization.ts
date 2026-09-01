@@ -6,6 +6,7 @@ type SerializedJob = {
     state : string,
     properties : Record<string, any>,
     workflowId? : string,
+    appId? : string,
     startedAt? : string,
     startedBy? : string,
     lastUpdated? : string,
@@ -20,6 +21,7 @@ const serializeJob = (job : Job) : SerializedJob => ({
     state: job.state,
     properties: Object.fromEntries(job.properties),
     workflowId: job.workflowId,
+    appId: job.appId,
     startedAt: job.startedAt.toISOString(),
     startedBy: job.startedBy,
     lastUpdated: job.lastUpdated.toISOString(),
@@ -32,7 +34,7 @@ const serializeJob = (job : Job) : SerializedJob => ({
 const deserializeJob = (serialized : SerializedJob) : Job => {
     const startedAt = serialized.startedAt ? new Date(serialized.startedAt) : new Date();
     return new Job(serialized.id, new Map(Object.entries(serialized.properties)), serialized.state,
-        serialized.workflowId, serialized.startedBy ?? "system", startedAt,
+        serialized.workflowId, serialized.appId, serialized.startedBy ?? "system", startedAt,
         serialized.lastUpdated ? new Date(serialized.lastUpdated) : startedAt, serialized.killed ?? false,
         serialized.status ?? Job.Status.ACTIVE,
         serialized.awaitMetadata ? deserializeWaitForInput(serialized.awaitMetadata) : undefined,

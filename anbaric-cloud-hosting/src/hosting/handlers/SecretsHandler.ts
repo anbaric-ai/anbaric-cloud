@@ -4,35 +4,37 @@ import {RequestHandler} from "../RequestHandler";
 
 class SecretsHandler implements RequestHandler {
 
-    constructor(private secretStore : SecretStore) {}
+    constructor(private storeFor : (appId : string) => SecretStore) {}
 
     async handle(request : Request) : Promise<void> {
         if (request.subresource) return request.notFound();
-        if (request.id) return this.handleSecret(request, request.id);
-        return this.handleCollection(request);
+        // Secrets are owned by the calling app (the ambient app header).
+        const store = this.storeFor(request.appId ?? "");
+        if (request.id) return this.handleSecret(request, store, request.id);
+        return this.handleCollection(request, store);
     }
 
-    private async handleSecret(request : Request, name : string) : Promise<void> {
+    private async handleSecret(request : Request, store : SecretStore, name : string) : Promise<void> {
         switch (request.method) {
             case "PUT": {
                 const { value } = await request.body();
                 if (typeof value !== "string") return request.reply(400, { error: "Expected a body of { value : string }" });
-                await this.secretStore.create(SystemActor.actor, name, value);
+                await store.create(SystemActor.actor, name, value);
                 return request.reply(204);
             }
             case "GET":
-                return request.reply(200, { value: await this.secretStore.retrieve(name, SystemActor.actor) });
+                return request.reply(200, { value: await store.retrieve(name, SystemActor.actor) });
             case "DELETE":
-                await this.secretStore.delete(name, SystemActor.actor);
+                await store.delete(name, SystemActor.actor);
                 return request.reply(204);
         }
         request.notFound();
     }
 
-    private async handleCollection(request : Request) : Promise<void> {
+    private async handleCollection(request : Request, store : SecretStore) : Promise<void> {
         switch (request.method) {
             case "GET":
-                return request.reply(200, await this.secretStore.list(SystemActor.actor));
+                return request.reply(200, await store.list(SystemActor.actor));
         }
         request.notFound();
     }

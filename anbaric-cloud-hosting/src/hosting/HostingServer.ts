@@ -7,6 +7,7 @@ import {TokenAuthenticator} from "../auth/TokenAuthenticator";
 import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 import {AppProxyHandler} from "./handlers/AppProxyHandler";
+import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
 import {AppsHandler} from "./handlers/AppsHandler";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
@@ -44,8 +45,8 @@ class HostingServer {
     constructor(persistence : JobPersistence, queue : ConfirmableQueue,
                 registry : ConsumerRegistry = new ConsumerRegistry(),
                 buildLayer? : BuildLayer,
-                documentStoreFor? : (collection : string) => JsonStore,
-                secretStore? : SecretStore,
+                documentStoreFor? : (appId : string, collection : string) => JsonStore,
+                secretStoreFor? : (appId : string) => SecretStore,
                 authenticator? : Authenticator,
                 cliAuthorizer? : CliAuthorizer,
                 tokenAuthenticator? : TokenAuthenticator,
@@ -59,7 +60,7 @@ class HostingServer {
         const consumers = new ConsumersHandler(registry);
         const stateMachines = new StateMachinesHandler(registry);
         const documents = documentStoreFor && new DocumentsHandler(documentStoreFor);
-        const secrets = secretStore && new SecretsHandler(secretStore);
+        const secrets = secretStoreFor && new SecretsHandler(secretStoreFor);
         const audits = auditRecords && new AuditsHandler(auditRecords);
         const sessions = new SessionsHandler();
 
@@ -84,6 +85,9 @@ class HostingServer {
             publicRouter.registerApi("apps", new AppsHandler(buildLayer));
             publicRouter.register("app", new AppProxyHandler(buildLayer));
         }
+        // An unrouted absolute path carrying an app Referer is an app-internal
+        // link the proxy's prefix-stripping left bare; send it back to its app.
+        publicRouter.registerFallback(new AppLinkFallbackHandler());
 
         const internalRouter = new Router();
         internalRouter.register("ping", ping);

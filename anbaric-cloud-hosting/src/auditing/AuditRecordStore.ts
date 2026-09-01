@@ -1,6 +1,7 @@
 import {AuditRecord} from "anbaric-tsapi";
 
 type AuditFilter = {
+    appId? : string,
     resourceType? : string,
     resourceId? : string,
     actorId? : string,

@@ -19,12 +19,12 @@ describe("PostgresJobPersistence", () => {
         const { pool, query, released } = mockPool();
 
         await new PostgresJobPersistence(pool).create(actor,
-            new Job("job-1", new Map(), "start", "wf", "system", new Date(), new Date(), true));
+            new Job("job-1", new Map(), "start", "wf", undefined, "system", new Date(), new Date(), true));
         await released;
 
         const insert = query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO jobs"));
         expect(insert).toBeDefined();
-        expect(insert![1]![7]).toBe(true);
+        expect(insert![1]![8]).toBe(true);
     });
 
     it("kills a job by id", async () => {

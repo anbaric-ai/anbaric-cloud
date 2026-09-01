@@ -57,14 +57,14 @@ describe("Dispatcher", () => {
         const received : Array<Array<QueueMessage>> = [];
         const stub = await startStubConsumer(received, failFirstRequests);
         stubServers.push(stub.server);
-        registry.register(workflowId, stub.url);
+        registry.register(undefined, workflowId, stub.url);
         return received;
     };
 
     it("pushes dequeued messages to the registered consumer as a batch", async () => {
         const received = await registeredConsumer("workflow-1");
-        await queue.enqueue("job-1", "workflow-1");
-        await queue.enqueue("job-2", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
+        await queue.enqueue("job-2", undefined, "workflow-1");
 
         dispatcher.start();
 
@@ -77,8 +77,8 @@ describe("Dispatcher", () => {
     it("routes messages to the consumer registered for their workflow", async () => {
         const first = await registeredConsumer("workflow-1");
         const second = await registeredConsumer("workflow-2");
-        await queue.enqueue("job-1", "workflow-1");
-        await queue.enqueue("job-2", "workflow-2");
+        await queue.enqueue("job-1", undefined, "workflow-1");
+        await queue.enqueue("job-2", undefined, "workflow-2");
 
         dispatcher.start();
 
@@ -89,7 +89,7 @@ describe("Dispatcher", () => {
     });
 
     it("keeps unroutable messages until their consumer registers", async () => {
-        await queue.enqueue("job-1", "workflow-later");
+        await queue.enqueue("job-1", undefined, "workflow-later");
         dispatcher.start();
 
         await new Promise(resolve => setTimeout(resolve, DISPATCH_INTERVAL_MS * 5));
@@ -102,7 +102,7 @@ describe("Dispatcher", () => {
 
     it("re-enqueues and retries a batch whose push fails", async () => {
         const received = await registeredConsumer("workflow-1", 1);
-        await queue.enqueue("job-1", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
 
         dispatcher.start();
 
@@ -116,7 +116,7 @@ describe("Dispatcher", () => {
         dispatcher.start();
         await dispatcher.cleanUp();
 
-        await queue.enqueue("job-1", "workflow-1");
+        await queue.enqueue("job-1", undefined, "workflow-1");
         await new Promise(resolve => setTimeout(resolve, DISPATCH_INTERVAL_MS * 5));
 
         expect(received).toEqual([]);

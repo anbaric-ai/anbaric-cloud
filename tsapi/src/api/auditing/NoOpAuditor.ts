@@ -6,8 +6,8 @@ import {Auditor} from "./Auditor";
    already audited the interaction. */
 class NoOpAuditor implements Auditor {
 
-    async audit(_resourceType : string, _resourceId : string, _actor : Actor, _interaction : Array<string>,
-                _description : string, _details : any) : Promise<void> {
+    async audit(_appId : string | undefined, _resourceType : string, _resourceId : string, _actor : Actor,
+                _interaction : Array<string>, _description : string, _details : any) : Promise<void> {
     }
 
 }

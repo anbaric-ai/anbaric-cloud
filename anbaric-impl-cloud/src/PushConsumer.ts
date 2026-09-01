@@ -37,17 +37,23 @@ class PushConsumer implements Consumer {
         return this.boundPort;
     }
 
-    subscribe(workflowId : string, processJob : ProcessJob) : void {
-        this.subscribers.set(workflowId, processJob);
-        if (!this.server) this.listening = this.listen();
-        void this.register(workflowId);
+    // Subscribers are keyed by the (appId, workflowId) composite, encoded as a
+    // tuple so an app and a machine id can never collide.
+    private key(appId : string | undefined, workflowId : string) : string {
+        return JSON.stringify([appId || null, workflowId]);
     }
 
-    private async register(workflowId : string) : Promise<void> {
+    subscribe(appId : string | undefined, workflowId : string, processJob : ProcessJob) : void {
+        this.subscribers.set(this.key(appId, workflowId), processJob);
+        if (!this.server) this.listening = this.listen();
+        void this.register(appId, workflowId);
+    }
+
+    private async register(appId : string | undefined, workflowId : string) : Promise<void> {
         try {
             await this.listening;
             const url = process.env.ANBARIC_CONSUMER_URL ?? `http://localhost:${this.boundPort}`;
-            await this.client.request("POST", "/consumers", { workflowId, url });
+            await this.client.request("POST", "/consumers", { appId, workflowId, url });
         } catch {
         }
     }
@@ -94,7 +100,7 @@ class PushConsumer implements Consumer {
 
     private async processAll(messages : Array<QueueMessage>) : Promise<void> {
         for (const message of messages) {
-            const processJob = this.subscribers.get(message.workflowId);
+            const processJob = this.subscribers.get(this.key(message.appId, message.workflowId));
             if (!processJob) continue;
             try {
                 await processJob(message.jobId);

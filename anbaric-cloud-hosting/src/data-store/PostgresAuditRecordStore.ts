@@ -29,10 +29,10 @@ class PostgresAuditRecordStore implements AuditRecordStore {
 
         await this.pool.query(
             `INSERT INTO anbaric_system.audit_records
-                (resource_type, resource_id, actor_id, actor_type, interaction, description, details)
-             VALUES ($1, $2, $3, $4, $5::text[], $6, $7)`,
-            [record.resourceType, record.resourceId, record.actorId, record.actorType, record.interaction,
-                record.description, JSON.stringify(record.details ?? null)],
+                (app_id, resource_type, resource_id, actor_id, actor_type, interaction, description, details)
+             VALUES ($1, $2, $3, $4, $5, $6::text[], $7, $8)`,
+            [record.appId || null, record.resourceType, record.resourceId, record.actorId, record.actorType,
+                record.interaction, record.description, JSON.stringify(record.details ?? null)],
         );
     }
 
@@ -40,6 +40,10 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         const conditions : Array<string> = [];
         const parameters : Array<any> = [];
 
+        if (filter.appId) {
+            parameters.push(filter.appId);
+            conditions.push(`app_id = $${parameters.length}`);
+        }
         if (filter.resourceType) {
             parameters.push(filter.resourceType);
             conditions.push(`resource_type = $${parameters.length}`);
@@ -68,7 +72,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         const offset = `OFFSET $${parameters.length}`;
 
         const result = await this.pool.query(
-            `SELECT id, resource_type, resource_id, actor_id, actor_type, interaction, description, details, at
+            `SELECT id, app_id, resource_type, resource_id, actor_id, actor_type, interaction, description, details, at
              FROM anbaric_system.audit_records ${where}
              ORDER BY at DESC, id DESC ${limit} ${offset}`,
             parameters,
@@ -76,6 +80,7 @@ class PostgresAuditRecordStore implements AuditRecordStore {
 
         return result.rows.map(row => ({
             id: String(row.id),
+            appId: row.app_id ?? undefined,
             resourceType: row.resource_type,
             resourceId: row.resource_id,
             actorId: row.actor_id,

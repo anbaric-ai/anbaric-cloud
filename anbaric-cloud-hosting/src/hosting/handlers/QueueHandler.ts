@@ -17,20 +17,20 @@ class QueueHandler implements RequestHandler {
 
         switch (request.id) {
             case "enqueue": {
-                const { jobId, workflowId } = await request.body();
-                await this.queue.enqueue(jobId, workflowId);
+                const { jobId, appId, workflowId } = await request.body();
+                await this.queue.enqueue(jobId, appId, workflowId);
                 return request.reply(204);
             }
             case "schedule": {
-                const { jobId, workflowId, due } = await request.body();
-                await this.queue.schedule(jobId, workflowId, new Date(due));
+                const { jobId, appId, workflowId, due } = await request.body();
+                await this.queue.schedule(jobId, appId, workflowId, new Date(due));
                 return request.reply(204);
             }
             case "dequeue":
                 return request.reply(200, { messages: await this.queue.dequeueSome() });
             case "confirm": {
-                const { jobId, workflowId, position } = await request.body();
-                await this.queue.confirm({ jobId, workflowId, position });
+                const { jobId, appId, workflowId, position } = await request.body();
+                await this.queue.confirm({ jobId, appId, workflowId, position });
                 return request.reply(204);
             }
         }

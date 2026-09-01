@@ -34,6 +34,7 @@ class AuditsHandler implements RequestHandler {
     private async handleQuery(request : Request) : Promise<void> {
         const interaction = request.query("interaction");
         const records = await this.auditRecords.list({
+            appId: request.query("appId"),
             resourceType: request.query("resourceType"),
             resourceId: request.query("resourceId"),
             actorId: request.query("actorId"),

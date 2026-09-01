@@ -28,9 +28,9 @@ class Dispatcher {
             const byConsumerUrl = new Map<string, Array<QueueMessage>>();
 
             for (const message of messages) {
-                const url = this.registry.lookup(message.workflowId);
+                const url = this.registry.lookup(message.appId, message.workflowId);
                 if (!url) {
-                    await this.queue.enqueue(message.jobId, message.workflowId);
+                    await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
                     continue;
                 }
                 byConsumerUrl.set(url, [...(byConsumerUrl.get(url) ?? []), message]);
@@ -54,7 +54,7 @@ class Dispatcher {
             if (!response.ok) throw new Error(`Consumer at ${url} responded with status ${response.status}`);
         } catch {
             for (const message of batch) {
-                await this.queue.enqueue(message.jobId, message.workflowId);
+                await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
             }
         }
     }

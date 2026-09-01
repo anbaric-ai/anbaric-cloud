@@ -1,13 +1,17 @@
-import {Auditor, Job, JobPersistence, NoOpAuditor, SerializedJob, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {AppAware, Auditor, currentAppId, Job, JobPersistence, NoOpAuditor, SerializedJob, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient";
 
-class CloudJobPersistence extends JobPersistence {
+class CloudJobPersistence extends JobPersistence implements AppAware {
 
     private client : CloudApiClient;
 
     constructor(baseUrl : string = CloudApiClient.defaultBaseUrl(), auditor : Auditor = new NoOpAuditor()) {
         super(auditor);
         this.client = new CloudApiClient(baseUrl);
+    }
+
+    getAppId() : string {
+        return currentAppId();
     }
 
     protected async saveInternal(job : Job) : Promise<void> {

@@ -7,7 +7,7 @@ const actor : Actor = { type: "CODE", id: "sys", roles: ["code"] };
 describe("NoOpAuditor", () => {
 
     it("records nothing and resolves", async () => {
-        await expect(new NoOpAuditor().audit("job", "job-1", actor, ["READ"], "", null)).resolves.toBeUndefined();
+        await expect(new NoOpAuditor().audit("crm", "job", "job-1", actor, ["READ"], "", null)).resolves.toBeUndefined();
     });
 
 });

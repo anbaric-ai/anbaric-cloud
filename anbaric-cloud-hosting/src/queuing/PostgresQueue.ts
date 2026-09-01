@@ -9,12 +9,12 @@ class PostgresQueue implements ConfirmableQueue {
 
     constructor(private pool : Pool) {}
 
-    async enqueue(jobId : string, workflowId : string) : Promise<void> {
-        await this.pool.query("INSERT INTO queue (job_id, workflow_id) VALUES ($1, $2)", [jobId, workflowId]);
+    async enqueue(jobId : string, appId : string | undefined, workflowId : string) : Promise<void> {
+        await this.pool.query("INSERT INTO queue (job_id, app_id, workflow_id) VALUES ($1, $2, $3)", [jobId, appId || null, workflowId]);
     }
 
-    async schedule(jobId : string, workflowId : string, due : Date) : Promise<void> {
-        await this.pool.query("INSERT INTO queue (job_id, workflow_id, due) VALUES ($1, $2, $3)", [jobId, workflowId, due]);
+    async schedule(jobId : string, appId : string | undefined, workflowId : string, due : Date) : Promise<void> {
+        await this.pool.query("INSERT INTO queue (job_id, app_id, workflow_id, due) VALUES ($1, $2, $3, $4)", [jobId, appId || null, workflowId, due]);
     }
 
     async dequeueSome() : Promise<Array<QueueMessage>> {
@@ -28,7 +28,7 @@ class PostgresQueue implements ConfirmableQueue {
                  LIMIT $1
                  FOR UPDATE SKIP LOCKED
              )
-             RETURNING job_id, workflow_id, due, position`,
+             RETURNING job_id, app_id, workflow_id, due, position`,
             [DEQUEUE_BATCH_SIZE],
         );
 
@@ -39,7 +39,7 @@ class PostgresQueue implements ConfirmableQueue {
                 if (!b.due) return 1;
                 return a.due.getTime() - b.due.getTime() || a.position - b.position;
             })
-            .map(row => ({ jobId: row.job_id, workflowId: row.workflow_id, position: Number(row.position) }));
+            .map(row => ({ jobId: row.job_id, appId: row.app_id ?? undefined, workflowId: row.workflow_id, position: Number(row.position) }));
     }
 
     async confirm(message : QueueMessage) : Promise<void> {

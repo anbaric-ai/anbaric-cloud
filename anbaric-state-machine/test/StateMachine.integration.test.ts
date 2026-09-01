@@ -42,7 +42,7 @@ describe("StateMachine with in-memory collaborators", () => {
     let progress : (jobId : string) => Promise<void>;
 
     const capturingConsumer = () : Consumer => ({
-        subscribe: (_workflowId, processJob) => {
+        subscribe: (_appId, _workflowId, processJob) => {
             progress = processJob;
         },
         cleanUp: async () => {},
@@ -144,7 +144,7 @@ describe("StateMachine with in-memory collaborators", () => {
 
         expect(enqueue).not.toHaveBeenCalled();
         expect(schedule).toHaveBeenCalledTimes(1);
-        expect((schedule.mock.calls[0][2] as Date).getTime()).toBeGreaterThan(Date.now());
+        expect((schedule.mock.calls[0][3] as Date).getTime()).toBeGreaterThan(Date.now());
         expect((await persistence.retrieve(job.id, actor)).properties.get("attempts")).toBe(1);
     });
 

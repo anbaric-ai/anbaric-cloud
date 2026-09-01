@@ -11,8 +11,8 @@ class ConsumersHandler implements RequestHandler {
 
         switch (request.method) {
             case "POST": {
-                const { workflowId, url } = await request.body();
-                this.registry.register(workflowId, url);
+                const { appId, workflowId, url } = await request.body();
+                this.registry.register(appId, workflowId, url);
                 return request.reply(204);
             }
         }
