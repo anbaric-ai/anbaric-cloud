@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
+import { Modal } from '@anbaric/design-system/components/Modal'
 
 const PAGE_SIZE = 50
 
@@ -72,6 +73,30 @@ const pageButton: CSSProperties = {
   cursor: 'pointer',
 }
 
+const detailsLink: CSSProperties = {
+  font: 'inherit',
+  padding: 0,
+  border: 'none',
+  background: 'none',
+  color: 'var(--color-primary)',
+  fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const detailsPre: CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: '0.8rem',
+  margin: 0,
+  padding: 'var(--space-md)',
+  maxHeight: '60vh',
+  overflow: 'auto',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  background: 'var(--color-background-shade-1)',
+  borderRadius: 'var(--radius-element)',
+  color: 'var(--color-foreground)',
+}
+
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
     day: 'numeric',
@@ -93,6 +118,7 @@ function AuditPage() {
   const [interaction, setInteraction] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
+  const [selected, setSelected] = useState<AuditRecord | undefined>(undefined)
 
   const load = async (pageToLoad: number) => {
     const query = new URLSearchParams()
@@ -195,12 +221,11 @@ function AuditPage() {
           The platform rejected the request — try reloading the page.
         </Alert>
       ) : null}
-      <Card>
-        {records && records.length === 0 ? (
-          <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>
-            No audit records match.
-          </p>
-        ) : (
+      {records && records.length === 0 ? (
+        <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>
+          No audit records match.
+        </p>
+      ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -235,15 +260,20 @@ function AuditPage() {
                     </div>
                   </td>
                   <td style={cell}>{record.description}</td>
-                  <td style={{ ...cell, ...mono, overflowWrap: 'anywhere' }}>
-                    {record.details === null ? '' : JSON.stringify(record.details)}
+                  <td style={{ ...cell, whiteSpace: 'nowrap' }}>
+                    {record.details == null ? (
+                      <span style={{ color: 'var(--color-foreground-tint-2)' }}>—</span>
+                    ) : (
+                      <button type="button" style={detailsLink} onClick={() => setSelected(record)}>
+                        View
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        )}
-      </Card>
+        </table>
+      )}
       <div
         style={{
           display: 'flex',
@@ -265,6 +295,27 @@ function AuditPage() {
           Older →
         </button>
       </div>
+      <Modal
+        open={selected != null}
+        onClose={() => setSelected(undefined)}
+        title="Audit details"
+      >
+        {selected ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
+              <Badge tone="neutral">{selected.resourceType}</Badge>
+              <span style={mono}>{selected.resourceId}</span>
+              {selected.interaction.map((interaction) => (
+                <Badge key={interaction} tone={interactionTone(interaction)}>
+                  {interaction}
+                </Badge>
+              ))}
+            </div>
+            <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>{selected.description}</p>
+            <pre style={detailsPre}>{JSON.stringify(selected.details, null, 2)}</pre>
+          </div>
+        ) : null}
+      </Modal>
     </>
   )
 }

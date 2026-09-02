@@ -146,7 +146,7 @@
      closest free approximations, loaded by the preview (Anton condensed
      display; Inter body). */
   --font-body: "Founders Grotesk", "Inter", system-ui, -apple-system, sans-serif;
-  --font-title: "Druk", "Anton", "Arial Narrow", system-ui, sans-serif;
+  --font-title: "Founders Grotesk", "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* --- Typography: weights --------------------------------- */
@@ -154,10 +154,12 @@
   --font-weight-regular: 400; /* body */
   --font-weight-medium: 500; /* IBM Plex Mono labels */
   --font-weight-semibold: 600;
-  --font-weight-bold: 700; /* Druk headline weight */
+  --font-weight-bold: 700;
+  --font-weight-title: 100; /* hairline — the headline weight, the body face at its thinnest */
 
   /* --- Typography: headline treatment ----------------------- */
-  /* Druk is set bold, uppercase, at 90% line-height (per the brand book). */
-  --title-line-height: 0.9;
+  /* The headline is the body face set hairline and uppercase, with a little
+     tracking — hierarchy comes from weight and case, not a second typeface. */
+  --title-line-height: 1;
   --title-transform: uppercase;
 }

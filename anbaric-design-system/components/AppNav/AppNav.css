@@ -1,0 +1,30 @@
+/* =============================================================
+   AppNav — the Anbaric application rail (the mark, the SideNav, and the account
+   AvatarMenu) as one full-height floating rail, hugging the screen edge with a
+   --space-lg inset. The exact same rail in every app: offset the content by the
+   nav's width plus that inset. Depends on tokens.css.
+   ============================================================= */
+
+.ds-app-nav.ds-sidenav {
+  position: fixed;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  z-index: 10;
+  height: calc(100vh - 2 * var(--space-lg));
+}
+
+.ds-app-nav__mark {
+  display: block;
+  width: auto;
+  height: 1.5rem;
+}
+
+/* On narrow screens the rail rejoins the flow at the top; the SideNav's own
+   mobile rules take over its open/closed (hamburger / overlay) behaviour. */
+@media (max-width: 40rem) {
+  .ds-app-nav.ds-sidenav {
+    position: static;
+    height: auto;
+    margin: var(--space-md) var(--space-md) 0;
+  }
+}

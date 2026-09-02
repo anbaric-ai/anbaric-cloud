@@ -1,0 +1,161 @@
+/* =============================================================
+   AvatarMenu — an avatar trigger and a popover account menu (native Popover
+   API). The menu renders in the top layer; its foot-avatar is positioned in JS
+   to land exactly over the trigger avatar, and it fades in (opacity only) so
+   the avatar never appears to move. Depends on tokens.css.
+   ============================================================= */
+
+/* --- The avatar itself (shared by the trigger and the menu foot) ----------- */
+.ds-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--color-background);
+  background: var(--gradient-ink, var(--color-primary));
+  border-radius: 50%;
+  user-select: none;
+}
+
+.ds-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ds-avatar__initials {
+  letter-spacing: 0.02em;
+}
+
+/* --- Trigger --------------------------------------------------------------- */
+.ds-avatar-menu {
+  display: inline-block;
+}
+
+.ds-avatar-menu__trigger {
+  display: inline-flex;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ds-avatar-menu__trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* --- Popover panel; left/bottom are set in JS. Slightly narrower than the
+   nav rail, and centred on the avatar. The radius is concentric with the
+   2rem foot-avatar: the avatar's radius (1rem) plus the padding around it. --- */
+.ds-avatar-menu__menu {
+  inset: auto;
+  width: 13rem;
+  margin: 0;
+  padding: var(--space-sm);
+  background: var(--color-background);
+  border: 1px solid var(--color-background-shade-2);
+  border-radius: calc(1rem + var(--space-sm));
+  box-shadow: var(--elevation-2);
+  /* Fade in only — no transform — so the foot-avatar sitting over the trigger
+     never shifts; the panel simply resolves in above it. */
+  opacity: 0;
+  transition:
+    opacity 100ms ease,
+    display 100ms allow-discrete,
+    overlay 100ms allow-discrete;
+}
+
+.ds-avatar-menu__menu:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  opacity: 1;
+}
+
+@starting-style {
+  .ds-avatar-menu__menu:popover-open {
+    opacity: 0;
+  }
+}
+
+.ds-avatar-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-avatar-menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm);
+  font: inherit;
+  text-align: left;
+  color: var(--color-foreground);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-avatar-menu__item:hover:not(:disabled),
+.ds-avatar-menu__item:focus-visible {
+  outline: none;
+  background: var(--color-background-shade-1);
+}
+
+.ds-avatar-menu__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ds-avatar-menu__rule {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--color-background-shade-2);
+}
+
+/* The foot: the avatar in the bottom-left corner (landing on the trigger) with
+   the identity beside it. Bottom-aligned so the avatar's bottom is the panel's
+   content bottom — that's what the overlay maths depends on. */
+.ds-avatar-menu__foot {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.ds-avatar-menu__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ds-avatar-menu__name {
+  max-width: 100%;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-avatar-menu__subtitle {
+  max-width: 100%;
+  font-size: 0.8rem;
+  color: var(--color-foreground-tint-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

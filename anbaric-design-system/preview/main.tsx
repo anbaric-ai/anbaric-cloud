@@ -10,6 +10,7 @@ import {
 import { createRoot } from 'react-dom/client'
 
 import { Card } from '../components/Card'
+import { Section } from '../components/Section'
 import { Button } from '../components/Button'
 import { SplitButton } from '../components/SplitButton'
 import { Modal } from '../components/Modal'
@@ -31,11 +32,11 @@ import { Tabs } from '../components/Tabs'
 import { RadioGroup } from '../components/RadioGroup'
 import { Toggle } from '../components/Toggle'
 import { SideNav } from '../components/SideNav'
+import { AvatarMenu } from '../components/AvatarMenu'
+import { AppNav } from '../components/AppNav'
 
 import logoUrl from '../shared/assets/anbaric-logo.png'
 import identUrl from '../shared/assets/anbaric-ident.png'
-// Full-colour vector logotype, used by the side nav header.
-import logoSvgUrl from '../shared/assets/anbaric-logo.svg'
 
 const vars = (v: Record<string, string>) => v as CSSProperties
 
@@ -353,24 +354,52 @@ function ComponentDemos() {
   }
   return (
     <>
-      <Card>
-        <h3 className="component-demo__title">Card</h3>
+      <Section title="Card">
         <p className="component-demo__body">
-          A glass surface with a 1px frame behind it. This heading, paragraph,
-          field and panel are direct children, so each takes the element radius —
-          concentric inside the card's container radius.
+          A glass surface with a 1px frame behind it. Its direct children each
+          take the element radius — concentric inside the card's container
+          radius.
         </p>
-        <input
-          className="component-demo__input"
-          placeholder="A field — element radius, small padding"
-        />
-        <div className="component-demo__panel">
-          A direct-child panel — element radius
-        </div>
-      </Card>
+        <Card>
+          <p className="component-demo__body">
+            This paragraph, the field and the panel are direct children of the
+            Card.
+          </p>
+          <input
+            className="component-demo__input"
+            placeholder="A field — element radius, small padding"
+          />
+          <div className="component-demo__panel">
+            A direct-child panel — element radius
+          </div>
+        </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Button</h3>
+      <Section title="Section">
+        <p className="component-demo__body">
+          A lighter alternative to Card: a title with an optional rule and its
+          content, but no surface or padding — for structuring a page without a
+          stack of glass panels. A Card may sit inside a Section, never a
+          Section inside a Card.
+        </p>
+        <Section
+          title="Recent activity"
+          actions={<Badge tone="neutral">12</Badge>}
+        >
+          <Card>
+            <p className="component-demo__body">
+              A Card sitting inside a Section — the allowed nesting.
+            </p>
+          </Card>
+        </Section>
+        <Section title="No rule" rule={false}>
+          <p className="component-demo__body">
+            Pass <code>rule=&#123;false&#125;</code> to drop the divider.
+          </p>
+        </Section>
+      </Section>
+
+      <Section title="Button">
         <p className="component-demo__body">
           The main ink gradient as the fill, with a plain border. Hover embosses
           the surface up (no jump) and a click presses it in. Variants, icons,
@@ -387,10 +416,9 @@ function ComponentDemos() {
           <Button loading>Saving</Button>
           <Button disabled>Disabled</Button>
         </div>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Split button</h3>
+      <Section title="Split button">
         <p className="component-demo__body">
           A primary action with a connected dropdown of secondary actions (a
           native popover).
@@ -406,10 +434,9 @@ function ComponentDemos() {
             Save
           </SplitButton>
         </div>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Form</h3>
+      <Section title="Form">
         <p className="component-demo__body">
           Try submitting empty, then fill it in. The Form disables submit while
           any field is invalid, shows each field's warning on blur, and turns
@@ -435,10 +462,9 @@ function ComponentDemos() {
           </label>
           <button type="submit">Submit</button>
         </Form>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Slider</h3>
+      <Section title="Slider">
         <p className="component-demo__body">
           The thumb shows the value and grows on hover. Supports min, max, step
           and tick marks.
@@ -452,10 +478,9 @@ function ComponentDemos() {
           showTicks
           aria-label="Stepped slider with ticks"
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Radio group</h3>
+      <Section title="Radio group">
         <p className="component-demo__body">Pick one. Keyboard-navigable.</p>
         <RadioGroup
           name="plan"
@@ -467,20 +492,18 @@ function ComponentDemos() {
             { label: 'Legacy (unavailable)', value: 'legacy', disabled: true },
           ]}
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Toggle</h3>
+      <Section title="Toggle">
         <p className="component-demo__body">An on/off switch over a native checkbox.</p>
         <div style={row}>
           <Toggle label="Wi-Fi" defaultChecked />
           <Toggle label="Notifications" />
           <Toggle label="Disabled" disabled />
         </div>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Tabs</h3>
+      <Section title="Tabs">
         <p className="component-demo__body">
           Click or use arrow keys to switch.
         </p>
@@ -500,18 +523,16 @@ function ComponentDemos() {
             },
           ]}
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Steps</h3>
+      <Section title="Steps">
         <p className="component-demo__body">
           A numbered wizard indicator with a current step.
         </p>
         <Steps steps={['Account', 'Profile', 'Plan', 'Review']} current={1} />
-      </Card>
+      </Section>
 
-      <Card style={{ minHeight: '14rem' }}>
-        <h3 className="component-demo__title">Options menu</h3>
+      <Section title="Options menu" style={{ minHeight: '14rem' }}>
         <p className="component-demo__body">
           A trigger that opens a popover menu of actions. Click it.
         </p>
@@ -523,30 +544,56 @@ function ComponentDemos() {
             { label: 'Archive', disabled: true },
           ]}
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Left nav</h3>
+      <Section title="Avatar menu">
+        <p className="component-demo__body">
+          A person's avatar that opens a popover account menu. The menu fades in
+          above the avatar — which stays put at its foot — with the identity and
+          actions above, as it would at the bottom of a nav. Initials stand in
+          when there's no image.
+        </p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'flex-start',
+            minHeight: '15rem',
+          }}
+        >
+          <AvatarMenu
+            name="Ada Lovelace"
+            subtitle="ada@anbaric.ai"
+            items={[
+              { label: 'Profile' },
+              { label: 'Settings' },
+              { label: 'Sign out' },
+            ]}
+          />
+        </div>
+      </Section>
+
+      <Section title="Left nav">
         <p className="component-demo__body">
           A side navigation panel. <code>{'{ section }'}</code> entries draw a
-          labelled divider; items with <code>href</code> render as links, and{' '}
-          <code>external</code> ones open in a new tab.
+          labelled divider; a <code>badge</code> adds a trailing count; items
+          with <code>href</code> render as links, and <code>external</code> ones
+          open in a new tab.
         </p>
         <SideNav
           header="Anbaric"
           defaultActive="jobs"
           items={[
             { label: 'Dashboard', value: 'dashboard', icon: <Sym name="dashboard" /> },
-            { label: 'Jobs', value: 'jobs', icon: <Sym name="account_tree" /> },
+            { label: 'Jobs', value: 'jobs', icon: <Sym name="account_tree" />, badge: '12' },
             { label: 'Settings', value: 'settings', icon: <Sym name="settings" />, disabled: true },
             { section: 'Apps' },
             { label: 'CRM', value: 'crm', href: '#', external: true, icon: <Sym name="deployed_code" /> },
           ]}
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Modal</h3>
+      <Section title="Modal">
         <p className="component-demo__body">
           A blocking dialog at elevation 4 (native &lt;dialog&gt;): dimmed
           backdrop, focus trap, Escape and backdrop-click to close.
@@ -572,10 +619,9 @@ function ComponentDemos() {
             restart its container.
           </p>
         </Modal>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Drawer</h3>
+      <Section title="Drawer">
         <p className="component-demo__body">
           A large Card that slides in from the right over a fully transparent
           curtain. Click the curtain or press Escape to close.
@@ -592,10 +638,9 @@ function ComponentDemos() {
           </p>
           <Button onClick={() => setDrawerOpen(false)}>Done</Button>
         </Drawer>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Alert</h3>
+      <Section title="Alert">
         <p className="component-demo__body">Inline status messages.</p>
         <div style={stack}>
           <Alert variant="info" title="Heads up">
@@ -611,10 +656,9 @@ function ComponentDemos() {
             The app did not respond on its configured port.
           </Alert>
         </div>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Badge</h3>
+      <Section title="Badge">
         <p className="component-demo__body">Small status labels and tags.</p>
         <div style={row}>
           <Badge>Neutral</Badge>
@@ -629,10 +673,9 @@ function ComponentDemos() {
             Failed
           </Badge>
         </div>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Tooltip</h3>
+      <Section title="Tooltip">
         <p className="component-demo__body">
           Hover or focus the{' '}
           <Tooltip label="Helpful context appears here">
@@ -644,25 +687,23 @@ function ComponentDemos() {
           </Tooltip>{' '}
           to reveal a label at popover elevation.
         </p>
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Loading bar</h3>
+      <Section title="Loading bar">
         <p className="component-demo__body">
           An indeterminate, colourful bar with messages that cycle while a long
           task runs.
         </p>
         <LoadingBar />
-      </Card>
+      </Section>
 
-      <Card>
-        <h3 className="component-demo__title">Graph</h3>
+      <Section title="Graph">
         <p className="component-demo__body">
           A lightweight, dependency-free line/area chart that scales to its
           container.
         </p>
         <Graph data={[4, 7, 5, 9, 6, 11, 8, 13]} aria-label="Example trend line" />
-      </Card>
+      </Section>
     </>
   )
 }
@@ -809,7 +850,7 @@ function Elevation() {
 }
 
 /* ----------------------------------------------------------------- Views -- */
-function Section({
+function PageSection({
   n,
   title,
   lead,
@@ -849,7 +890,7 @@ function GuidanceLink({ anchor, label = 'Read the guidance' }: { anchor: string;
 function Foundations() {
   return (
     <>
-      <Section
+      <PageSection
         n="01."
         title="Logos"
         lead={
@@ -862,8 +903,8 @@ function Foundations() {
         <div className="logos">
           <Logos />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="02."
         title="Colour palette"
         lead={
@@ -876,8 +917,8 @@ function Foundations() {
         <div className="palette">
           <Palette />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="03."
         title="Gradients"
         lead={
@@ -890,8 +931,8 @@ function Foundations() {
         <div className="gradients">
           <Gradients />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="04."
         title="Typography"
         lead={
@@ -904,8 +945,8 @@ function Foundations() {
         <div className="specimens">
           <Typography />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="05."
         title="Spacing & containers"
         lead={
@@ -918,8 +959,8 @@ function Foundations() {
         <div className="specimens">
           <Spacing />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="06."
         title="Elevation"
         lead={
@@ -932,7 +973,7 @@ function Foundations() {
         <div className="elevations">
           <Elevation />
         </div>
-      </Section>
+      </PageSection>
     </>
   )
 }
@@ -940,7 +981,7 @@ function Foundations() {
 function Components() {
   return (
     <>
-      <Section
+      <PageSection
         n="01."
         title="Components"
         lead={
@@ -953,8 +994,8 @@ function Components() {
         <div className="components">
           <ComponentDemos />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="02."
         title="Data visualisation"
         lead={
@@ -970,8 +1011,8 @@ function Components() {
         <div className="components">
           <PkDemos />
         </div>
-      </Section>
-      <Section
+      </PageSection>
+      <PageSection
         n="03."
         title="Diagram annotation"
         lead={
@@ -985,7 +1026,7 @@ function Components() {
         <div className="components">
           <AnnotationDemo />
         </div>
-      </Section>
+      </PageSection>
     </>
   )
 }
@@ -1010,7 +1051,7 @@ function Guidance() {
 
       {/* ---------- Foundations ---------- */}
 
-      <Section id="guidance-logos" n="01." title="Logos" lead="The logotype and ident, and where each belongs.">
+      <PageSection id="guidance-logos" n="01." title="Logos" lead="The logotype and ident, and where each belongs.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1038,9 +1079,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-colour" n="02." title="Colour" lead="A small palette — use colour to mean something.">
+      <PageSection id="guidance-colour" n="02." title="Colour" lead="A small palette — use colour to mean something.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1082,9 +1123,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-gradients" n="03." title="Gradients" lead="Accents and atmosphere — never reading surfaces.">
+      <PageSection id="guidance-gradients" n="03." title="Gradients" lead="Accents and atmosphere — never reading surfaces.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1113,9 +1154,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-typography" n="04." title="Typography" lead="Three families, each with one job.">
+      <PageSection id="guidance-typography" n="04." title="Typography" lead="Three families, each with one job.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1143,9 +1184,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-spacing" n="05." title="Spacing & containers" lead="A three-step rem scale, with radii derived from it.">
+      <PageSection id="guidance-spacing" n="05." title="Spacing & containers" lead="A three-step rem scale, with radii derived from it.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1173,9 +1214,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-elevation" n="06." title="Elevation" lead="Six levels around the canvas; each has a job.">
+      <PageSection id="guidance-elevation" n="06." title="Elevation" lead="Six levels around the canvas; each has a job.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1204,11 +1245,11 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
       {/* ---------- Components ---------- */}
 
-      <Section id="guidance-components" n="07." title="Cards & surfaces" lead="The Card — the container everything else sits in.">
+      <PageSection id="guidance-components" n="07." title="Cards & surfaces" lead="The Card — the container everything else sits in.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1235,9 +1276,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="08." title="Buttons & actions" lead="Button, split button and options menu — how people act.">
+      <PageSection n="08." title="Buttons & actions" lead="Button, split button and options menu — how people act.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1274,9 +1315,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="09." title="Form controls" lead="Form, slider, radio group and toggle — capturing input.">
+      <PageSection n="09." title="Form controls" lead="Form, slider, radio group and toggle — capturing input.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1312,9 +1353,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="10." title="Navigation & flow" lead="Side nav, tabs and steps — moving through the product.">
+      <PageSection n="10." title="Navigation & flow" lead="Side nav, tabs and steps — moving through the product.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1342,9 +1383,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="11." title="Overlays" lead="Modal, drawer and tooltip — content above the page.">
+      <PageSection n="11." title="Overlays" lead="Modal, drawer and tooltip — content above the page.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1373,9 +1414,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="12." title="Feedback & status" lead="Alert, badge and loading bar — telling people what's happening.">
+      <PageSection n="12." title="Feedback & status" lead="Alert, badge and loading bar — telling people what's happening.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1403,9 +1444,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-dataviz" n="13." title="Data visualisation" lead="Concentration curve and exposure bars — drug levels over time.">
+      <PageSection id="guidance-dataviz" n="13." title="Data visualisation" lead="Concentration curve and exposure bars — drug levels over time.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1434,9 +1475,9 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section id="guidance-annotation" n="14." title="Diagram annotation" lead="Leader lines and labels that call out parts of a diagram.">
+      <PageSection id="guidance-annotation" n="14." title="Diagram annotation" lead="Leader lines and labels that call out parts of a diagram.">
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
@@ -1476,7 +1517,7 @@ function Guidance() {
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
     </>
   )
 }
@@ -1484,7 +1525,7 @@ function Guidance() {
 function Engineering() {
   return (
     <>
-      <Section n="01." title="Getting started" lead="Consume the system in two imports.">
+      <PageSection n="01." title="Getting started" lead="Consume the system in two imports.">
         <div className="guidance-grid">
           <GuidanceCard title="Install & import">
             <p className="component-demo__body">
@@ -1495,8 +1536,8 @@ function Engineering() {
               className="component-demo__panel"
               style={{ margin: 0, overflowX: 'auto', fontFamily: 'var(--font-mono)' }}
             >
-              <code>{`import '@herald/design-system/tokens.css'
-import { Button } from '@herald/design-system/components/Button'`}</code>
+              <code>{`import '@anbaric/design-system/tokens.css'
+import { Button } from '@anbaric/design-system/components/Button'`}</code>
             </pre>
           </GuidanceCard>
           <GuidanceCard title="Ships as source">
@@ -1507,9 +1548,9 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="02." title="Foundations in code" lead="Two rules that keep the codebase coherent.">
+      <PageSection n="02." title="Foundations in code" lead="Two rules that keep the codebase coherent.">
         <div className="guidance-grid">
           <GuidanceCard title="Tokens first">
             <p className="component-demo__body">
@@ -1526,9 +1567,9 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="03." title="Component conventions" lead="How a component is built.">
+      <PageSection n="03." title="Component conventions" lead="How a component is built.">
         <div className="guidance-grid">
           <GuidanceCard title="Anatomy">
             <p className="component-demo__body">
@@ -1562,9 +1603,9 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="04." title="Accessibility" lead="Built in, not bolted on.">
+      <PageSection n="04." title="Accessibility" lead="Built in, not bolted on.">
         <div className="guidance-grid">
           <GuidanceCard title="Native elements first">
             <p className="component-demo__body">
@@ -1594,9 +1635,9 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="05." title="Modern CSS & support" lead="The platform features we rely on, and how they degrade.">
+      <PageSection n="05." title="Modern CSS & support" lead="The platform features we rely on, and how they degrade.">
         <div className="guidance-grid">
           <GuidanceCard title="Features in use">
             <p className="component-demo__body">
@@ -1614,9 +1655,9 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section n="06." title="Performance & distribution" lead="Keep it lean as it grows.">
+      <PageSection n="06." title="Performance & distribution" lead="Keep it lean as it grows.">
         <div className="guidance-grid">
           <GuidanceCard title="Bundle awareness">
             <p className="component-demo__body">
@@ -1632,7 +1673,7 @@ import { Button } from '@herald/design-system/components/Button'`}</code>
             </p>
           </GuidanceCard>
         </div>
-      </Section>
+      </PageSection>
     </>
   )
 }
@@ -1670,22 +1711,18 @@ function App() {
         className="app"
         style={{ ['--nav-w']: navCollapsed ? '4.25rem' : '14rem' } as CSSProperties}
       >
-        <div className="app__nav">
-          <SideNav
-            header={
-              <img
-                src={logoSvgUrl}
-                alt="Anbaric"
-                style={{ height: '1.05rem', display: 'block', width: 'auto' }}
-              />
-            }
-            active={view}
-            onChange={setView}
-            items={NAV}
-            collapsed={navCollapsed}
-            onCollapsedChange={setNavCollapsed}
-          />
-        </div>
+        <AppNav
+          items={NAV}
+          active={view}
+          onChange={setView}
+          account={{
+            name: 'Ada Lovelace',
+            subtitle: 'ada@anbaric.ai',
+            items: [{ label: 'Profile' }, { label: 'Settings' }, { label: 'Sign out' }],
+          }}
+          collapsed={navCollapsed}
+          onCollapsedChange={setNavCollapsed}
+        />
         <main className="app__content">
           {view === 'foundations' ? <Foundations /> : null}
           {view === 'components' ? <Components /> : null}

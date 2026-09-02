@@ -1,0 +1,53 @@
+/* =============================================================
+   Section — a lightweight grouping: a title, an optional rule beneath it, and
+   its content. Unlike a Card it has no surface, border or padding — it's for
+   structuring a page (or the inside of a Card) without adding weight. Sits flat
+   on the canvas. Depends on tokens.css.
+   ============================================================= */
+
+.ds-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Title + rule are grouped so they sit tight together, with the medium gap
+   falling between the heading block and the content. */
+.ds-section__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ds-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.ds-section__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-title);
+  font-size: 1.15rem;
+  line-height: var(--title-line-height);
+  text-transform: var(--title-transform);
+  letter-spacing: 0.01em;
+  color: var(--color-foreground);
+}
+
+/* An optional right-aligned slot on the title row (a button, a count, a link). */
+.ds-section__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: none;
+}
+
+.ds-section__rule {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--color-background-shade-2);
+}

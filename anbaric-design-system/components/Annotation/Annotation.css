@@ -138,7 +138,7 @@
 
 .ds-annot__title {
   font-family: var(--font-title);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-title);
   font-size: 0.8rem;
   color: var(--color-foreground);
 }

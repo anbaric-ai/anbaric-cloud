@@ -36,7 +36,7 @@
   top: 50%;
   transform: translate(0, -50%);
   font-family: var(--font-title);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-title);
   font-size: 1.1rem;
   white-space: nowrap;
   pointer-events: none;
@@ -128,6 +128,22 @@ a.ds-sidenav__item {
   text-decoration: none;
 }
 
+/* Pinned to the bottom of the rail — pushed down by the auto margin, held off
+   the last item by a hairline. Holds an account menu or similar. */
+.ds-sidenav__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: auto;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-background-shade-2);
+}
+
+/* Icons-only rail: the lone avatar centres like the items above it. */
+.ds-sidenav--collapsed .ds-sidenav__footer {
+  justify-content: center;
+}
+
 .ds-sidenav__section {
   display: flex;
   flex-direction: column;
@@ -161,6 +177,20 @@ a.ds-sidenav__item {
   font-size: 1rem;
 }
 
+/* A quiet trailing count — pushed to the right, muted, tabular so digits
+   line up down the rail. */
+.ds-sidenav__badge {
+  margin-left: auto;
+  flex: none;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-sidenav__item--active .ds-sidenav__badge {
+  color: var(--color-primary);
+}
+
 .ds-sidenav__icon {
   display: inline-flex;
   flex: none;
@@ -190,6 +220,7 @@ a.ds-sidenav__item {
 
 .ds-sidenav--collapsed .ds-sidenav__label,
 .ds-sidenav--collapsed .ds-sidenav__section-label,
+.ds-sidenav--collapsed .ds-sidenav__badge,
 .ds-sidenav--collapsed .ds-sidenav__external {
   display: none;
 }

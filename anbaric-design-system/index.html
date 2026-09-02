@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;600;700&family=Anton&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@100;300;400;600;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -60,32 +60,24 @@
         --nav-w: 14rem;
       }
 
-      /* The nav floats as a rail with a clear gap from the screen edge and the
-         content — a visible seam between chrome and content. It is the exact
-         same SideNav component as the standalone demo (only its height is
-         stretched to fill), so the two never diverge. */
-      .app__nav {
-        position: fixed;
-        top: var(--space-lg);
-        left: var(--space-lg);
-        z-index: 10;
-        height: calc(100vh - 2 * var(--space-lg));
-      }
-
-      .app__nav .ds-sidenav {
-        height: 100%;
-      }
-
+      /* The nav is the shared AppNav — a fixed, full-height floating rail (see
+         components/AppNav). The content column is offset by its width. */
+      /* The content column butts against the nav's right edge; its own padding
+         is the gutter, set to the nav's edge inset (--space-lg). So the gap
+         between nav and content equals the nav's margin from the screen edge —
+         one consistent gutter all the way round. */
       .app__content {
         min-width: 0;
-        margin-left: calc(var(--nav-w) + 2 * var(--space-lg));
-        padding: 2rem;
+        margin-left: calc(var(--nav-w) + var(--space-lg));
+        padding: var(--space-lg);
         transition: margin-left 200ms ease;
       }
 
+      /* Left-aligned (not auto-centred) so the gutter to the nav stays exactly
+         --space-lg on every page — centring would re-inflate the left gap. */
       .section {
         max-width: 1040px;
-        margin: 0 auto 3rem;
+        margin: 0 0 3rem;
       }
 
       .guidance-grid {
@@ -94,16 +86,7 @@
         gap: 1.25rem;
       }
 
-      @media (max-width: 760px) {
-        .app__nav {
-          position: static;
-          height: auto;
-          margin: var(--space-md) var(--space-md) 0;
-        }
-        .app__nav .ds-sidenav {
-          width: 100%;
-          height: auto;
-        }
+      @media (max-width: 40rem) {
         .app__content {
           margin-left: 0;
         }
@@ -378,7 +361,7 @@
 
       .elevation__level {
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 1.5rem;
       }
 
@@ -445,7 +428,7 @@
 
       .title-bold {
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 2.75rem;
         line-height: var(--title-line-height);
         text-transform: var(--title-transform);
@@ -465,18 +448,19 @@
       }
 
       /* --- Components ------------------------------------------ */
+      /* Each demo is a flat Section (no card surface), so they need generous
+         separation to read as distinct blocks. */
       .components {
         display: grid;
-        gap: 1.25rem;
+        gap: 2.5rem;
+        max-width: 1040px;
       }
 
-      /* Children of the demo Card below. They deliberately do NOT set their
-         own border-radius — the Card enforces the element radius on every
-         direct child via `.ds-card > *`. */
+      /* Used for headings inside a demo (Drawer content, guidance cards). */
       .component-demo__title {
         margin: 0;
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 1.25rem;
       }
 
@@ -485,18 +469,25 @@
         color: var(--color-foreground-tint-1);
       }
 
+      /* The field and panel are no longer always inside a Card, so they carry
+         their own element radius. */
       .component-demo__input {
         padding: var(--space-sm);
         font: inherit;
         color: var(--color-foreground);
         background: var(--color-background);
         border: 1px solid var(--color-foreground-tint-2);
+        border-radius: var(--radius-element);
       }
 
       .component-demo__panel {
         padding: var(--space-sm);
         background: var(--color-background-shade-2);
         color: var(--color-foreground);
+        border-radius: var(--radius-element);
+        /* A flex child (the Card is a flex column): allow it to shrink so a
+           long code line scrolls inside the card instead of bleeding past it. */
+        min-width: 0;
       }
 
     </style>
