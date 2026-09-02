@@ -273,8 +273,8 @@ to the platform automatically. The same applies to `JsonStoreFactory`
 `SqlStoreFactory` (a relational store) from `anbaric-data-store`.
 
 The SQL store is backed by SQLite locally (in-memory by default) and, once
-deployed, by the tenant's PostgreSQL in a schema named after your app — its own,
-isolated from every other app in the tenant. Write portable SQL where you can — the two
+deployed, by the tenant's PostgreSQL in a dedicated `anbaric_app_data` schema
+shared by the tenant's apps. Write portable SQL where you can — the two
 differ in a few places, notably parameter placeholders (`?` for SQLite, `$1`
 for PostgreSQL); see the [`anbaric-data-store`](anbaric-data-store/README.md)
 docs for the full list.

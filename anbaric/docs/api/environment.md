@@ -43,9 +43,7 @@ Used by the store implementations the factories return:
 | --- | --- | --- |
 | `ANBARIC_SQL_FILE` | SQLite | file path to persist to (default `:memory:`) |
 | `ANBARIC_SQL_DATABASE_URL` | PostgreSQL | connection string |
-
-Deployed, the PostgreSQL schema defaults to your **app's name** (each app gets
-its own, isolated schema); pass a schema to the store constructor to override.
+| `ANBARIC_SQL_SCHEMA` | PostgreSQL | schema name (default `anbaric_app_data`) |
 
 ## Platform-injected variables
 
@@ -55,7 +53,7 @@ set or depend on their exact values**:
 | Variable | Meaning |
 | --- | --- |
 | `PORT` | the port your app should listen on |
-| `ANBARIC_APP_ID` | your app's name; scopes your workflows, documents, secrets and SQL schema |
+| `ANBARIC_APP_ID` | your app's name; scopes your workflows, documents and secrets |
 | `ANBARIC_CLOUD_URL` | the platform endpoint the cloud clients call |
 | `ANBARIC_ADMIN_PORT` | the built-in admin/liveness port |
 | `ANBARIC_CONSUMER_PORT` / `ANBARIC_CONSUMER_URL` | job-consumer wiring |

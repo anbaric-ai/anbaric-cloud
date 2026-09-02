@@ -50,10 +50,9 @@ on each. (A future helper may smooth this over; for now, be aware of it.)
 
 - **Local** — SQLite, in-memory by default. Set `ANBARIC_SQL_FILE` to persist to
   a file on disk.
-- **Deployed** — PostgreSQL, in a schema **named after your app** (its own,
-  isolated from every other app in the tenant). The platform provides the
-  connection and the schema; you don't configure either. To use a specific
-  schema instead, pass one to the store constructor.
+- **Deployed** — PostgreSQL, in a dedicated schema (`anbaric_app_data` by
+  default) shared by the tenant's apps and kept apart from the platform's own
+  schemas. The platform provides the connection; you don't configure it.
 
 Selection is by `ANBARIC_SQL_STORE_TYPE` (`sqlite` locally, `cloud`/`postgres`
 deployed) — set by the platform. See [Environment and

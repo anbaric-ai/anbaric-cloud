@@ -1,6 +1,6 @@
 {
   "name": "anbaric-web",
-  "version": "1.21.0",
+  "version": "1.21.1",
   "description": "Shared platform web utilities: the app-proxy URL helpers and a safely-pooled Postgres client for plugin data functions",
   "license": "MIT",
   "author": "chris@anbaric.ai",
