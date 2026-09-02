@@ -9,52 +9,57 @@
    ============================================================= */
 
 :root {
-  /* --- Colour: Primary — Pan Coral -------------------------- */
-  --color-primary-tint: #ffa1b3;
-  --color-primary: #ff7b94;
-  --color-primary-shade: #c25b72;
+  /* Palette direction: neutral-forward and high-contrast. Colour is reserved
+     for meaning — the coral primary for the one main action, the semantics for
+     status — while everything structural reads in near-neutral greys. Hues are
+     kept but pulled down in saturation from the original brand values, so the
+     UI feels calmer and more professional without losing the Anbaric identity. */
+
+  /* --- Colour: Primary — Pan Coral (the one confident colour) ---- */
+  /* Desaturated and deepened from the original bright pink so it stays a
+     considered accent rather than competing with content. */
+  --color-primary-tint: #f2a3b0;
+  --color-primary: #e4637b;
+  --color-primary-shade: #ab4a5e;
 
   /* --- Colour: Accent -------------------------------------- */
-  /* Two distinct accents rather than a tint/shade ramp:
-     Svalbard Blue and Aether Pink — the ends of the mark's gradient. */
-  --color-accent: #5bc6ff;
-  --color-accent-2: #ff5bbe;
+  /* Svalbard Blue and Aether Pink, muted — for data and quiet emphasis, not
+     neon decoration. */
+  --color-accent: #4f9ecf;
+  --color-accent-2: #ce5fa2;
 
   /* --- Colour: Magister Violet ----------------------------- */
-  /* The imagination half of the Svalbard Blue pairing, sitting between
-     the blue accent and the coral primary. */
-  --color-magister: #8c6cff;
+  --color-magister: #7867c9;
 
-  /* --- Colour: Foreground — Shadowglass Navy ---------------- */
-  /* Dark ink base, so two tints (a shade would read as black).
-     Tint 1 is Asriel Ink; tint 2 is a lighter step of the same hue. */
-  --color-foreground: #110b2d;
-  --color-foreground-tint-1: #322f60;
-  --color-foreground-tint-2: #6e6b96;
+  /* --- Colour: Foreground — Shadowglass Ink ---------------- */
+  /* A near-black ink for high-contrast text, with the violet cast pulled out
+     of the tints so they read as true neutral slate/grey. */
+  --color-foreground: #14131c;
+  --color-foreground-tint-1: #3a3a46;
+  --color-foreground-tint-2: #6f6f7c;
 
   /* --- Colour: Background — Frost White --------------------- */
-  /* Near-white surface, so two shades (a tint would read as white):
-     Glacier Grey and Haze Silver from the neutral ramp. */
-  --color-background: #f9fafc;
-  --color-background-shade-1: #e7ebf0;
-  --color-background-shade-2: #d1d6de;
+  /* Clean, faintly-cool neutrals (the blue cast removed) so the noise texture
+     and content carry the surface, not a tint. */
+  --color-background: #f7f8fa;
+  --color-background-shade-1: #eaebef;
+  --color-background-shade-2: #d6d8de;
 
   /* --- Colour: Success ------------------------------------- */
-  --color-success-tint: #89f5b5;
-  --color-success: #61f29d;
-  --color-success-shade: #49b676;
+  --color-success-tint: #8ddcb2;
+  --color-success: #43b585;
+  --color-success-shade: #2f8c66;
 
   /* --- Colour: Failure — Bolvangar Crimson ------------------- */
-  /* Invented for the error state: a deeper, more urgent red than Pan
-     Coral (now the primary), staying on the palette's warm side. */
-  --color-failure-tint: #f0768c;
-  --color-failure: #e23d5b;
-  --color-failure-shade: #a62b44;
+  /* The error state stays strong (it must be seen) but a touch less neon. */
+  --color-failure-tint: #ec8496;
+  --color-failure: #d5384f;
+  --color-failure-shade: #9f2c40;
 
   /* --- Colour: Grey — Storm Charcoal ------------------------ */
   /* A neutral dark — the one colour without a brand hue. For scrims
      (e.g. the modal curtain), dividers and muted UI. */
-  --color-grey: #2b2e42;
+  --color-grey: #2a2c38;
 
   /* --- Gradients ------------------------------------------- */
   /* The main gradient: the ink pair, Asriel Ink into Shadowglass Navy,
@@ -69,12 +74,14 @@
     var(--color-primary),
     var(--color-background)
   );
-  /* A pale, subtle haze for large surfaces (e.g. the page) — only a touch of
-     primary mixed into the background. */
+  /* The page backdrop. Colour is now reserved for meaning, so the canvas is a
+     neutral bloom — a soft light lift from the top, no brand tint — letting the
+     noise texture carry the surface. (The coral lives on buttons and the hero
+     glow, not the whole page.) */
   --gradient-primary-haze: radial-gradient(
-    circle at top right,
-    color-mix(in srgb, var(--color-primary) 16%, var(--color-background)),
-    var(--color-background)
+    120% 80% at 50% -10%,
+    color-mix(in srgb, white 60%, var(--color-background)),
+    var(--color-background) 62%
   );
 
   /* --- Surfaces -------------------------------------------- */
@@ -85,22 +92,31 @@
      gradient; the leading underscore marks it private. Do not reuse. */
   --_card-frame-gradient: linear-gradient(170deg, white, transparent, #ffffff60);
 
+  /* --- Texture --------------------------------------------- */
+  /* A static, desaturated fractal-noise tile — the surface grain of the whole
+     product. A design-system token so the page and any app surface apply the
+     same grain (rather than hand-rolling it). Turned up a touch from a whisper
+     so it reads as intentional texture. */
+  --texture-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.11'/%3E%3C/svg%3E");
+  --texture-noise-size: 140px 140px;
+
   /* --- Spacing --------------------------------------------- */
   /* Three steps, all in rem so spacing scales with the root font-size.
        small  — padding inside an element (e.g. an input)
        medium — padding & gaps between elements within a container
        large  — space between containers */
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 2rem;
+  --space-sm: 0.375rem;
+  --space-md: 0.8125rem;
+  --space-lg: 1.5rem;
 
   /* --- Radius ---------------------------------------------- */
   /* Concentric radii: an element is inset from its container by the
      container's padding (medium). For the curves to stay concentric, the
      container radius must equal that padding plus the element radius —
-     hence container = medium + small, element = small. */
-  --radius-element: var(--space-sm);
-  --radius-container: calc(var(--space-md) + var(--space-sm));
+     hence container = medium + element. The element radius is its own token,
+     kept tight (5px) for crisp, modern corners; the container follows. */
+  --radius-element: 0.3125rem;
+  --radius-container: calc(var(--space-md) + var(--radius-element));
 
   /* --- Elevation ------------------------------------------- */
   /* Six levels. Shadows are tinted with Shadowglass Navy so they stay in
@@ -112,15 +128,17 @@
         2  popover — tooltips, popovers, anything transient that moves
         3  panel   — global UI: nav & side panels entering from the edge
         4  modal   — blocking modal dialogs */
-  --elevation-cutout: inset 0 3px 16px rgba(17, 11, 45, 0.1),
-    inset 0 2px 7px rgba(17, 11, 45, 0.06);
+  /* Tightened for a sharper, flatter read: smaller blur and spread, with a
+     touch more contrast on the low levels so edges stay crisp. */
+  --elevation-cutout: inset 0 2px 10px rgba(17, 11, 45, 0.09),
+    inset 0 1px 4px rgba(17, 11, 45, 0.06);
   --elevation-0: none;
-  --elevation-1: 0 1px 2px rgba(17, 11, 45, 0.06);
-  --elevation-2: 0 4px 10px rgba(17, 11, 45, 0.1), 0 1px 3px rgba(17, 11, 45, 0.06);
-  --elevation-3: 0 10px 28px rgba(17, 11, 45, 0.14),
-    0 3px 8px rgba(17, 11, 45, 0.08);
-  --elevation-4: 0 20px 50px rgba(17, 11, 45, 0.24),
-    0 6px 14px rgba(17, 11, 45, 0.12);
+  --elevation-1: 0 1px 2px rgba(17, 11, 45, 0.07);
+  --elevation-2: 0 3px 7px rgba(17, 11, 45, 0.1), 0 1px 2px rgba(17, 11, 45, 0.06);
+  --elevation-3: 0 7px 18px rgba(17, 11, 45, 0.12),
+    0 2px 6px rgba(17, 11, 45, 0.08);
+  --elevation-4: 0 14px 34px rgba(17, 11, 45, 0.22),
+    0 4px 10px rgba(17, 11, 45, 0.12);
 
   /* --- Typography: families -------------------------------- */
   /* The brand pairs Druk (headlines) with Founders Grotesk (body). Both are

@@ -10,10 +10,12 @@
   width: 14rem;
   padding: var(--space-md);
   background: var(--surface-glass);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-background-shade-2);
   border-radius: var(--radius-container);
-  box-shadow: var(--elevation-3);
+  /* A quiet rail: calm chrome beside the content, held by its border and a
+     subtle lift rather than a heavy float. */
+  box-shadow: var(--elevation-1);
   transition: width 200ms ease;
 }
 

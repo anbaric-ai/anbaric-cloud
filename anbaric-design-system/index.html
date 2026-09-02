@@ -40,12 +40,10 @@
         margin: 0;
         padding: 0;
         background-color: var(--color-background);
-        /* A tiled SVG noise tile layered over the pale haze. The noise is
-           rendered once (static, not animated), so it's cheap. */
-        background-image:
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
-          var(--gradient-primary-haze);
-        background-size: 140px 140px, cover;
+        /* The product's surface grain (a design-system token) over the neutral
+           page bloom. Static, so it's cheap. */
+        background-image: var(--texture-noise), var(--gradient-primary-haze);
+        background-size: var(--texture-noise-size), cover;
         background-repeat: repeat, no-repeat;
         background-attachment: fixed;
         color: var(--color-foreground);
@@ -62,26 +60,26 @@
         --nav-w: 14rem;
       }
 
+      /* The nav floats as a rail with a clear gap from the screen edge and the
+         content — a visible seam between chrome and content. It is the exact
+         same SideNav component as the standalone demo (only its height is
+         stretched to fill), so the two never diverge. */
       .app__nav {
         position: fixed;
-        top: 0;
-        left: 0;
+        top: var(--space-lg);
+        left: var(--space-lg);
         z-index: 10;
-        height: 100vh;
+        height: calc(100vh - 2 * var(--space-lg));
       }
 
-      /* Dock the nav to the edge: square corners, full height, right border
-         only. (The standalone SideNav stays a rounded floating panel.) */
       .app__nav .ds-sidenav {
         height: 100%;
-        border-radius: 0;
-        border-width: 0 1px 0 0;
       }
 
       .app__content {
         min-width: 0;
-        margin-left: var(--nav-w);
-        padding: 2.5rem;
+        margin-left: calc(var(--nav-w) + 2 * var(--space-lg));
+        padding: 2rem;
         transition: margin-left 200ms ease;
       }
 
@@ -100,11 +98,11 @@
         .app__nav {
           position: static;
           height: auto;
+          margin: var(--space-md) var(--space-md) 0;
         }
         .app__nav .ds-sidenav {
           width: 100%;
           height: auto;
-          border-width: 0 0 1px 0;
         }
         .app__content {
           margin-left: 0;
