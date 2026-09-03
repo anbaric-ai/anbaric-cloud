@@ -1,23 +1,43 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
-import {Dequeue, QueueMessage} from "anbaric-tsapi";
+import {QueueMessage} from "anbaric-tsapi";
 import {InMemoryQueue} from "anbaric-state-machine";
+import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
 import {Dispatcher} from "../../src/queuing/Dispatcher";
 
 const DISPATCH_INTERVAL_MS = 10;
 
-const startStubConsumer = (received : Array<Array<QueueMessage>>, failFirstRequests : number = 0) :
+// A confirmable queue — like the platform's PostgresQueue — that hands each
+// message out once and records what the dispatcher confirms or cancels.
+class TestQueue extends InMemoryQueue implements RemoteQueue {
+
+    confirmed : Array<QueueMessage> = [];
+    cancelled : Array<QueueMessage> = [];
+
+    async confirm(message : QueueMessage) : Promise<void> {
+        this.confirmed.push(message);
+    }
+
+    async cancel(message : QueueMessage) : Promise<void> {
+        this.cancelled.push(message);
+    }
+
+    async size() : Promise<number> {
+        return 0;
+    }
+
+}
+
+const startStubConsumer = (received : Array<Array<QueueMessage>>, alwaysFails : boolean = false) :
     Promise<{ server : Server, url : string }> =>
     new Promise(resolve => {
-        let requestCount = 0;
         const server = createServer((request, response) => {
             const chunks : Array<Buffer> = [];
             request.on("data", chunk => chunks.push(chunk));
             request.on("end", () => {
-                requestCount++;
-                if (requestCount <= failFirstRequests) {
+                if (alwaysFails) {
                     response.statusCode = 500;
                 } else {
                     received.push(JSON.parse(Buffer.concat(chunks).toString()).messages);
@@ -34,13 +54,13 @@ const startStubConsumer = (received : Array<Array<QueueMessage>>, failFirstReque
 
 describe("Dispatcher", () => {
 
-    let queue : InMemoryQueue;
+    let queue : TestQueue;
     let registry : ConsumerRegistry;
     let dispatcher : Dispatcher;
     let stubServers : Array<Server>;
 
     beforeEach(() => {
-        queue = new InMemoryQueue();
+        queue = new TestQueue();
         registry = new ConsumerRegistry();
         dispatcher = new Dispatcher(queue, registry, DISPATCH_INTERVAL_MS);
         stubServers = [];
@@ -53,9 +73,9 @@ describe("Dispatcher", () => {
         }
     });
 
-    const registeredConsumer = async (workflowId : string, failFirstRequests : number = 0) => {
+    const registeredConsumer = async (workflowId : string, alwaysFails : boolean = false) => {
         const received : Array<Array<QueueMessage>> = [];
-        const stub = await startStubConsumer(received, failFirstRequests);
+        const stub = await startStubConsumer(received, alwaysFails);
         stubServers.push(stub.server);
         registry.register(undefined, workflowId, stub.url);
         return received;
@@ -88,51 +108,25 @@ describe("Dispatcher", () => {
         });
     });
 
-    it("keeps unroutable messages until their consumer registers", async () => {
-        await queue.enqueue("job-1", undefined, "workflow-later");
+    it("cancels a message that has no registered consumer", async () => {
+        await queue.enqueue("orphan", undefined, "workflow-none");
+
         dispatcher.start();
 
-        await new Promise(resolve => setTimeout(resolve, DISPATCH_INTERVAL_MS * 5));
-        const received = await registeredConsumer("workflow-later");
-
-        await vi.waitFor(() => expect(received.flat()).toEqual([
-            { jobId: "job-1", workflowId: "workflow-later" },
+        await vi.waitFor(() => expect(queue.cancelled).toEqual([
+            { jobId: "orphan", workflowId: "workflow-none" },
         ]));
     });
 
-    it("re-enqueues and retries a batch whose push fails", async () => {
-        const received = await registeredConsumer("workflow-1", 1);
+    it("leaves a message whose push fails in the queue — it neither cancels nor confirms it", async () => {
+        await registeredConsumer("workflow-1", true);
         await queue.enqueue("job-1", undefined, "workflow-1");
 
         dispatcher.start();
-
-        await vi.waitFor(() => expect(received.flat()).toEqual([
-            { jobId: "job-1", workflowId: "workflow-1" },
-        ]));
-    });
-
-    it("never re-enqueues on a confirmable queue — its leases redeliver, so re-adding would duplicate", async () => {
-        const enqueued : Array<string> = [];
-        let handedOut = false;
-        // A lease-based queue: hands a message out once, exposes confirm (so the
-        // dispatcher treats it as self-redelivering) and records any enqueue.
-        const leasingQueue = {
-            enqueue: async (jobId : string) => { enqueued.push(jobId); },
-            schedule: async () => {},
-            dequeueSome: async () => {
-                if (handedOut) return [];
-                handedOut = true;
-                return [{ jobId: "job-1", workflowId: "workflow-1", position: 1 }];
-            },
-            confirm: async () => {},
-        } as unknown as Dequeue;
-        const leasingDispatcher = new Dispatcher(leasingQueue, registry, DISPATCH_INTERVAL_MS);
-
-        leasingDispatcher.start(); // no consumer is registered for workflow-1
         await new Promise(resolve => setTimeout(resolve, DISPATCH_INTERVAL_MS * 5));
-        await leasingDispatcher.cleanUp();
 
-        expect(enqueued).toEqual([]);
+        expect(queue.cancelled).toEqual([]);
+        expect(queue.confirmed).toEqual([]);
     });
 
     it("dispatches nothing after cleanUp", async () => {

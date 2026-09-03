@@ -14,7 +14,7 @@ import {Tenant} from "../../src/auth/Tenant";
 import {TokenAuthenticator} from "../../src/auth/TokenAuthenticator";
 import {User} from "../../src/auth/User";
 import {InMemoryAuditRecordStore} from "../../src/auditing/InMemoryAuditRecordStore";
-import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
@@ -33,13 +33,16 @@ const rawGet = (url : string, headers : Record<string, string> = {}) =>
         }).on("error", reject);
     });
 
-class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
+class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
 
     confirmed : Array<QueueMessage> = [];
     pendingSize = 0;
 
     async confirm(message : QueueMessage) : Promise<void> {
         this.confirmed.push(message);
+    }
+
+    async cancel(_message : QueueMessage) : Promise<void> {
     }
 
     async size() : Promise<number> {

@@ -4,11 +4,14 @@ import {QueueMessage} from "anbaric-tsapi";
 import {BuildLayer} from "../../src/app-management/BuildLayer";
 import {HostingServer} from "../../src/hosting/HostingServer";
 import {LoadedPlugin} from "../../src/plugins/Plugin";
-import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 
-class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
+class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
 
     async confirm(_message : QueueMessage) : Promise<void> {
+    }
+
+    async cancel(_message : QueueMessage) : Promise<void> {
     }
 
     async size() : Promise<number> {

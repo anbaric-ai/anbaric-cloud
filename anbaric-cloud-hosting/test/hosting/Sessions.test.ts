@@ -7,11 +7,14 @@ import {SessionSigner} from "../../src/auth/SessionSigner";
 import {Tenant} from "../../src/auth/Tenant";
 import {User} from "../../src/auth/User";
 import {HostingServer} from "../../src/hosting/HostingServer";
-import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 
-class ConfirmableInMemoryQueue extends InMemoryQueue implements ConfirmableQueue {
+class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
 
     async confirm(_message : QueueMessage) : Promise<void> {
+    }
+
+    async cancel(_message : QueueMessage) : Promise<void> {
     }
 
     async size() : Promise<number> {

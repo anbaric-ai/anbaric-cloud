@@ -52,6 +52,6 @@ export * from "./hosting/handlers/StateMachinesHandler";
 export * from "./hosting/handlers/auth/AuthorizeCliHandler";
 export * from "./hosting/handlers/auth/KeysHandler";
 export * from "./hosting/handlers/auth/WhoamiHandler";
-export * from "./queuing/ConfirmableQueue";
+export * from "./queuing/RemoteQueue";
 export * from "./queuing/ConsumerRegistry";
 export * from "./queuing/Dispatcher";

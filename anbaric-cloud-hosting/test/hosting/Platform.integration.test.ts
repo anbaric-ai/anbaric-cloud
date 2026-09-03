@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, PropertyDefinition, QueueMessage, State, Transition} from "anbaric-tsapi";
 import {CloudJobPersistence, CloudQueue} from "anbaric-impl-cloud";
 import {Code, Human, InMemoryJobPersistence, StateMachine} from "anbaric-state-machine";
-import {ConfirmableQueue} from "../../src/queuing/ConfirmableQueue";
+import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
 import {Dispatcher} from "../../src/queuing/Dispatcher";
 import {HostingServer} from "../../src/hosting/HostingServer";
@@ -13,7 +13,7 @@ const LEASE_MS = 30_000;
    place until confirmed, and confirm removes exactly the delivered row by its
    position. A confirm keyed on jobId/workflowId instead would also drop the
    next-hop row enqueued during processing - the P0 multi-hop stall. */
-class ConfirmableInMemoryQueue implements ConfirmableQueue {
+class ConfirmableInMemoryQueue implements RemoteQueue {
 
     private rows : Array<{ position : number, message : QueueMessage, due? : Date, leasedUntil? : number }> = [];
     private nextPosition = 1;
@@ -38,6 +38,9 @@ class ConfirmableInMemoryQueue implements ConfirmableQueue {
     async confirm(message : QueueMessage) : Promise<void> {
         this.confirmed.push(message);
         this.rows = this.rows.filter(row => row.position !== message.position);
+    }
+
+    async cancel(_message : QueueMessage) : Promise<void> {
     }
 
     async size() : Promise<number> {

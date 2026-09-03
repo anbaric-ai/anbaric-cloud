@@ -1,11 +1,11 @@
 import {QueueMessage} from "anbaric-tsapi";
 import {Pool} from "pg";
-import {ConfirmableQueue} from "./ConfirmableQueue";
+import {RemoteQueue} from "./RemoteQueue";
 
 const DEQUEUE_BATCH_SIZE = 100;
 const LEASE_SECONDS = 30;
 
-class PostgresQueue implements ConfirmableQueue {
+class PostgresQueue implements RemoteQueue {
 
     constructor(private pool : Pool) {}
 
@@ -43,6 +43,12 @@ class PostgresQueue implements ConfirmableQueue {
     }
 
     async confirm(message : QueueMessage) : Promise<void> {
+        if (message.position === undefined) return;
+        await this.pool.query("DELETE FROM queue WHERE position = $1", [message.position]);
+    }
+
+    async cancel(message : QueueMessage) : Promise<void> {
+        console.warn(`Cancelling undeliverable queue message for job "${message.jobId}" (workflow "${message.workflowId}")`);
         if (message.position === undefined) return;
         await this.pool.query("DELETE FROM queue WHERE position = $1", [message.position]);
     }
