@@ -4,6 +4,7 @@ import {RemoteQueue} from "./RemoteQueue";
 
 const DEQUEUE_BATCH_SIZE = 100;
 const LEASE_SECONDS = 30;
+const MAX_ATTEMPTS = 5;
 
 class PostgresQueue implements RemoteQueue {
 
@@ -23,6 +24,7 @@ class PostgresQueue implements RemoteQueue {
              WHERE position IN (
                  SELECT position FROM queue
                  WHERE (due IS NULL OR due <= now())
+                   AND (retry_at IS NULL OR retry_at <= now())
                    AND (leased_until IS NULL OR leased_until < now())
                  ORDER BY (due IS NOT NULL), due, position
                  LIMIT $1
@@ -45,6 +47,24 @@ class PostgresQueue implements RemoteQueue {
     async confirm(message : QueueMessage) : Promise<void> {
         if (message.position === undefined) return;
         await this.pool.query("DELETE FROM queue WHERE position = $1", [message.position]);
+    }
+
+    async debounce(message : QueueMessage) : Promise<void> {
+        if (message.position === undefined) return;
+        // First bounce backs off 10s (a consumer that is mid-registration is
+        // ready by then); later bounces back off a minute. Clearing the lease
+        // makes the row eligible again the moment retry_at passes. After enough
+        // bounces the message is a genuine orphan, so it is cancelled.
+        const result = await this.pool.query(
+            `UPDATE queue
+             SET attempts = attempts + 1,
+                 retry_at = now() + (CASE WHEN attempts = 0 THEN interval '10 seconds' ELSE interval '1 minute' END),
+                 leased_until = NULL
+             WHERE position = $1
+             RETURNING attempts`,
+            [message.position],
+        );
+        if (Number(result.rows[0]?.attempts) >= MAX_ATTEMPTS) await this.cancel(message);
     }
 
     async cancel(message : QueueMessage) : Promise<void> {

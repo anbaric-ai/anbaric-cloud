@@ -25,8 +25,9 @@ class Dispatcher {
        `confirm`ed — the consumer confirms once it has processed one. So the
        dispatcher never puts a message back: a failed push just leaves the
        message to redeliver on its next lease. A message with no registered
-       listener can never be delivered (the client should register before it
-       enqueues), so it is cancelled rather than looped forever. */
+       listener yet is debounced (backed off), which lets a momentary
+       registration race resolve and cancels the message only if it never
+       finds a listener. */
     private async drain() : Promise<void> {
         if (this.draining) return;
         this.draining = true;
@@ -37,7 +38,7 @@ class Dispatcher {
             for (const message of messages) {
                 const url = this.registry.lookup(message.appId, message.workflowId);
                 if (!url) {
-                    await this.queue.cancel(message);
+                    await this.queue.debounce(message);
                     continue;
                 }
                 byConsumerUrl.set(url, [...(byConsumerUrl.get(url) ?? []), message]);

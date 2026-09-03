@@ -15,9 +15,14 @@ class TestQueue extends InMemoryQueue implements RemoteQueue {
 
     confirmed : Array<QueueMessage> = [];
     cancelled : Array<QueueMessage> = [];
+    debounced : Array<QueueMessage> = [];
 
     async confirm(message : QueueMessage) : Promise<void> {
         this.confirmed.push(message);
+    }
+
+    async debounce(message : QueueMessage) : Promise<void> {
+        this.debounced.push(message);
     }
 
     async cancel(message : QueueMessage) : Promise<void> {
@@ -108,17 +113,18 @@ describe("Dispatcher", () => {
         });
     });
 
-    it("cancels a message that has no registered consumer", async () => {
+    it("debounces a message that has no registered consumer", async () => {
         await queue.enqueue("orphan", undefined, "workflow-none");
 
         dispatcher.start();
 
-        await vi.waitFor(() => expect(queue.cancelled).toEqual([
+        await vi.waitFor(() => expect(queue.debounced).toContainEqual(
             { jobId: "orphan", workflowId: "workflow-none" },
-        ]));
+        ));
+        expect(queue.cancelled).toEqual([]);
     });
 
-    it("leaves a message whose push fails in the queue — it neither cancels nor confirms it", async () => {
+    it("leaves a message whose push fails in the queue — it neither cancels, confirms nor debounces it", async () => {
         await registeredConsumer("workflow-1", true);
         await queue.enqueue("job-1", undefined, "workflow-1");
 
@@ -127,6 +133,7 @@ describe("Dispatcher", () => {
 
         expect(queue.cancelled).toEqual([]);
         expect(queue.confirmed).toEqual([]);
+        expect(queue.debounced).toEqual([]);
     });
 
     it("dispatches nothing after cleanUp", async () => {

@@ -14,6 +14,9 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
     async confirm(_message : QueueMessage) : Promise<void> {
     }
 
+    async debounce(_message : QueueMessage) : Promise<void> {
+    }
+
     async cancel(_message : QueueMessage) : Promise<void> {
     }
 

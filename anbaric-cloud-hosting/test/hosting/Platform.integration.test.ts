@@ -8,6 +8,7 @@ import {Dispatcher} from "../../src/queuing/Dispatcher";
 import {HostingServer} from "../../src/hosting/HostingServer";
 
 const LEASE_MS = 30_000;
+const RETRY_MS = 20;
 
 /* Mirrors PostgresQueue's semantics: dequeueSome leases rows but leaves them in
    place until confirmed, and confirm removes exactly the delivered row by its
@@ -15,7 +16,7 @@ const LEASE_MS = 30_000;
    next-hop row enqueued during processing - the P0 multi-hop stall. */
 class ConfirmableInMemoryQueue implements RemoteQueue {
 
-    private rows : Array<{ position : number, message : QueueMessage, due? : Date, leasedUntil? : number }> = [];
+    private rows : Array<{ position : number, message : QueueMessage, due? : Date, leasedUntil? : number, retryAt? : number }> = [];
     private nextPosition = 1;
     confirmed : Array<QueueMessage> = [];
 
@@ -30,7 +31,9 @@ class ConfirmableInMemoryQueue implements RemoteQueue {
     async dequeueSome() : Promise<Array<QueueMessage>> {
         const now = Date.now();
         const available = this.rows.filter(row =>
-            (!row.due || row.due.getTime() <= now) && (!row.leasedUntil || row.leasedUntil <= now));
+            (!row.due || row.due.getTime() <= now)
+            && (!row.retryAt || row.retryAt <= now)
+            && (!row.leasedUntil || row.leasedUntil <= now));
         for (const row of available) row.leasedUntil = now + LEASE_MS;
         return available.map(row => ({ ...row.message, position: row.position }));
     }
@@ -40,7 +43,15 @@ class ConfirmableInMemoryQueue implements RemoteQueue {
         this.rows = this.rows.filter(row => row.position !== message.position);
     }
 
-    async cancel(_message : QueueMessage) : Promise<void> {
+    async debounce(message : QueueMessage) : Promise<void> {
+        const row = this.rows.find(row => row.position === message.position);
+        if (!row) return;
+        row.retryAt = Date.now() + RETRY_MS;
+        row.leasedUntil = undefined;
+    }
+
+    async cancel(message : QueueMessage) : Promise<void> {
+        this.rows = this.rows.filter(row => row.position !== message.position);
     }
 
     async size() : Promise<number> {
