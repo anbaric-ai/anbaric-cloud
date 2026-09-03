@@ -11,6 +11,10 @@
   left: var(--space-lg);
   z-index: 10;
   height: calc(100vh - 2 * var(--space-lg));
+  /* Concentric with the foot-avatar: the rail's padding (--space-md) plus the
+     avatar's radius (half of its 2rem). Larger than the default container
+     radius because the avatar is larger than the nav's items. */
+  border-radius: calc(var(--space-md) + 1rem);
 }
 
 .ds-app-nav__mark {

@@ -63,7 +63,9 @@
   padding: var(--space-sm);
   background: var(--color-background);
   border: 1px solid var(--color-background-shade-2);
-  border-radius: calc(1rem + var(--space-sm));
+  /* Concentric with the 2rem foot-avatar: its radius (1rem) plus the padding. */
+  --_menu-radius: calc(1rem + var(--space-sm));
+  border-radius: var(--_menu-radius);
   box-shadow: var(--elevation-2);
   /* Fade in only — no transform — so the foot-avatar sitting over the trigger
      never shifts; the panel simply resolves in above it. */
@@ -118,6 +120,13 @@
 .ds-avatar-menu__item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* The first item's top corners follow the menu's outer corner — concentric,
+   inset by the menu's padding. Its other corners keep the element radius. */
+.ds-avatar-menu__list li:first-child .ds-avatar-menu__item {
+  border-top-left-radius: calc(var(--_menu-radius) - var(--space-sm));
+  border-top-right-radius: calc(var(--_menu-radius) - var(--space-sm));
 }
 
 .ds-avatar-menu__rule {

@@ -40,6 +40,8 @@ class SessionSigner {
             sub: user.id,
             tenant: tenant?.id,
             roles: user.roles.map(role => role.id),
+            name: user.name,
+            picture: user.picture,
             exp: nowSeconds() + this.ttlSeconds,
         };
         const payload = base64url(JSON.stringify(claims));
@@ -52,7 +54,7 @@ class SessionSigner {
         const [payload, signature] = token.split(".");
         if (!payload || !signature || !this.signatureMatches(payload, signature)) return undefined;
 
-        let claims : { sub? : unknown, tenant? : unknown, roles? : unknown, exp? : unknown };
+        let claims : { sub? : unknown, tenant? : unknown, roles? : unknown, name? : unknown, picture? : unknown, exp? : unknown };
         try {
             claims = JSON.parse(Buffer.from(payload, "base64url").toString());
         } catch {
@@ -64,7 +66,9 @@ class SessionSigner {
 
         const roles = Array.isArray(claims.roles) ? claims.roles.map(id => new Role(String(id))) : [];
         const tenant = typeof claims.tenant === "string" ? new Tenant(claims.tenant) : undefined;
-        return [new User(claims.sub, roles), tenant];
+        const name = typeof claims.name === "string" ? claims.name : undefined;
+        const picture = typeof claims.picture === "string" ? claims.picture : undefined;
+        return [new User(claims.sub, roles, [], name, picture), tenant];
     }
 
     // Sets (or, for a still-valid session, refreshes) the session cookie.

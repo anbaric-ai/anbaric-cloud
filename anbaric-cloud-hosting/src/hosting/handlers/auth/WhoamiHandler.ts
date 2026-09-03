@@ -8,6 +8,8 @@ class WhoamiHandler implements RequestHandler {
             return request.reply(200, {
                 id: request.user.id,
                 roles: request.user.roles.map(role => role.id),
+                name: request.user.name,
+                picture: request.user.picture,
             });
         }
         request.notFound();

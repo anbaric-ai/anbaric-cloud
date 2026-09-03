@@ -13,6 +13,8 @@ interface App {
 interface CurrentUser {
   id: string
   roles: string[]
+  name?: string
+  picture?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -84,8 +86,9 @@ function PlatformNav({
       active={active}
       onChange={(value) => navigate(value)}
       account={{
-        name: user?.id ?? 'Account',
+        name: user?.name ?? user?.id ?? 'Account',
         subtitle: user && user.roles.length > 0 ? user.roles.join(' · ') : undefined,
+        src: user?.picture,
         items: [
           { label: 'Manage keys', onSelect: () => navigate('/manage-keys') },
           { label: 'Sign out', onSelect: () => (window.location.href = '/logout') },
