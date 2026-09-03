@@ -96,10 +96,13 @@ resource "aws_security_group" "database" {
   vpc_id = aws_vpc.anbaric.id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.platform.id, aws_security_group.apps.id]
+    from_port = 5432
+    to_port   = 5432
+    protocol  = "tcp"
+    security_groups = concat(
+      [aws_security_group.platform.id, aws_security_group.apps.id],
+      var.enable_bastion ? [aws_security_group.bastion[0].id] : [],
+    )
   }
 
   egress {

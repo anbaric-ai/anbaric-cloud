@@ -10,6 +10,11 @@ output "database_endpoint" {
   value = aws_db_instance.anbaric.address
 }
 
+output "bastion_instance_id" {
+  description = "SSM target for database port forwarding; empty when the bastion is disabled"
+  value       = var.enable_bastion ? aws_instance.bastion[0].id : ""
+}
+
 output "cluster_name" {
   value = aws_ecs_cluster.anbaric.name
 }

@@ -107,6 +107,10 @@ output "database_endpoint" {
   value = module.platform.database_endpoint
 }
 
+output "bastion_instance_id" {
+  value = module.platform.bastion_instance_id
+}
+
 output "cluster_name" {
   value = module.platform.cluster_name
 }
