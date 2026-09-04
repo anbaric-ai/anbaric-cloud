@@ -357,6 +357,14 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
         }
 
+        class ProviderAuthenticator extends StubAuthenticator {
+
+            logoutUrl() : string {
+                return "https://login.example/v2/logout";
+            }
+
+        }
+
         let authenticatedServer : HostingServer;
         let authenticatedUrl : string;
 
@@ -368,6 +376,39 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
         afterEach(async () => {
             await authenticatedServer.close();
+        });
+
+        it("signs out by expiring the session cookie and sending the browser home", async () => {
+            const response = await fetch(`${authenticatedUrl}/logout`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+                redirect: "manual",
+            });
+
+            expect(response.status).toBe(302);
+            expect(response.headers.get("location")).toBe("/");
+            expect(response.headers.get("set-cookie")).toContain("anbaric_session=;");
+            expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+        });
+
+        it("sends the browser on to the identity provider's logout when there is one", async () => {
+            const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
+                undefined, undefined, undefined, undefined, new ProviderAuthenticator());
+            const url = `http://127.0.0.1:${await server.listen(0)}`;
+
+            try {
+                const response = await fetch(`${url}/logout`, {
+                    headers: { cookie: "anbaric_session=valid-session" },
+                    redirect: "manual",
+                });
+
+                // Clearing our cookie alone would leave the provider's session
+                // intact, and the redirect home would sign them back in.
+                expect(response.status).toBe(302);
+                expect(response.headers.get("location")).toBe("https://login.example/v2/logout");
+                expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+            } finally {
+                await server.close();
+            }
         });
 
         it("redirects any resource access without a session to the login flow", async () => {

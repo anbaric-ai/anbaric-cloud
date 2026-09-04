@@ -21,6 +21,13 @@ abstract class Authenticator {
         return false;
     }
 
+    // Where to send someone once their platform session has been cleared. An
+    // identity provider that keeps a session of its own should return its
+    // logout URL, or signing out would silently sign them straight back in.
+    logoutUrl() : string | undefined {
+        return undefined;
+    }
+
 }
 
 export { Authenticator, SESSION_COOKIE }

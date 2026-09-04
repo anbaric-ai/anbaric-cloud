@@ -18,6 +18,7 @@ import {ConsumersHandler} from "./handlers/ConsumersHandler";
 import {DocumentsHandler} from "./handlers/DocumentsHandler";
 import {JobsHandler} from "./handlers/JobsHandler";
 import {FaviconHandler} from "./handlers/FaviconHandler";
+import {LogoutHandler} from "./handlers/LogoutHandler";
 import {PagesHandler} from "./handlers/PagesHandler";
 import {PingHandler} from "./handlers/PingHandler";
 import {QueueHandler} from "./handlers/QueueHandler";
@@ -69,6 +70,7 @@ class HostingServer {
         publicRouter.registerRoot(pages);
         publicRouter.register("ping", ping);
         publicRouter.register("favicon.ico", new FaviconHandler());
+        publicRouter.register("logout", new LogoutHandler(authenticator));
         if (plugins.length > 0) publicRouter.registerApi("plugins", new PluginsHandler(plugins));
         publicRouter.registerApi("whoami", new WhoamiHandler());
         publicRouter.registerApi("sessions", sessions);

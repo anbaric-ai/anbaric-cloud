@@ -79,6 +79,13 @@ class SessionSigner {
         else response.setHeader("Set-Cookie", Array.isArray(existing) ? [...existing, cookie] : [String(existing), cookie]);
     }
 
+    // Expires the session cookie; the attributes must match issue() or the
+    // browser keeps the original cookie alongside this one.
+    static clear(response : ServerResponse) : void {
+        response.setHeader("Set-Cookie",
+            `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
+    }
+
     private sign(payload : string) : string {
         return createHmac("sha256", this.secret).update(payload).digest("base64url");
     }
