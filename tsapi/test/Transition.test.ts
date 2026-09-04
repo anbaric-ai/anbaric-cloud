@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {Job} from "../src/api/jobs/Job";
-import {Transition} from "../src/api/transitions/Transition";
+import {Job} from "../src/api/jobs/Job.js";
+import {Transition} from "../src/api/transitions/Transition.js";
 
 describe("Transition", () => {
 

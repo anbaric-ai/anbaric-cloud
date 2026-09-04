@@ -1,4 +1,4 @@
-import {QueueMessage} from "../cloud/QueueMessage";
+import {QueueMessage} from "../cloud/QueueMessage.js";
 
 interface Queue {
 

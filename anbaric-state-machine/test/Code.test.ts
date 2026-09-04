@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Code} from "../src/actors/Code";
+import {Code} from "../src/actors/Code.js";
 
 describe("Code", () => {
 

@@ -1,5 +1,5 @@
-import {Actor} from "../Actor";
-import {AgentRequest} from "./AgentRequest";
+import {Actor} from "../Actor.js";
+import {AgentRequest} from "./AgentRequest.js";
 
 /* An agent is a light actor: identity only, used for auditing and
    authorization like any other actor. The functional model detail lives in

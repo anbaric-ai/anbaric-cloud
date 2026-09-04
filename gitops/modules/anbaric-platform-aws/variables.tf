@@ -166,3 +166,9 @@ variable "deploy_additional_services" {
   type        = bool
   default     = false
 }
+
+variable "enable_bastion" {
+  description = "Run a keyless SSM bastion for reaching the private database from a laptop (Session Manager port forwarding; no inbound SSH)"
+  type        = bool
+  default     = false
+}

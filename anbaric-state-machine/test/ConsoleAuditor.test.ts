@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {ConsoleAuditor} from "../src/auditing/ConsoleAuditor";
-import {Code} from "../src/actors/Code";
-import {Human} from "../src/actors/Human";
+import {ConsoleAuditor} from "../src/auditing/ConsoleAuditor.js";
+import {Code} from "../src/actors/Code.js";
+import {Human} from "../src/actors/Human.js";
 
 describe("ConsoleAuditor", () => {
 

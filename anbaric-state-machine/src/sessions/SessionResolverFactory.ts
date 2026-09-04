@@ -1,6 +1,6 @@
 import {SessionResolver} from "anbaric-tsapi";
 import {CloudSessionResolver} from "anbaric-impl-cloud";
-import {InMemorySessionResolver} from "./InMemorySessionResolver";
+import {InMemorySessionResolver} from "./InMemorySessionResolver.js";
 
 const SessionResolverFactory = {
     instance() : SessionResolver {

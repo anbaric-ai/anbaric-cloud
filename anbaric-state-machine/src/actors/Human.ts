@@ -1,7 +1,7 @@
 import {IncomingMessage} from "node:http";
 import {Actor, SessionResolver} from "anbaric-tsapi";
-import {SessionResolverFactory} from "../sessions/SessionResolverFactory";
-import {sessionCookie} from "../sessions/sessionCookie";
+import {SessionResolverFactory} from "../sessions/SessionResolverFactory.js";
+import {sessionCookie} from "../sessions/sessionCookie.js";
 
 class Human implements Actor {
 

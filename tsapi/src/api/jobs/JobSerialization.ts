@@ -1,5 +1,5 @@
-import {Job} from "./Job";
-import {SerializedWaitForInput, serializeWaitForInput, deserializeWaitForInput} from "../actions/WaitForInput";
+import {Job} from "./Job.js";
+import {SerializedWaitForInput, serializeWaitForInput, deserializeWaitForInput} from "../actions/WaitForInput.js";
 
 type SerializedJob = {
     id : string,

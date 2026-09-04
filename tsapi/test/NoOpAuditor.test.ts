@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {Actor} from "../src/api/actors/Actor";
-import {NoOpAuditor} from "../src/api/auditing/NoOpAuditor";
+import {Actor} from "../src/api/actors/Actor.js";
+import {NoOpAuditor} from "../src/api/auditing/NoOpAuditor.js";
 
 const actor : Actor = { type: "CODE", id: "sys", roles: ["code"] };
 

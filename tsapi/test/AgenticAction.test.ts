@@ -1,8 +1,8 @@
 import {describe, expect, it} from "vitest";
-import {Agent} from "../src/api/actors/agents/Agent";
-import {AgentRequest} from "../src/api/actors/agents/AgentRequest";
-import {AgenticAction} from "../src/api/actions/AgenticAction";
-import {Job} from "../src/api/jobs/Job";
+import {Agent} from "../src/api/actors/agents/Agent.js";
+import {AgentRequest} from "../src/api/actors/agents/AgentRequest.js";
+import {AgenticAction} from "../src/api/actions/AgenticAction.js";
+import {Job} from "../src/api/jobs/Job.js";
 
 class RecordingClient extends Agent.Client {
 

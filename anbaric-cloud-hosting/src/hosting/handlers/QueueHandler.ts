@@ -1,10 +1,10 @@
-import {ConfirmableQueue} from "../../queuing/ConfirmableQueue";
+import {RemoteQueue} from "../../queuing/RemoteQueue";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 
 class QueueHandler implements RequestHandler {
 
-    constructor(private queue : ConfirmableQueue) {}
+    constructor(private queue : RemoteQueue) {}
 
     async handle(request : Request) : Promise<void> {
         if (request.subresource) return request.notFound();

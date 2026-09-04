@@ -72,6 +72,8 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
         )
     `);
     await pool.query("ALTER TABLE queue ADD COLUMN IF NOT EXISTS app_id TEXT");
+    await pool.query("ALTER TABLE queue ADD COLUMN IF NOT EXISTS retry_at TIMESTAMPTZ");
+    await pool.query("ALTER TABLE queue ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0");
     await pool.query(`UPDATE queue
         SET app_id = split_part(workflow_id, '/', 1),
             workflow_id = substring(workflow_id from position('/' in workflow_id) + 1)

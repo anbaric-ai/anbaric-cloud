@@ -1,4 +1,4 @@
-import {AgentMessage} from "./AgentMessage";
+import {AgentMessage} from "./AgentMessage.js";
 
 type AgentRequest = {
 

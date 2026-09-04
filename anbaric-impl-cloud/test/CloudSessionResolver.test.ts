@@ -1,8 +1,8 @@
 import {afterEach, describe, expect, it} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
-import {CloudApiClient} from "../src/CloudApiClient";
-import {CloudSessionResolver} from "../src/CloudSessionResolver";
+import {CloudApiClient} from "../src/CloudApiClient.js";
+import {CloudSessionResolver} from "../src/CloudSessionResolver.js";
 
 describe("CloudSessionResolver", () => {
 

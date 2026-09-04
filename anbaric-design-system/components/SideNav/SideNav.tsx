@@ -7,6 +7,8 @@ export interface NavItem {
   /** An icon (e.g. a Material Symbols span). Shown in both states. */
   icon?: ReactNode
   disabled?: boolean
+  /** A trailing count or label, right-aligned (e.g. an unread count). */
+  badge?: ReactNode
   /** Render as a link to this URL instead of an onChange button. */
   href?: string
   /** With href: open in a new tab, marked by a trailing external-link icon. */
@@ -25,6 +27,8 @@ export interface SideNavProps
   items: NavEntry[]
   /** Optional header (brand, title) above the items. Hidden when collapsed. */
   header?: ReactNode
+  /** Optional footer pinned to the bottom of the rail (e.g. an account menu). */
+  footer?: ReactNode
   /** Active item value (controlled). */
   active?: string
   /** Initial active item value (uncontrolled). */
@@ -51,6 +55,7 @@ const isSection = (entry: NavEntry): entry is NavSection => 'section' in entry
 export function SideNav({
   items,
   header,
+  footer,
   active,
   defaultActive,
   onChange,
@@ -94,6 +99,9 @@ export function SideNav({
     <>
       {item.icon ? <span className="ds-sidenav__icon">{item.icon}</span> : null}
       <span className="ds-sidenav__label">{item.label}</span>
+      {item.badge != null ? (
+        <span className="ds-sidenav__badge">{item.badge}</span>
+      ) : null}
       {item.external ? (
         <span
           className="ds-sidenav__external material-symbols-rounded"
@@ -174,6 +182,8 @@ export function SideNav({
           ),
         )}
       </ul>
+
+      {footer ? <div className="ds-sidenav__footer">{footer}</div> : null}
     </nav>
   )
 }

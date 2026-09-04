@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
 
-import { SideNav, type NavEntry } from '@anbaric/design-system/components/SideNav'
-import logoUrl from '@anbaric/design-system/shared/assets/anbaric-ident.svg'
+import { AppNav } from '@anbaric/design-system/components/AppNav'
+import type { NavEntry } from '@anbaric/design-system/components/SideNav'
 
 import { registry } from './plugins/PluginRegistry'
 
 interface App {
   appName: string
   status: string
+}
+
+interface CurrentUser {
+  id: string
+  roles: string[]
+  name?: string
+  picture?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -30,11 +37,17 @@ function PlatformNav({
   onCollapsedChange: (collapsed: boolean) => void
 }) {
   const [apps, setApps] = useState<App[]>([])
+  const [user, setUser] = useState<CurrentUser | undefined>(undefined)
 
   useEffect(() => {
     void fetch('/api/v2/apps')
       .then(async (response) => {
         if (response.ok) setApps(await response.json())
+      })
+      .catch(() => {})
+    void fetch('/api/v2/whoami')
+      .then(async (response) => {
+        if (response.ok) setUser(await response.json())
       })
       .catch(() => {})
   }, [])
@@ -63,25 +76,25 @@ function PlatformNav({
   const items: NavEntry[] = [
     ...pageEntries,
     { label: 'Audit', value: '/audit', icon: <Sym name="history" /> },
-    { label: 'Manage keys', value: '/manage-keys', icon: <Sym name="key" /> },
     ...appEntries,
   ]
 
   return (
-    <SideNav
-      header={
-        <img
-          src={logoUrl}
-          alt="Anbaric"
-          style={{ height: '1.6rem', display: 'block', width: 'auto' }}
-        />
-      }
+    <AppNav
       items={items}
       active={active}
       onChange={(value) => navigate(value)}
+      account={{
+        name: user?.name ?? user?.id ?? 'Account',
+        subtitle: user && user.roles.length > 0 ? user.roles.join(' · ') : undefined,
+        src: user?.picture,
+        items: [
+          { label: 'Manage keys', onSelect: () => navigate('/manage-keys') },
+          { label: 'Sign out', onSelect: () => (window.location.href = '/logout') },
+        ],
+      }}
       collapsed={collapsed}
       onCollapsedChange={onCollapsedChange}
-      style={{ position: 'sticky', top: 'var(--space-lg)', flex: 'none' }}
     />
   )
 }

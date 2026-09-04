@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {Actor, Auditor, Job} from "anbaric-tsapi";
-import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
+import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence.js";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
 const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };

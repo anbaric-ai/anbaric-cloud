@@ -1,5 +1,5 @@
 import {AppAware, Auditor, currentAppId, Job, JobPersistence, NoOpAuditor, SerializedJob, deserializeJob, serializeJob} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudJobPersistence extends JobPersistence implements AppAware {
 

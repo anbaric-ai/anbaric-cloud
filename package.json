@@ -16,12 +16,14 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "build": "tsc -b anbaric/tsconfig.build.json",
+    "clean": "tsc -b anbaric/tsconfig.build.json --clean",
     "versions": "tsx scripts/set-versions.ts",
-    "release": "npm run versions && npx vitest run && npm publish --workspaces --access public"
+    "release": "npm run versions && npm run build && npx vitest run && npm publish --workspaces --access public"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
     "vitest": "^4.1.10"
   },
-  "version": "1.21.1"
+  "version": "1.21.5"
 }

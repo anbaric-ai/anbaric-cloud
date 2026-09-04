@@ -1,6 +1,6 @@
-import {Actor} from "../actors/Actor";
-import {Auditor} from "../auditing/Auditor";
-import {currentAppId} from "../cloud/AppAware";
+import {Actor} from "../actors/Actor.js";
+import {Auditor} from "../auditing/Auditor.js";
+import {currentAppId} from "../cloud/AppAware.js";
 
 /* Stores named secrets and audits every interaction. The secret value is
    never included in an audit record. Public methods audit then defer to the

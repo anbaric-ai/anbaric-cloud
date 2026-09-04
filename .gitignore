@@ -6,3 +6,9 @@ node_modules/
 *.log
 .DS_Store
 anbaric-cli/dist/
+tsapi/dist/
+anbaric-state-machine/dist/
+anbaric-data-store/dist/
+anbaric-impl-cloud/dist/
+anbaric/dist/
+*.tsbuildinfo

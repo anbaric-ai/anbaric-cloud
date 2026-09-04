@@ -1,6 +1,6 @@
 import {NoOpAuditor, SecretStore} from "anbaric-tsapi";
 import {CloudAuditor, CloudSecretStore} from "anbaric-impl-cloud";
-import {InMemorySecretStore} from "./InMemorySecretStore";
+import {InMemorySecretStore} from "./InMemorySecretStore.js";
 
 const SecretStoreFactory = {
     instance() : SecretStore {

@@ -1,5 +1,5 @@
-import {Job} from "../jobs/Job";
-import {AwaitParty, WaitForInput} from "./WaitForInput";
+import {Job} from "../jobs/Job.js";
+import {AwaitParty, WaitForInput} from "./WaitForInput.js";
 
 /* A pause point in a state's action list. When a job reaches an Await it runs
    nothing: the job is parked in the "Awaiting input" status and is not

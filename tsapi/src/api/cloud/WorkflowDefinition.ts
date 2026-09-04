@@ -1,6 +1,6 @@
-import {State} from "../states/State";
-import {PropertyDefinition} from "../jobs/PropertyDefinition";
-import {Await} from "../actions/Await";
+import {State} from "../states/State.js";
+import {PropertyDefinition} from "../jobs/PropertyDefinition.js";
+import {Await} from "../actions/Await.js";
 
 /* The serialisable graph of a state machine: its states, each state's actions
    (identity only — the run/predicate bodies aren't persistable) and

@@ -1,8 +1,8 @@
 import {describe, expect, it} from "vitest";
-import {Action} from "../src/api/actions/Action";
-import {Actor} from "../src/api/actors/Actor";
-import {State} from "../src/api/states/State";
-import {Transition} from "../src/api/transitions/Transition";
+import {Action} from "../src/api/actions/Action.js";
+import {Actor} from "../src/api/actors/Actor.js";
+import {State} from "../src/api/states/State.js";
+import {Transition} from "../src/api/transitions/Transition.js";
 
 const human : Actor = { type: "HUMAN", id: "chris", roles: ["admin"] };
 

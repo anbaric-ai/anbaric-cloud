@@ -1,4 +1,4 @@
-import {WaitForInput} from "../actions/WaitForInput";
+import {WaitForInput} from "../actions/WaitForInput.js";
 
 class Job {
 

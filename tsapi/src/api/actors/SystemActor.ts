@@ -1,4 +1,4 @@
-import {Actor, ActorType} from "./Actor";
+import {Actor, ActorType} from "./Actor.js";
 
 class SystemActor implements Actor {
 

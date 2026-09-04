@@ -1,4 +1,4 @@
-import {Job} from "../jobs/Job";
+import {Job} from "../jobs/Job.js";
 
 class Transition {
     to: string;

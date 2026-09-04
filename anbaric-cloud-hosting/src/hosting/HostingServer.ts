@@ -4,7 +4,7 @@ import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator} from "../auth/Authenticator";
 import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {TokenAuthenticator} from "../auth/TokenAuthenticator";
-import {ConfirmableQueue} from "../queuing/ConfirmableQueue";
+import {RemoteQueue} from "../queuing/RemoteQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 import {AppProxyHandler} from "./handlers/AppProxyHandler";
 import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
@@ -42,7 +42,7 @@ class HostingServer {
     private publicServer : Server;
     private internalServer : Server;
 
-    constructor(persistence : JobPersistence, queue : ConfirmableQueue,
+    constructor(persistence : JobPersistence, queue : RemoteQueue,
                 registry : ConsumerRegistry = new ConsumerRegistry(),
                 buildLayer? : BuildLayer,
                 documentStoreFor? : (appId : string, collection : string) => JsonStore,

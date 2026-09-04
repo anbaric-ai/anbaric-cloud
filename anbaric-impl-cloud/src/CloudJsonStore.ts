@@ -1,5 +1,5 @@
 import {AppAware, Auditor, currentAppId, JsonSchema, JsonStore, NoOpAuditor, validateDocument} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudJsonStore extends JsonStore implements AppAware {
 

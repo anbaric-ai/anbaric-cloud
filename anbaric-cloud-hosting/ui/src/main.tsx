@@ -75,6 +75,7 @@ function App() {
     <PageShell
       title={page.title}
       width={page.width}
+      collapsed={collapsed}
       nav={
         <PlatformNav
           active={path}

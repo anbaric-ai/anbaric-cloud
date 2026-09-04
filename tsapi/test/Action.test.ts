@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
-import {Actor} from "../src/api/actors/Actor";
-import {Action} from "../src/api/actions/Action";
-import {Job} from "../src/api/jobs/Job";
+import {Actor} from "../src/api/actors/Actor.js";
+import {Action} from "../src/api/actions/Action.js";
+import {Job} from "../src/api/jobs/Job.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 

@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it} from "vitest";
 import {CloudAuditor} from "anbaric-impl-cloud";
-import {AuditorFactory} from "../src/auditing/AuditorFactory";
-import {ConsoleAuditor} from "../src/auditing/ConsoleAuditor";
+import {AuditorFactory} from "../src/auditing/AuditorFactory.js";
+import {ConsoleAuditor} from "../src/auditing/ConsoleAuditor.js";
 
 describe("AuditorFactory", () => {
 

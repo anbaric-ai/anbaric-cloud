@@ -1,4 +1,5 @@
-import {Dequeue, QueueMessage} from "anbaric-tsapi";
+import {QueueMessage} from "anbaric-tsapi";
+import {RemoteQueue} from "./RemoteQueue";
 import {ConsumerRegistry} from "./ConsumerRegistry";
 
 class Dispatcher {
@@ -6,7 +7,7 @@ class Dispatcher {
     private ticker? : NodeJS.Timeout;
     private draining = false;
 
-    constructor(private queue : Dequeue, private registry : ConsumerRegistry,
+    constructor(private queue : RemoteQueue, private registry : ConsumerRegistry,
                 private dispatchIntervalMs : number = 1000) {}
 
     start() : void {
@@ -20,6 +21,13 @@ class Dispatcher {
         this.ticker = undefined;
     }
 
+    /* The queue leases each dequeued message and redelivers any it is not
+       `confirm`ed — the consumer confirms once it has processed one. So the
+       dispatcher never puts a message back: a failed push just leaves the
+       message to redeliver on its next lease. A message with no registered
+       listener yet is debounced (backed off), which lets a momentary
+       registration race resolve and cancels the message only if it never
+       finds a listener. */
     private async drain() : Promise<void> {
         if (this.draining) return;
         this.draining = true;
@@ -30,7 +38,7 @@ class Dispatcher {
             for (const message of messages) {
                 const url = this.registry.lookup(message.appId, message.workflowId);
                 if (!url) {
-                    await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
+                    await this.queue.debounce(message);
                     continue;
                 }
                 byConsumerUrl.set(url, [...(byConsumerUrl.get(url) ?? []), message]);
@@ -53,9 +61,7 @@ class Dispatcher {
             });
             if (!response.ok) throw new Error(`Consumer at ${url} responded with status ${response.status}`);
         } catch {
-            for (const message of batch) {
-                await this.queue.enqueue(message.jobId, message.appId, message.workflowId);
-            }
+            // Left in the queue: the unconfirmed lease redelivers it for retry.
         }
     }
 

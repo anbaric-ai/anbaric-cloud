@@ -1,6 +1,6 @@
 import {Queue} from "anbaric-tsapi";
 import {CloudQueue} from "anbaric-impl-cloud";
-import {InMemoryQueue} from "./InMemoryQueue";
+import {InMemoryQueue} from "./InMemoryQueue.js";
 
 const QueueFactory = {
     instance() : Queue {

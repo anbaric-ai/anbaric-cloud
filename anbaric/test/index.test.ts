@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import * as anbaric from "../src/index";
+import * as anbaric from "../src/index.js";
 
 describe("anbaric umbrella", () => {
 

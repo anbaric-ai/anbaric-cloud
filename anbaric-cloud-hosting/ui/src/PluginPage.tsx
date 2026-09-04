@@ -7,7 +7,9 @@ const widgetHeading: CSSProperties = {
   margin: 0,
   marginBottom: 'var(--space-md)',
   fontFamily: 'var(--font-title)',
+  fontWeight: 'var(--font-weight-title)' as CSSProperties['fontWeight'],
   fontSize: '1.15rem',
+  letterSpacing: '0.02em',
   textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
 }
 

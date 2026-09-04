@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {Agent} from "../src/api/actors/agents/Agent";
-import {AgentRequest} from "../src/api/actors/agents/AgentRequest";
+import {Agent} from "../src/api/actors/agents/Agent.js";
+import {AgentRequest} from "../src/api/actors/agents/AgentRequest.js";
 
 class StubClient extends Agent.Client {
 

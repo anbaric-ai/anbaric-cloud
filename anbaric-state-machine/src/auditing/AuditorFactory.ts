@@ -1,6 +1,6 @@
 import {Auditor} from "anbaric-tsapi";
 import {CloudAuditor} from "anbaric-impl-cloud";
-import {ConsoleAuditor} from "./ConsoleAuditor";
+import {ConsoleAuditor} from "./ConsoleAuditor.js";
 
 const AuditorFactory = {
 

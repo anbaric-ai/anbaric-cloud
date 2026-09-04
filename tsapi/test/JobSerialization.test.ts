@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {Job} from "../src/api/jobs/Job";
-import {deserializeJob, serializeJob} from "../src/api/jobs/JobSerialization";
+import {Job} from "../src/api/jobs/Job.js";
+import {deserializeJob, serializeJob} from "../src/api/jobs/JobSerialization.js";
 
 describe("job serialization", () => {
 

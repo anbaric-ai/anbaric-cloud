@@ -1,7 +1,7 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
 import {Consumer, QueueMessage} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 type ProcessJob = (jobId : string) => Promise<void>;
 

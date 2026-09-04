@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
 import {QueueMessage} from "anbaric-tsapi";
-import {PushConsumer} from "../src/PushConsumer";
+import {PushConsumer} from "../src/PushConsumer.js";
 
 const message = (jobId : string, workflowId : string = "workflow-1") : QueueMessage => ({ jobId, workflowId });
 

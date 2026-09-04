@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;600;700&family=Anton&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@100;300;400;600;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -40,12 +40,10 @@
         margin: 0;
         padding: 0;
         background-color: var(--color-background);
-        /* A tiled SVG noise tile layered over the pale haze. The noise is
-           rendered once (static, not animated), so it's cheap. */
-        background-image:
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
-          var(--gradient-primary-haze);
-        background-size: 140px 140px, cover;
+        /* The product's surface grain (a design-system token) over the neutral
+           page bloom. Static, so it's cheap. */
+        background-image: var(--texture-noise), var(--gradient-primary-haze);
+        background-size: var(--texture-noise-size), cover;
         background-repeat: repeat, no-repeat;
         background-attachment: fixed;
         color: var(--color-foreground);
@@ -62,32 +60,24 @@
         --nav-w: 14rem;
       }
 
-      .app__nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 10;
-        height: 100vh;
-      }
-
-      /* Dock the nav to the edge: square corners, full height, right border
-         only. (The standalone SideNav stays a rounded floating panel.) */
-      .app__nav .ds-sidenav {
-        height: 100%;
-        border-radius: 0;
-        border-width: 0 1px 0 0;
-      }
-
+      /* The nav is the shared AppNav — a fixed, full-height floating rail (see
+         components/AppNav). The content column is offset by its width. */
+      /* The content column butts against the nav's right edge; its own padding
+         is the gutter, set to the nav's edge inset (--space-lg). So the gap
+         between nav and content equals the nav's margin from the screen edge —
+         one consistent gutter all the way round. */
       .app__content {
         min-width: 0;
-        margin-left: var(--nav-w);
-        padding: 2.5rem;
+        margin-left: calc(var(--nav-w) + var(--space-lg));
+        padding: var(--space-lg);
         transition: margin-left 200ms ease;
       }
 
+      /* Left-aligned (not auto-centred) so the gutter to the nav stays exactly
+         --space-lg on every page — centring would re-inflate the left gap. */
       .section {
         max-width: 1040px;
-        margin: 0 auto 3rem;
+        margin: 0 0 3rem;
       }
 
       .guidance-grid {
@@ -96,16 +86,7 @@
         gap: 1.25rem;
       }
 
-      @media (max-width: 760px) {
-        .app__nav {
-          position: static;
-          height: auto;
-        }
-        .app__nav .ds-sidenav {
-          width: 100%;
-          height: auto;
-          border-width: 0 0 1px 0;
-        }
+      @media (max-width: 40rem) {
         .app__content {
           margin-left: 0;
         }
@@ -380,7 +361,7 @@
 
       .elevation__level {
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 1.5rem;
       }
 
@@ -447,7 +428,7 @@
 
       .title-bold {
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 2.75rem;
         line-height: var(--title-line-height);
         text-transform: var(--title-transform);
@@ -467,18 +448,19 @@
       }
 
       /* --- Components ------------------------------------------ */
+      /* Each demo is a flat Section (no card surface), so they need generous
+         separation to read as distinct blocks. */
       .components {
         display: grid;
-        gap: 1.25rem;
+        gap: 2.5rem;
+        max-width: 1040px;
       }
 
-      /* Children of the demo Card below. They deliberately do NOT set their
-         own border-radius — the Card enforces the element radius on every
-         direct child via `.ds-card > *`. */
+      /* Used for headings inside a demo (Drawer content, guidance cards). */
       .component-demo__title {
         margin: 0;
         font-family: var(--font-title);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-title);
         font-size: 1.25rem;
       }
 
@@ -487,18 +469,25 @@
         color: var(--color-foreground-tint-1);
       }
 
+      /* The field and panel are no longer always inside a Card, so they carry
+         their own element radius. */
       .component-demo__input {
         padding: var(--space-sm);
         font: inherit;
         color: var(--color-foreground);
         background: var(--color-background);
         border: 1px solid var(--color-foreground-tint-2);
+        border-radius: var(--radius-element);
       }
 
       .component-demo__panel {
         padding: var(--space-sm);
         background: var(--color-background-shade-2);
         color: var(--color-foreground);
+        border-radius: var(--radius-element);
+        /* A flex child (the Card is a flex column): allow it to shrink so a
+           long code line scrolls inside the card instead of bleeding past it. */
+        min-width: 0;
       }
 
     </style>

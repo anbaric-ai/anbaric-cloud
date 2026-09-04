@@ -1,20 +1,29 @@
 {
   "name": "anbaric-tsapi",
-  "version": "1.21.1",
+  "version": "1.21.5",
   "description": "These are the shared libraries - types, classes, etc - that both the public state-machine and hosting services share",
   "license": "MIT",
   "author": "chris@anbaric.ai",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsc -b tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2"
   },
   "files": [
-    "src"
+    "dist"
   ]
 }

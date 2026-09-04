@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it} from "vitest";
-import {SqlStoreFactory} from "../src/SqlStoreFactory";
-import {SqliteSqlStore} from "../src/SqliteSqlStore";
-import {PostgresSqlStore} from "../src/PostgresSqlStore";
+import {SqlStoreFactory} from "../src/SqlStoreFactory.js";
+import {SqliteSqlStore} from "../src/SqliteSqlStore.js";
+import {PostgresSqlStore} from "../src/PostgresSqlStore.js";
 
 describe("SqlStoreFactory", () => {
 

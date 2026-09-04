@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it} from "vitest";
 import {createServer, Server} from "node:http";
 import {AddressInfo} from "node:net";
-import {CloudAuditor} from "../src/CloudAuditor";
+import {CloudAuditor} from "../src/CloudAuditor.js";
 import {Code, Human} from "anbaric-state-machine";
 
 describe("CloudAuditor", () => {

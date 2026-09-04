@@ -1,8 +1,8 @@
 import {describe, expect, it} from "vitest";
 import {CloudQueue, PushConsumer} from "anbaric-impl-cloud";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {PullConsumer} from "../src/scheduling/PullConsumer";
-import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
+import {PullConsumer} from "../src/scheduling/PullConsumer.js";
+import {ConsumerFactory} from "../src/scheduling/ConsumerFactory.js";
 
 describe("ConsumerFactory", () => {
 

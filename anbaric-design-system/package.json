@@ -14,6 +14,9 @@
   "exports": {
     "./tokens.css": "./tokens.css",
     "./components/Card": "./components/Card/index.ts",
+    "./components/Section": "./components/Section/index.ts",
+    "./components/AvatarMenu": "./components/AvatarMenu/index.ts",
+    "./components/AppNav": "./components/AppNav/index.ts",
     "./components/Annotation": "./components/Annotation/index.ts",
     "./components/Button": "./components/Button/index.ts",
     "./components/SplitButton": "./components/SplitButton/index.ts",

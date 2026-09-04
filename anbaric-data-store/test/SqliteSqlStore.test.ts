@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Actor, Auditor, NoOpAuditor} from "anbaric-tsapi";
-import {SqliteSqlStore} from "../src/SqliteSqlStore";
+import {SqliteSqlStore} from "../src/SqliteSqlStore.js";
 
 const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 

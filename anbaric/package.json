@@ -1,23 +1,32 @@
 {
   "name": "anbaric",
-  "version": "1.21.1",
+  "version": "1.21.5",
   "description": "Everything needed to write an Anbaric app: state machines, jobs, document and secret stores, local in-memory implementations and the Anbaric Cloud clients",
   "license": "MIT",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
-    "src",
+    "dist",
     "docs"
   ],
   "scripts": {
     "prepack": "rm -f README.md && cp ../README.md README.md",
-    "postpack": "rm -f README.md && ln -s ../README.md README.md"
+    "postpack": "rm -f README.md && ln -s ../README.md README.md",
+    "build": "tsc -b tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "anbaric-impl-cloud": "^1.21.1",
-    "anbaric-data-store": "^1.21.1",
-    "anbaric-state-machine": "^1.21.1",
-    "anbaric-tsapi": "^1.21.1"
+    "anbaric-impl-cloud": "^1.21.5",
+    "anbaric-data-store": "^1.21.5",
+    "anbaric-state-machine": "^1.21.5",
+    "anbaric-tsapi": "^1.21.5"
   }
 }

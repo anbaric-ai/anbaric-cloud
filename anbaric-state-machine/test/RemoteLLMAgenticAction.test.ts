@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {Agent, AgentRequest, Job} from "anbaric-tsapi";
-import {RemoteLLMAgenticAction} from "../src/actions/RemoteLLMAgenticAction";
+import {RemoteLLMAgenticAction} from "../src/actions/RemoteLLMAgenticAction.js";
 
 class RecordingClient extends Agent.Client {
 

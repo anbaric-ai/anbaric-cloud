@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {State} from "../src/api/states/State";
-import {Terminal} from "../src/api/states/Terminal";
+import {State} from "../src/api/states/State.js";
+import {Terminal} from "../src/api/states/Terminal.js";
 
 describe("Terminal", () => {
 

@@ -1,8 +1,8 @@
-import {Actor} from "../actors/Actor";
-import {Auditor} from "../auditing/Auditor";
-import {Job} from "./Job";
-import {serializeWaitForInput} from "../actions/WaitForInput";
-import {currentAppId} from "../cloud/AppAware";
+import {Actor} from "../actors/Actor.js";
+import {Auditor} from "../auditing/Auditor.js";
+import {Job} from "./Job.js";
+import {serializeWaitForInput} from "../actions/WaitForInput.js";
+import {currentAppId} from "../cloud/AppAware.js";
 
 /* Persists jobs and audits every interaction. Public methods record the
    interaction against the injected auditor and then defer to the abstract

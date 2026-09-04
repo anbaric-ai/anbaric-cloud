@@ -1,16 +1,18 @@
+/* The nav is the shared AppNav — a fixed, full-height floating rail — so the
+   layout is just the content column, offset by the nav's width plus one
+   --space-lg inset. The content is left-aligned so that gutter never drifts. */
 .ds-page-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
-  padding: var(--space-lg) var(--space-md);
+  --nav-w: 14rem;
 }
 
 .ds-page-main {
-  margin: 0 auto;
+  min-width: 0;
+  margin-left: calc(var(--nav-w) + var(--space-lg));
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  width: 100%;
+  transition: margin-left 200ms ease;
 }
 
 .ds-page-heading {
@@ -23,9 +25,9 @@
 }
 
 @media (max-width: 40rem) {
-  .ds-page-layout {
-    gap: var(--space-md);
-    padding: var(--space-md) var(--space-sm);
+  .ds-page-main {
+    margin-left: 0;
+    padding: var(--space-md);
   }
 
   .ds-page-heading {
