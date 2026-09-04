@@ -4,7 +4,7 @@ resource "aws_ecr_repository" "platform" {
 }
 
 locals {
-  image_sources_hash = var.build_image ? sha1(join("", [for file in fileset(var.source_root, "{*/src/**,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")])) : sha1(var.platform_image)
+  image_sources_hash = var.build_image ? sha1(join("", [for file in fileset(var.source_root, "{*/src/**,*/tsconfig.build.json,tsconfig.build.base.json,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")])) : sha1(var.platform_image)
   platform_image     = var.platform_image != "" ? var.platform_image : "${aws_ecr_repository.platform.repository_url}:latest"
 }
 

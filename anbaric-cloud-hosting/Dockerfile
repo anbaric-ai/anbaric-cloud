@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y ca-certificates curl && \
 
 WORKDIR /anbaric
 
-COPY package.json package-lock.json tsconfig.base.json ./
+COPY package.json package-lock.json tsconfig.base.json tsconfig.build.base.json ./
 COPY tsapi/package.json tsapi/
 COPY anbaric-state-machine/package.json anbaric-state-machine/
 COPY anbaric-impl-cloud/package.json anbaric-impl-cloud/
@@ -37,6 +37,10 @@ COPY anbaric anbaric
 COPY anbaric-hosting anbaric-hosting
 COPY anbaric-plugins anbaric-plugins
 COPY anbaric-services-client anbaric-services-client
+
+# The libraries resolve to dist/, so the image builds them; anbaric-cloud-hosting
+# itself still runs from source under tsx.
+RUN npm run build
 
 EXPOSE 8787
 CMD ["npx", "tsx", "anbaric-cloud-hosting/src/main.ts"]
