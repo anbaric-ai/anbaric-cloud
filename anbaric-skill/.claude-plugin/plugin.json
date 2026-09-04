@@ -1,0 +1,15 @@
+{
+  "name": "anbaric",
+  "version": "1.21.5",
+  "description": "Build and deploy Node.js + TypeScript apps on the Anbaric platform — model your domain as state machines, run it locally in-memory, then ship it to Anbaric Cloud. Use /anbaric.",
+  "author": { "name": "Anbaric" },
+  "homepage": "https://anbaric.ai",
+  "license": "MIT",
+  "keywords": ["anbaric", "state-machine", "workflow", "backend", "typescript"],
+  "mcpServers": {
+    "anbaric": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/dist/index.js"]
+    }
+  }
+}

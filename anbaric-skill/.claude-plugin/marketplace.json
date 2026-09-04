@@ -1,0 +1,14 @@
+{
+  "name": "anbaric",
+  "owner": { "name": "Anbaric" },
+  "metadata": {
+    "description": "The Anbaric skill: build and deploy apps on the Anbaric platform with Claude."
+  },
+  "plugins": [
+    {
+      "name": "anbaric",
+      "source": "./",
+      "description": "Build a Node.js + TypeScript app on Anbaric (state machines, jobs, actors), locally first, then deploy to Anbaric Cloud. Adds the /anbaric command and the anbaric MCP tools."
+    }
+  ]
+}
