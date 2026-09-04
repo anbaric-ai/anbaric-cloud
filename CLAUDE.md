@@ -15,6 +15,14 @@ Relative imports carry explicit `.js` extensions, as ESM requires. Note this app
 `tsconfig.build.json` is the emitting one. Tests run against `src` via aliases in
 `vitest.config.ts`, so a build is never required to run them.
 
+The five packages in the `anbaric` graph (`tsapi`, `anbaric-state-machine`, `anbaric-data-store`,
+`anbaric-impl-cloud`, `anbaric`) compile. **`anbaric-cloud-hosting` and `anbaric-hosting` deliberately
+and permanently ship source** — `anbaric-hosting/bin` resolves
+`anbaric-cloud-hosting/src/main.ts`, and `DockerBuildLayer`'s container `CMD` runs
+`src/app-admin/launch.ts` under `tsx`, so their published `src/` is an executed runtime path, not just
+a compile input. This asymmetry is intended: don't "fix" it. `anbaric-cli` is separate again — esbuild
+bundles it to a single `dist/main.js`.
+
 - `tsapi` — shared contracts and value classes (interfaces like `JobPersistence`, `Queue`, `Consumer`, `JsonStore`, `SecretStore`; classes like `Job`, `State`, `Transition`). Nothing here depends on the other packages.
 - `anbaric-state-machine` — the public state machine library, with in-memory implementations.
 - `anbaric-data-store` — JSON document store (schema-validated) and secret store, with in-memory implementations.
