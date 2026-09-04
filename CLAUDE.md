@@ -78,3 +78,9 @@ The root `package.json` `version` is the single source for every workspace:
 dependencies to `^<version>`. To release: bump the root version, then
 `npm run release` (versions → build → tests → `npm publish --workspaces`, which
 skips the private Auth0 package). Never edit workspace versions by hand.
+
+Publishing must pass `--tag latest` explicitly, which `npm run release` does. A stray `2.0.0` was
+once published to eight of the packages; it is past npm's unpublish window, so it stays the highest
+version for ever, and npm refuses to move the `latest` tag *implicitly* onto a lower version. Without
+the flag every publish fails with "Cannot implicitly apply the latest tag". Don't publish these
+packages with a bare `npm publish`.

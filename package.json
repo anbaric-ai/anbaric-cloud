@@ -19,7 +19,7 @@
     "build": "tsc -b anbaric/tsconfig.build.json",
     "clean": "tsc -b anbaric/tsconfig.build.json --clean",
     "versions": "tsx scripts/set-versions.ts",
-    "release": "npm run versions && npm run build && npx vitest run && npm publish --workspaces --access public"
+    "release": "npm run versions && npm run build && npx vitest run && npm publish --workspaces --access public --tag latest"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
