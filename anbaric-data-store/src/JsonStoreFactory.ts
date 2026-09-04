@@ -1,6 +1,6 @@
 import {JsonSchema, JsonStore, NoOpAuditor} from "anbaric-tsapi";
 import {CloudAuditor, CloudJsonStore} from "anbaric-impl-cloud";
-import {InMemoryJsonStore} from "./InMemoryJsonStore";
+import {InMemoryJsonStore} from "./InMemoryJsonStore.js";
 
 const JsonStoreFactory = {
     instance(collection : string, schema? : JsonSchema) : JsonStore {

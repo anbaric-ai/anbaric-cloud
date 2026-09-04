@@ -1,6 +1,6 @@
-import {Actor} from "../actors/Actor";
-import {Auditor} from "../auditing/Auditor";
-import {currentAppId} from "../cloud/AppAware";
+import {Actor} from "../actors/Actor.js";
+import {Auditor} from "../auditing/Auditor.js";
+import {currentAppId} from "../cloud/AppAware.js";
 
 /* A relational (SQL) store for application data. Public methods audit the
    interaction then defer to the abstract ...Internal. `query` returns rows;

@@ -1,6 +1,6 @@
-import {Actor} from "../actors/Actor";
-import {Auditor} from "../auditing/Auditor";
-import {currentAppId} from "../cloud/AppAware";
+import {Actor} from "../actors/Actor.js";
+import {Auditor} from "../auditing/Auditor.js";
+import {currentAppId} from "../cloud/AppAware.js";
 
 /* A schema-validated JSON document store that audits every interaction, keyed
    by collection and id. Public methods audit then defer to ...Internal. */

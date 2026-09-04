@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {CloudSecretStore} from "anbaric-impl-cloud";
-import {InMemorySecretStore} from "../src/InMemorySecretStore";
-import {SecretStoreFactory} from "../src/SecretStoreFactory";
+import {InMemorySecretStore} from "../src/InMemorySecretStore.js";
+import {SecretStoreFactory} from "../src/SecretStoreFactory.js";
 
 describe("SecretStoreFactory", () => {
 

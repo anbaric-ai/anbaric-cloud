@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it} from "vitest";
 import {Actor, JsonSchema, NoOpAuditor} from "anbaric-tsapi";
-import {InMemoryJsonStore} from "../src/InMemoryJsonStore";
+import {InMemoryJsonStore} from "../src/InMemoryJsonStore.js";
 
 const customerSchema : JsonSchema = {
     type: "object",

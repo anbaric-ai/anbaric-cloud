@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {WaitForInput, serializeWaitForInput, deserializeWaitForInput} from "../src/index";
+import {WaitForInput, serializeWaitForInput, deserializeWaitForInput} from "../src/index.js";
 
 describe("WaitForInput", () => {
 

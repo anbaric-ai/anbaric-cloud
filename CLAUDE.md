@@ -4,7 +4,16 @@ Read this before writing or changing any code in this repo.
 
 ## Repo shape
 
-npm-workspaces monorepo, plain TypeScript source with no build step (each package's `main`/`types` point at `src/index.ts`):
+npm-workspaces monorepo. The published libraries compile to `dist/` (`main`/`types` point at
+`dist/index.js` / `dist/index.d.ts`, `files: ["dist"]`) so consumers get JavaScript plus generated
+declarations and never compile our source. Build with `npm run build` at the root (`tsc -b`, wired by
+project references in each package's `tsconfig.build.json`); `npm run release` builds before publishing.
+Relative imports carry explicit `.js` extensions, as ESM requires. Note this applies to *our packages* —
+**customer apps still have no build step**: they ship TypeScript and run under `tsx`.
+
+`tsconfig.json` in each package stays the `--noEmit` typecheck config (source + tests);
+`tsconfig.build.json` is the emitting one. Tests run against `src` via aliases in
+`vitest.config.ts`, so a build is never required to run them.
 
 - `tsapi` — shared contracts and value classes (interfaces like `JobPersistence`, `Queue`, `Consumer`, `JsonStore`, `SecretStore`; classes like `Job`, `State`, `Transition`). Nothing here depends on the other packages.
 - `anbaric-state-machine` — the public state machine library, with in-memory implementations.
@@ -50,11 +59,14 @@ npm-workspaces monorepo, plain TypeScript source with no build step (each packag
 ## Before finishing any change
 
 Run `npx vitest run` at the root and `npx tsc --noEmit -p <package>` for every package touched; both must be clean.
+If you touched a published library (`tsapi`, `anbaric-state-machine`, `anbaric-data-store`,
+`anbaric-impl-cloud`, `anbaric`), also run `npm run build` — the emit is stricter than the typecheck,
+and a missing `.js` on a relative import only fails there.
 
 ## Releasing
 
 The root `package.json` `version` is the single source for every workspace:
 `npm run versions` stamps it into all packages and aligns inter-`anbaric`
 dependencies to `^<version>`. To release: bump the root version, then
-`npm run release` (versions → tests → `npm publish --workspaces`, which
+`npm run release` (versions → build → tests → `npm publish --workspaces`, which
 skips the private Auth0 package). Never edit workspace versions by hand.

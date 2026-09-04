@@ -1,4 +1,4 @@
-import {State} from "./State";
+import {State} from "./State.js";
 
 /* An end state: a job that reaches a Terminal stops progressing and is never
    re-enqueued. The outcome records whether the workflow succeeded or failed. */

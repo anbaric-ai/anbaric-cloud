@@ -1,6 +1,6 @@
 import {Consumer, Dequeue, Queue} from "anbaric-tsapi";
 import {PushConsumer} from "anbaric-impl-cloud";
-import {PullConsumer} from "./PullConsumer";
+import {PullConsumer} from "./PullConsumer.js";
 
 const ConsumerFactory = {
     instance(queue : Queue) : Consumer {

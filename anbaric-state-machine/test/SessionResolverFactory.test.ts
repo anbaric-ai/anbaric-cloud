@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it} from "vitest";
 import {CloudSessionResolver} from "anbaric-impl-cloud";
-import {InMemorySessionResolver} from "../src/sessions/InMemorySessionResolver";
-import {SessionResolverFactory} from "../src/sessions/SessionResolverFactory";
+import {InMemorySessionResolver} from "../src/sessions/InMemorySessionResolver.js";
+import {SessionResolverFactory} from "../src/sessions/SessionResolverFactory.js";
 
 describe("SessionResolverFactory", () => {
 

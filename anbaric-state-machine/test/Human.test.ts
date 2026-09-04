@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Human} from "../src/actors/Human";
+import {Human} from "../src/actors/Human.js";
 
 describe("Human", () => {
 

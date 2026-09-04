@@ -1,5 +1,5 @@
 import {Actor, Auditor} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudAuditor implements Auditor {
 

@@ -1,5 +1,5 @@
 import {AppAware, Auditor, currentAppId, NoOpAuditor, SecretStore} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudSecretStore extends SecretStore implements AppAware {
 

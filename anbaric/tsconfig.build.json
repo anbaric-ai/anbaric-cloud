@@ -1,0 +1,24 @@
+{
+  "extends": "../tsconfig.build.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../tsapi/tsconfig.build.json"
+    },
+    {
+      "path": "../anbaric-impl-cloud/tsconfig.build.json"
+    },
+    {
+      "path": "../anbaric-state-machine/tsconfig.build.json"
+    },
+    {
+      "path": "../anbaric-data-store/tsconfig.build.json"
+    }
+  ]
+}

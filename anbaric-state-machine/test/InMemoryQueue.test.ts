@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it} from "vitest";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
 
 const secondsFromNow = (seconds : number) => new Date(Date.now() + seconds * 1000);
 

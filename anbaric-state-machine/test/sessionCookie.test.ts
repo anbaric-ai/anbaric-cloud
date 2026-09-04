@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {sessionCookie} from "../src/sessions/sessionCookie";
+import {sessionCookie} from "../src/sessions/sessionCookie.js";
 
 describe("sessionCookie", () => {
 

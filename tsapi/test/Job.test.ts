@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Job} from "../src/api/jobs/Job";
+import {Job} from "../src/api/jobs/Job.js";
 
 describe("Job", () => {
 

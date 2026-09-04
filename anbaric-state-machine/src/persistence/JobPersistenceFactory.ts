@@ -1,7 +1,7 @@
 import {JobPersistence} from "anbaric-tsapi";
 import {CloudJobPersistence} from "anbaric-impl-cloud";
-import {InMemoryJobPersistence} from "./InMemoryJobPersistence";
-import {AuditorFactory} from "../auditing/AuditorFactory";
+import {InMemoryJobPersistence} from "./InMemoryJobPersistence.js";
+import {AuditorFactory} from "../auditing/AuditorFactory.js";
 
 const JobPersistenceFactory = {
     instance() : JobPersistence {

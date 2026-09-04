@@ -1,5 +1,5 @@
-import {Actor} from "../actors/Actor";
-import {Auditor} from "./Auditor";
+import {Actor} from "../actors/Actor.js";
+import {Auditor} from "./Auditor.js";
 
 /* An auditor that records nothing. Used by the persistence instances that sit
    behind the HTTP API, where the app-facing store on the other side has

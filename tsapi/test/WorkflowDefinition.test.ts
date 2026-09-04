@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Action, Actor, Await, State, Transition, WorkflowDefinition} from "../src/index";
+import {Action, Actor, Await, State, Transition, WorkflowDefinition} from "../src/index.js";
 
 const actor : Actor = { id: "bot", type: "CODE", roles: ["reviewer"] };
 

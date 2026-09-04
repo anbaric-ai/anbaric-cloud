@@ -1,5 +1,5 @@
-import {Actor} from "../actors/Actor";
-import {Job} from "../jobs/Job";
+import {Actor} from "../actors/Actor.js";
+import {Job} from "../jobs/Job.js";
 
 type CodeRun = (job : Job) => Promise<Map<string, any>>;
 

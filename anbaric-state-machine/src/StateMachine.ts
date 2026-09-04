@@ -15,11 +15,11 @@ import {
     WorkflowDefinition
 } from "anbaric-tsapi";
 
-import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory";
-import {QueueFactory} from "./scheduling/QueueFactory";
-import {ConsumerFactory} from "./scheduling/ConsumerFactory";
-import {AuditorFactory} from "./auditing/AuditorFactory";
-import {Code} from "./actors/Code";
+import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory.js";
+import {QueueFactory} from "./scheduling/QueueFactory.js";
+import {ConsumerFactory} from "./scheduling/ConsumerFactory.js";
+import {AuditorFactory} from "./auditing/AuditorFactory.js";
+import {Code} from "./actors/Code.js";
 
 class StateMachine implements AppAware {
 

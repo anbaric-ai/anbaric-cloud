@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {CloudQueue} from "anbaric-impl-cloud";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {QueueFactory} from "../src/scheduling/QueueFactory";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
+import {QueueFactory} from "../src/scheduling/QueueFactory.js";
 
 describe("QueueFactory", () => {
 

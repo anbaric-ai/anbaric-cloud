@@ -1,12 +1,12 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, Await, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition} from "anbaric-tsapi";
-import {StateMachine} from "../src/StateMachine";
-import {Code} from "../src/actors/Code";
-import {Human} from "../src/actors/Human";
-import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {PullConsumer} from "../src/scheduling/PullConsumer";
-import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
+import {StateMachine} from "../src/StateMachine.js";
+import {Code} from "../src/actors/Code.js";
+import {Human} from "../src/actors/Human.js";
+import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence.js";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
+import {PullConsumer} from "../src/scheduling/PullConsumer.js";
+import {ConsumerFactory} from "../src/scheduling/ConsumerFactory.js";
 
 const actor = new Code("integration-test");
 

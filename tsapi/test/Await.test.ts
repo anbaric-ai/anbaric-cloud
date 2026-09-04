@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Await, Job} from "../src/index";
+import {Await, Job} from "../src/index.js";
 
 const job = () => new Job("job-1", new Map([["x", 1]]), "review");
 

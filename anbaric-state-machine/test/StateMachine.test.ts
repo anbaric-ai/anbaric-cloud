@@ -1,9 +1,9 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Terminal, Transition} from "anbaric-tsapi";
-import {StateMachine} from "../src/StateMachine";
-import {Code} from "../src/actors/Code";
-import {Human} from "../src/actors/Human";
-import {ConsumerFactory} from "../src/scheduling/ConsumerFactory";
+import {StateMachine} from "../src/StateMachine.js";
+import {Code} from "../src/actors/Code.js";
+import {Human} from "../src/actors/Human.js";
+import {ConsumerFactory} from "../src/scheduling/ConsumerFactory.js";
 
 const WORKFLOW_ID = "workflow-1";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

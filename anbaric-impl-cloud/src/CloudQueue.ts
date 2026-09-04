@@ -1,5 +1,5 @@
 import {Queue} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudQueue implements Queue {
 

@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {CloudJobPersistence} from "anbaric-impl-cloud";
-import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
-import {JobPersistenceFactory} from "../src/persistence/JobPersistenceFactory";
+import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence.js";
+import {JobPersistenceFactory} from "../src/persistence/JobPersistenceFactory.js";
 
 describe("JobPersistenceFactory", () => {
 

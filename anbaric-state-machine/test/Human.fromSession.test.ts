@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {ResolvedSession, SessionResolver} from "anbaric-tsapi";
-import {Human} from "../src/actors/Human";
+import {Human} from "../src/actors/Human.js";
 
 const stubResolver = (session? : ResolvedSession) : SessionResolver => ({
     resolve: async (_token : string) => session,

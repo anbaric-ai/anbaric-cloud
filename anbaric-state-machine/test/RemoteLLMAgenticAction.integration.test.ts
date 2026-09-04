@@ -1,9 +1,9 @@
 import {describe, expect, it, vi} from "vitest";
 import {Agent, AgentRequest, PropertyDefinition, State} from "anbaric-tsapi";
-import {StateMachine} from "../src/StateMachine";
-import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {RemoteLLMAgenticAction} from "../src/actions/RemoteLLMAgenticAction";
+import {StateMachine} from "../src/StateMachine.js";
+import {InMemoryJobPersistence} from "../src/persistence/InMemoryJobPersistence.js";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
+import {RemoteLLMAgenticAction} from "../src/actions/RemoteLLMAgenticAction.js";
 
 class FixedClient extends Agent.Client {
 

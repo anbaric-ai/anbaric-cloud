@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {JsonSchema, validateDocument} from "../src/api/documents/JsonSchema";
+import {JsonSchema, validateDocument} from "../src/api/documents/JsonSchema.js";
 
 const customerSchema : JsonSchema = {
     type: "object",

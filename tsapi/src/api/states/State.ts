@@ -1,6 +1,6 @@
-import {Action} from "../actions/Action";
-import {Await} from "../actions/Await";
-import {Transition} from "../transitions/Transition";
+import {Action} from "../actions/Action.js";
+import {Await} from "../actions/Await.js";
+import {Transition} from "../transitions/Transition.js";
 
 class State {
 

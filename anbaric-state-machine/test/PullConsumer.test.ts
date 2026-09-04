@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {InMemoryQueue} from "../src/scheduling/InMemoryQueue";
-import {PullConsumer} from "../src/scheduling/PullConsumer";
+import {InMemoryQueue} from "../src/scheduling/InMemoryQueue.js";
+import {PullConsumer} from "../src/scheduling/PullConsumer.js";
 
 const POLL_INTERVAL_MS = 10;
 

@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it} from "vitest";
 import {randomBytes} from "node:crypto";
 import {Actor} from "anbaric-tsapi";
-import {InMemorySecretStore} from "../src/InMemorySecretStore";
+import {InMemorySecretStore} from "../src/InMemorySecretStore.js";
 
 const actor : Actor = { type: "CODE", id: "tester", roles: ["code"] };
 

@@ -1,5 +1,5 @@
 import {ResolvedSession, SessionResolver} from "anbaric-tsapi";
-import {CloudApiClient} from "./CloudApiClient";
+import {CloudApiClient} from "./CloudApiClient.js";
 
 /* Resolves a platform session token by asking the platform to verify it (an app
    holds no signing secret). A rejected request - an invalid or expired token

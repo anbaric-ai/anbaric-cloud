@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from "vitest";
-import {OpenAIAgent, OpenAIClient} from "../src/actors/agents/OpenAIAgent";
+import {OpenAIAgent, OpenAIClient} from "../src/actors/agents/OpenAIAgent.js";
 
 const jsonResponse = (body : any, ok : boolean = true, status : number = 200) => ({
     ok,
