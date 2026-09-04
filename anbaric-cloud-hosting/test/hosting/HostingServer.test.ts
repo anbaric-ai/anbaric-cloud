@@ -378,6 +378,15 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await authenticatedServer.close();
         });
 
+        // Browsers ask for it before anyone has signed in, so gating it behind
+        // a session sends the icon request into the login flow instead.
+        it("serves the favicon to an unauthenticated browser rather than redirecting", async () => {
+            const response = await fetch(`${authenticatedUrl}/favicon.ico`, { redirect: "manual" });
+
+            expect(response.status).toBe(200);
+            expect(response.headers.get("content-type")).toBe("image/png");
+        });
+
         it("signs out by expiring the session cookie and sending the browser home", async () => {
             const response = await fetch(`${authenticatedUrl}/logout`, {
                 headers: { cookie: "anbaric_session=valid-session" },

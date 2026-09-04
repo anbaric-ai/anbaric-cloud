@@ -7,12 +7,14 @@
 
 /* --- The avatar itself (shared by the trigger and the menu foot) ----------- */
 .ds-avatar {
+  --ds-avatar-size: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 2rem;
-  height: 2rem;
+  width: var(--ds-avatar-size);
+  height: var(--ds-avatar-size);
+  aspect-ratio: 1;
   overflow: hidden;
   font-family: var(--font-title);
   font-weight: var(--font-weight-bold);
@@ -24,10 +26,16 @@
   user-select: none;
 }
 
+/* Sized from the avatar rather than 100%: as a flex item a percentage-sized
+   image resolves against the content box and can come up short, so a photo
+   rendered smaller than the initials it replaced and unbalanced the row. */
 .ds-avatar__img {
-  width: 100%;
-  height: 100%;
+  display: block;
+  flex: none;
+  width: var(--ds-avatar-size);
+  height: var(--ds-avatar-size);
   object-fit: cover;
+  border-radius: inherit;
 }
 
 .ds-avatar__initials {

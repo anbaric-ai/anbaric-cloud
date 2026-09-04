@@ -104,8 +104,12 @@ class HostingServer {
         if (secrets) internalRouter.registerApi("secrets", secrets);
         if (audits) internalRouter.registerApi("audits", audits);
 
+        // The favicon is requested by the browser before anyone has signed in,
+        // and by deployed apps' pages, so gating it behind a session would send
+        // an icon request to the login flow and leave every page iconless.
         const openRequests = (request : Request) =>
             request.url.pathname === "/ping" ||
+            request.url.pathname === "/favicon.ico" ||
             (request.method === "GET" && CLI_KEY_POLL.test(request.url.pathname));
 
         this.publicServer = new Server(publicRouter, [
