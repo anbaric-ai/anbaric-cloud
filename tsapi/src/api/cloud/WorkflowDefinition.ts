@@ -12,7 +12,7 @@ type WorkflowDefinition = {
     appId? : string,
     workflowId : string,
     startState : string,
-    dataSchema : Array<{ id : string, required : boolean }>,
+    dataSchema : Array<{ id : string, required : boolean, example? : any }>,
     states : Array<{
         id : string,
         isTerminal : boolean,
@@ -29,7 +29,11 @@ namespace WorkflowDefinition {
         appId,
         workflowId,
         startState,
-        dataSchema: dataSchema.map(property => ({ id: property.id, required: property.required })),
+        dataSchema: dataSchema.map(property => ({
+            id: property.id,
+            required: property.required,
+            ...(property.example === undefined ? {} : { example: property.example }),
+        })),
         states: states.map(state => ({
             id: state.id,
             isTerminal: state.isTerminal,

@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {Action, Actor, Await, State, Transition, WorkflowDefinition} from "../src/index.js";
+import {Action, Actor, Await, PropertyDefinition, State, Transition, WorkflowDefinition} from "../src/index.js";
 
 const actor : Actor = { id: "bot", type: "CODE", roles: ["reviewer"] };
 
@@ -26,6 +26,25 @@ describe("WorkflowDefinition.describe", () => {
 
         expect(definition.states[0].actions).toHaveLength(1);
         expect(definition.states[0].actions[0].name).toBe("Triage");
+    });
+
+    it("carries a property's example so tools can prefill a new job", () => {
+        const email = new PropertyDefinition("email");
+        email.required = true;
+        email.example = "someone@example.com";
+
+        const definition = WorkflowDefinition.describe(undefined, "wf", "open", [new State("open")], [email]);
+
+        expect(definition.dataSchema).toEqual([
+            { id: "email", required: true, example: "someone@example.com" },
+        ]);
+    });
+
+    it("leaves the example out entirely when a property has none", () => {
+        const definition = WorkflowDefinition.describe(
+            undefined, "wf", "open", [new State("open")], [new PropertyDefinition("notes")]);
+
+        expect(definition.dataSchema).toEqual([{ id: "notes", required: false }]);
     });
 
 });
