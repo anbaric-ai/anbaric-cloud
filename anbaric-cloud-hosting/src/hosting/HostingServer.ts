@@ -17,6 +17,7 @@ import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
 import {ConsumersHandler} from "./handlers/ConsumersHandler";
 import {DocumentsHandler} from "./handlers/DocumentsHandler";
 import {JobsHandler} from "./handlers/JobsHandler";
+import {FaviconHandler} from "./handlers/FaviconHandler";
 import {PagesHandler} from "./handlers/PagesHandler";
 import {PingHandler} from "./handlers/PingHandler";
 import {QueueHandler} from "./handlers/QueueHandler";
@@ -67,6 +68,7 @@ class HostingServer {
         const publicRouter = new Router();
         publicRouter.registerRoot(pages);
         publicRouter.register("ping", ping);
+        publicRouter.register("favicon.ico", new FaviconHandler());
         if (plugins.length > 0) publicRouter.registerApi("plugins", new PluginsHandler(plugins));
         publicRouter.registerApi("whoami", new WhoamiHandler());
         publicRouter.registerApi("sessions", sessions);

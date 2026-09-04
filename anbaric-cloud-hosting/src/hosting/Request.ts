@@ -111,6 +111,14 @@ class Request {
         this.response.end(script);
     }
 
+    replyImage(image : Buffer, contentType : string, cacheSeconds : number = 0) : void {
+        this.response.writeHead(200, {
+            "content-type": contentType,
+            ...(cacheSeconds > 0 ? { "cache-control": `public, max-age=${cacheSeconds}` } : {}),
+        });
+        this.response.end(image);
+    }
+
     redirect(location : string, status : number = 302, headers : Record<string, string> = {}) : void {
         this.response.writeHead(status, { location, ...headers });
         this.response.end();

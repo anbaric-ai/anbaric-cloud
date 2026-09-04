@@ -1,65 +1,11 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
 
-interface StateMachine {
-  workflowId: string
-  url: string
-}
-
-interface Job {
-  id: string
-  state: string
-  workflowId?: string
-  properties: Record<string, unknown>
-  startedAt?: string
-  startedBy?: string
-  lastUpdated?: string
-  transitions?: Array<{ from: string; to: string; actor: string }>
-}
-
-const formatDate = (iso?: string) =>
-  iso
-    ? new Date(iso).toLocaleString(undefined, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : '—'
-
-const machineHeading: CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--font-title)',
-  fontSize: '1.15rem',
-  textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
-}
-
-const cell: CSSProperties = {
-  textAlign: 'left',
-  padding: 'calc(var(--space-sm) / 2) var(--space-sm)',
-  borderBottom: '1px solid color-mix(in srgb, var(--color-grey) 12%, transparent)',
-}
-
-const headerCell: CSSProperties = {
-  ...cell,
-  fontSize: '0.72rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: 'var(--color-foreground-tint-2)',
-}
-
-const mono: CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: '0.78rem',
-}
-
-const muted: CSSProperties = {
-  color: 'var(--color-foreground-tint-2)',
-}
+import { cell, formatDate, headerCell, machineHeading, mono, muted, tableScroller } from './presentation'
+import type { Job, StateMachine } from './types'
 
 function PropertyList({ job }: { job: Job }) {
   const entries: Array<[string, unknown]> = [['id', job.id], ...Object.entries(job.properties)]
@@ -96,7 +42,8 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
     return <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>No jobs yet.</p>
   }
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div style={tableScroller}>
+      <table style={{ width: '100%', minWidth: '44rem', borderCollapse: 'collapse' }}>
       <thead>
         <tr>
           <th style={headerCell}>Properties</th>
@@ -128,7 +75,8 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </div>
   )
 }
 

@@ -103,6 +103,27 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
     });
 
+    describe("favicon", () => {
+
+        it("serves the Anbaric ident as a PNG, cacheably", async () => {
+            const response = await fetch(`${baseUrl}/favicon.ico`);
+
+            expect(response.status).toBe(200);
+            expect(response.headers.get("content-type")).toBe("image/png");
+            expect(response.headers.get("cache-control")).toContain("max-age=");
+            expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(0);
+        });
+
+        // A deployed app that declares no icon falls back to the origin root,
+        // so this one route covers every app the platform fronts.
+        it("serves it without a session", async () => {
+            const response = await fetch(`${baseUrl}/favicon.ico`);
+
+            expect(response.status).toBe(200);
+        });
+
+    });
+
     describe("job persistence", () => {
 
         it("creates and retrieves a job", async () => {

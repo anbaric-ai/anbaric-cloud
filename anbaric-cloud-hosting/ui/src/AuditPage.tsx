@@ -226,7 +226,8 @@ function AuditPage() {
           No audit records match.
         </p>
       ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <table style={{ width: '100%', minWidth: '48rem', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th style={headerCell}>When</th>
@@ -272,7 +273,8 @@ function AuditPage() {
                 </tr>
               ))}
             </tbody>
-        </table>
+          </table>
+        </div>
       )}
       <div
         style={{
