@@ -16737,7 +16737,7 @@ var StdioServerTransport = class {
   }
 };
 
-// ../../anbaric-cli/src/CliConfig.ts
+// src/platform/CliConfig.ts
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -16786,7 +16786,7 @@ var CliConfig = {
   }
 };
 
-// ../../anbaric-cli/src/TokenSigner.ts
+// src/platform/TokenSigner.ts
 import { createPrivateKey, sign } from "node:crypto";
 var DEFAULT_LIFETIME_SECONDS = 60;
 var TokenSigner = class {
@@ -16808,7 +16808,7 @@ var TokenSigner = class {
   }
 };
 
-// ../../anbaric-cli/src/PlatformClient.ts
+// src/platform/PlatformClient.ts
 var API_PREFIX = "/api/v2";
 var PlatformClient = class {
   constructor(options) {
@@ -16896,7 +16896,7 @@ import { mkdtemp, readFile as readFile3, rm as rm2 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join as join3, resolve } from "node:path";
 
-// ../../anbaric-cli/src/AppConfig.ts
+// src/platform/AppConfig.ts
 import { mkdir as mkdir2, readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
 import { join as join2 } from "node:path";
 var APP_NAME_PATTERN = /^[a-z0-9_-]+$/;
@@ -17165,7 +17165,7 @@ var tools = [
 
 // src/index.ts
 var server = new Server(
-  { name: "anbaric", version: "1.21.5" },
+  { name: "anbaric", version: "1.22.0" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

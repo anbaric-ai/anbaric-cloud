@@ -2,8 +2,8 @@ import {spawn} from "node:child_process";
 import {mkdtemp, readFile, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
-import {AppConfig} from "../../../anbaric-cli/src/AppConfig";
-import {PlatformClient} from "../../../anbaric-cli/src/PlatformClient";
+import {AppConfig} from "./platform/AppConfig";
+import {PlatformClient} from "./platform/PlatformClient";
 
 const POLL_INTERVAL_MS = 1000;
 const DEPLOY_TIMEOUT_MS = 600_000;

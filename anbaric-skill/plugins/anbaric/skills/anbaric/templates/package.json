@@ -9,7 +9,7 @@
     "dev": "tsx watch src/main.ts"
   },
   "dependencies": {
-    "anbaric": "^1.21.5"
+    "anbaric": "^1.22.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

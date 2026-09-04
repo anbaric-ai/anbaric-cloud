@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "anbaric",
-      "source": "./",
+      "source": "./plugins/anbaric",
       "description": "Build a Node.js + TypeScript app on Anbaric (state machines, jobs, actors), locally first, then deploy to Anbaric Cloud. Adds the /anbaric command and the anbaric MCP tools."
     }
   ]

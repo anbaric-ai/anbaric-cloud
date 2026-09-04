@@ -1,6 +1,6 @@
 {
   "name": "anbaric-mcp",
-  "version": "1.21.5",
+  "version": "1.22.0",
   "description": "MCP server exposing the Anbaric platform API as JSON tools for agents",
   "private": true,
   "type": "module",

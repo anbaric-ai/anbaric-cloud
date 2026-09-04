@@ -1,4 +1,4 @@
-import {PlatformClient} from "../../../anbaric-cli/src/PlatformClient";
+import {PlatformClient} from "./platform/PlatformClient";
 import {actorName, anbaricClient} from "./client";
 import {deployApp} from "./deploy";
 

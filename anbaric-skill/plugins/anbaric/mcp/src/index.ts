@@ -4,7 +4,7 @@ import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotoc
 import {tools} from "./tools";
 
 const server = new Server(
-    { name: "anbaric", version: "1.21.5" },
+    { name: "anbaric", version: "1.22.0" },
     { capabilities: { tools: {} } },
 );
 

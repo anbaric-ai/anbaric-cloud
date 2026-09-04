@@ -1,6 +1,6 @@
 {
   "name": "anbaric",
-  "version": "1.21.5",
+  "version": "1.22.0",
   "description": "Build and deploy Node.js + TypeScript apps on the Anbaric platform — model your domain as state machines, run it locally in-memory, then ship it to Anbaric Cloud. Use /anbaric.",
   "author": { "name": "Anbaric" },
   "homepage": "https://anbaric.ai",

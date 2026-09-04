@@ -1,5 +1,5 @@
-import {CliConfig} from "../../../anbaric-cli/src/CliConfig";
-import {PlatformClient} from "../../../anbaric-cli/src/PlatformClient";
+import {CliConfig} from "./platform/CliConfig";
+import {PlatformClient} from "./platform/PlatformClient";
 
 // Same credentials, base URL and signed-token auth the `anbaric` CLI uses:
 // resolved from ~/.anbaric plus any ANBARIC_CLOUD_URL / ANBARIC_TENANT override.
