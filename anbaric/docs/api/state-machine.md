@@ -217,14 +217,19 @@ transition whose predicate holds moves the job to `to`.
 
 ```ts
 to : string
-predicate : (job : Job) => boolean
+predicate : (job : Job) => boolean          // default: () => true
 
-constructor(to : string, predicate : (job : Job) => boolean)
+constructor(to : string, predicate? : (job : Job) => boolean)
 ```
 
 ```ts
 new Transition("active", (job) => job.properties.get("welcomeSent") === true)
+new Transition("scoring")   // unguarded: the actions run, then the job moves on
 ```
+
+The predicate is optional. Omit it when a state's actions simply run and the job
+should move on, rather than inventing a sentinel property for the transition to
+read. Guard a transition only when the move is conditional.
 
 ---
 
@@ -243,17 +248,25 @@ readonly startedAt : Date
 readonly startedBy : string
 readonly lastUpdated : Date
 readonly killed : boolean
-status : string                  // "active" or "Awaiting input"
+status : string                  // "active", "Awaiting input" or "Failed"
 waitingFor? : string
 awaitMetadata? : WaitForInput     // present while parked on an Await
 
 namespace Job {
-    const Status = { ACTIVE: "active", AWAITING_INPUT: "Awaiting input" } as const
+    const Status = {
+        ACTIVE: "active",
+        AWAITING_INPUT: "Awaiting input",
+        FAILED: "Failed",
+    } as const
 }
 ```
 
 Check whether a job is parked with `job.status === Job.Status.AWAITING_INPUT`;
 read what it's waiting for from `job.awaitMetadata`.
+
+A job whose action threw is `FAILED`, with the reason in its audit trail. It
+stays in its state rather than transitioning, and an update that moves it on
+returns it to `ACTIVE` — so a failure is recoverable, not terminal.
 
 ---
 

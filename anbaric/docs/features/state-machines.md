@@ -61,6 +61,34 @@ Each time a job is processed, the machine:
 Because actions only *propose* changes and the machine *applies* them, a job's
 data is always schema-valid, whoever wrote it.
 
+A state's actions run **every time** the job is processed in that state, not
+once on entry. That is deliberate — it lets a predicate be time-based
+(`(job) => Date.now() > retryAfter(job)`) or wait on something external. For
+work that must happen only once, guard it:
+
+```ts
+fetchReport.predicate = (job) => !job.properties.has("report");
+```
+
+## Failing a job
+
+If an action throws, the job is marked **failed** (`Job.Status.FAILED`) and the
+reason is recorded against it in the audit trail. You don't need to catch
+errors yourself to stop a job getting stuck — throwing *is* how you say "this
+job cannot proceed":
+
+```ts
+chargeCard.run = async (job) => {
+    const outcome = await payments.charge(job.properties.get("amount"));
+    if (!outcome.ok) throw new Error(`Card declined for job ${job.id}: ${outcome.reason}`);
+    return new Map([["charged", true]]);
+};
+```
+
+A failed job stays where it is rather than transitioning, but it isn't dead: an
+update that moves it on clears the status, so correcting the data and calling
+`updateJob` retries it.
+
 ## Terminal states
 
 Mark the end of a process with `Terminal`, which carries an outcome:
@@ -76,6 +104,21 @@ new Terminal("cancelled", Terminal.Outcome.FAILURE),
 ```
 
 A job that reaches a terminal state stops and is never processed again.
+
+## Moving on unconditionally
+
+A transition's predicate is optional. If a state's actions simply run and the
+job should then move on, leave the guard off — there is no need to invent a
+sentinel property for the transition to test:
+
+```ts
+new State("enriching", [lookUpCompany], [new Transition("scoring")]),
+```
+
+Guard a transition when the move is genuinely conditional — branching, or
+waiting for something to become true. If the concern is "what if the action
+fails?", throw from the action instead (see [Failing a job](#failing-a-job));
+you don't need an error property and a guard that reads it.
 
 ## Branching
 

@@ -17,4 +17,12 @@ describe("Transition", () => {
         expect(transition.predicate).toBe(onlyApproved);
     });
 
+    // An unguarded transition is the common case: the state's actions run and
+    // the job moves on, with no sentinel property to invent and test.
+    it("always fires when no predicate is given", () => {
+        const transition = new Transition("done");
+
+        expect(transition.predicate(new Job("job-1", new Map(), "start"))).toBe(true);
+    });
+
 });
