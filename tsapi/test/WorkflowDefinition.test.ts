@@ -28,6 +28,23 @@ describe("WorkflowDefinition.describe", () => {
         expect(definition.states[0].actions[0].name).toBe("Triage");
     });
 
+    // So the console can show what a transition tests, not just where it goes.
+    it("records a transition's predicate as its own source", () => {
+        const state = new State("open", [], [new Transition("closed", (job) => job.properties.get("done") === true)]);
+
+        const definition = WorkflowDefinition.describe(undefined, "wf", "open", [state], []);
+
+        expect(definition.states[0].transitions[0].predicate).toContain('properties.get("done")');
+    });
+
+    it("leaves the predicate out of an unguarded transition, which always fires", () => {
+        const state = new State("open", [], [new Transition("closed")]);
+
+        const definition = WorkflowDefinition.describe(undefined, "wf", "open", [state], []);
+
+        expect(definition.states[0].transitions[0]).toEqual({ to: "closed" });
+    });
+
     it("carries a property's example so tools can prefill a new job", () => {
         const email = new PropertyDefinition("email");
         email.required = true;

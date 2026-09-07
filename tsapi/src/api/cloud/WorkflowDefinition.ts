@@ -1,4 +1,5 @@
 import {State} from "../states/State.js";
+import {Job} from "../jobs/Job.js";
 import {PropertyDefinition} from "../jobs/PropertyDefinition.js";
 import {Await} from "../actions/Await.js";
 
@@ -17,9 +18,26 @@ type WorkflowDefinition = {
         id : string,
         isTerminal : boolean,
         actions : Array<{ name : string, description : string, actor : { id : string, type : string, roles : Array<string> } }>,
-        transitions : Array<{ to : string }>,
+        transitions : Array<{ to : string, predicate? : string }>,
     }>,
 
+};
+
+/* A predicate's own source, so tools can show what a transition tests rather
+   than only where it goes. Apps run their TypeScript unbundled, so this reads
+   as the author wrote it. An unguarded transition always fires and has nothing
+   worth showing, so it is left out. */
+const ALWAYS = ["() => true", "()=>true", "function () { return true; }"];
+
+const sourceOf = (predicate : (job : Job) => boolean) : string | undefined => {
+    let source : string;
+    try {
+        source = predicate.toString().trim();
+    } catch {
+        return undefined;
+    }
+
+    return ALWAYS.includes(source) ? undefined : source;
 };
 
 namespace WorkflowDefinition {
@@ -44,7 +62,10 @@ namespace WorkflowDefinition {
                     description: action.description,
                     actor: { id: action.actor.id, type: action.actor.type, roles: action.actor.roles },
                 })),
-            transitions: state.transitions.map(transition => ({ to: transition.to })),
+            transitions: state.transitions.map(transition => ({
+                to: transition.to,
+                ...(sourceOf(transition.predicate) === undefined ? {} : { predicate: sourceOf(transition.predicate) }),
+            })),
         })),
     });
 
