@@ -59,6 +59,21 @@ resource "aws_security_group" "apps" {
     security_groups = [aws_security_group.platform.id]
   }
 
+  # additional-services runs in this group too, so an app reaching it on 8790 is
+  # this group talking to itself. Inline rather than an aws_security_group_rule:
+  # inline ingress is authoritative, and would revoke a standalone rule on the
+  # next apply of this group.
+  dynamic "ingress" {
+    for_each = local.additional_services_count > 0 ? [1] : []
+
+    content {
+      from_port = 8790
+      to_port   = 8790
+      protocol  = "tcp"
+      self      = true
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

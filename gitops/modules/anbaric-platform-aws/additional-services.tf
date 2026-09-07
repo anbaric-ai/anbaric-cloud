@@ -24,15 +24,13 @@ locals {
   )
 }
 
-resource "aws_security_group_rule" "apps_to_additional_services" {
-  count                    = local.additional_services_count
-  type                     = "ingress"
-  from_port                = 8790
-  to_port                  = 8790
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.apps.id
-  source_security_group_id = aws_security_group.apps.id
-}
+/* Apps reach this on 8790 and it runs in the apps security group, so the rule
+   that lets them is an apps-to-itself ingress. It lives inline on that group
+   rather than as an aws_security_group_rule: a group with inline ingress blocks
+   treats them as the whole truth and revokes anything else on every apply, so a
+   standalone rule here was created and then silently removed again the next
+   time the group was reconciled - taking every app's access to this service
+   with it. See aws_security_group.apps in app-hosting.tf. */
 
 resource "aws_service_discovery_service" "additional_services" {
   count = local.additional_services_count
