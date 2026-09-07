@@ -20,6 +20,7 @@ import {LogoutCommand} from "./commands/LogoutCommand";
 import {StateMachinesCommand} from "./commands/StateMachinesCommand";
 import {WatchCommand} from "./commands/WatchCommand";
 import {findAppRoot} from "./findAppRoot";
+import {resolveAppName} from "./resolveAppName";
 import {versionSkewWarning} from "./versionCheck";
 import {bold, dim, red, yellow} from "./ui/Ansi";
 
@@ -33,9 +34,9 @@ ${bold("Usage")}
   anbaric app configure                         create or update .anbaric/app-config.json ({ "name", "internalPort" })
   anbaric app deploy                            deploy the app (run from anywhere inside the project)
   anbaric app update                            deploy, replacing a running app without prompting
-  anbaric app status <name>                     show an app's deploy state and whether it is up
-  anbaric app tail <name>                       stream an app's runtime logs to stdout (Ctrl-C to stop)
-  anbaric app tear-down <name>                  stop and remove a deployed app (--yes to skip the prompt)
+  anbaric app status [name]                     show an app's deploy state and whether it is up
+  anbaric app tail [name]                       stream an app's runtime logs to stdout (Ctrl-C to stop)
+  anbaric app tear-down [name]                  stop and remove a deployed app (--yes to skip the prompt)
   anbaric state-machines                        list registered state machines
   anbaric jobs create <sm-id> <start-state> [k=v ...]  create a job and queue it for processing
   anbaric jobs list [state-machine-id]          list jobs, optionally for one state machine
@@ -45,6 +46,9 @@ ${bold("Usage")}
   anbaric jobs update <job-id> <key=value ...>  update job properties and re-queue it
   anbaric jobs kill <job-id>                    kill a job so it stops progressing
   anbaric jobs kill-old <age>                   kill jobs not updated within <age> (e.g. 24h, 7d)
+
+${dim("  An app command with no name is about the app you are in: the nearest")}
+${dim("  package.json above the working directory, named by its .anbaric config.")}
 
 ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and agents)")}
   -h, --help                                    show this help
@@ -126,15 +130,13 @@ const runAppCommand = async (args : Array<string>) : Promise<number> => {
         case "update":
             return new DeployCommand(await clientForDeploy(), true, configureCommand()).run(findAppRoot());
         case "status":
-            if (!appName) return fail("usage: anbaric app status <name>");
-            return new AppStatusCommand(await clientFromConfig()).run(appName);
+            return new AppStatusCommand(await clientFromConfig()).run(await resolveAppName(appName));
         case "tail":
-            if (!appName) return fail("usage: anbaric app tail <name>");
-            return new AppTailCommand(await clientFromConfig()).run(appName);
+            return new AppTailCommand(await clientFromConfig()).run(await resolveAppName(appName));
         case "tear-down":
         case "teardown":
-            if (!appName) return fail("usage: anbaric app tear-down <name>");
-            return new AppTearDownCommand(await clientFromConfig(), values.yes ?? false).run(appName);
+            return new AppTearDownCommand(await clientFromConfig(), values.yes ?? false)
+                .run(await resolveAppName(appName));
         default:
             usage();
             return 1;

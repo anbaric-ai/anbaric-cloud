@@ -25,9 +25,20 @@ project — they walk up to the nearest `package.json`.
 | `anbaric app configure` | Create or update `.anbaric/app-config.json` (`name`, `internalPort`). |
 | `anbaric app deploy` | Deploy the app and wait until it is live (prompts before replacing a running one). |
 | `anbaric app update` | Deploy, replacing a running app **without** prompting. |
-| `anbaric app status <name>` | Show deploy state, liveness, and recent logs. |
-| `anbaric app tail <name>` | Stream the app's runtime logs. |
-| `anbaric app tear-down <name>` | Stop and remove the app (prompts unless `--yes`). |
+| `anbaric app status [name]` | Show deploy state, liveness, and recent logs. |
+| `anbaric app tail [name]` | Stream the app's runtime logs. |
+| `anbaric app tear-down [name]` | Stop and remove the app (prompts unless `--yes`). |
+
+The name is optional, because an `app` command is normally about the app you
+are standing in: the CLI walks up from the working directory to the nearest
+`package.json` and takes the name from that project's
+`.anbaric/app-config.json`, falling back to the package's own `name`. Pass a
+name to act on a different app, or to work from outside a project entirely.
+
+```bash
+cd ~/work/crm && anbaric app tail       # the app you are in
+anbaric app status link-media-brief     # a different app, from anywhere
+```
 
 ## State machines and jobs
 
