@@ -29,6 +29,7 @@ defaulting to a local implementation otherwise).
 | --- | --- | --- |
 | `ANBARIC_JOB_PERSISTENCE_TYPE` | where jobs are stored | in-memory |
 | `ANBARIC_QUEUE_TYPE` | the job queue | in-memory |
+| `ANBARIC_JOB_RUN_SCHEDULE_PERSISTENCE_TYPE` | where planned [scheduled runs](../features/scheduled-runs.md) are kept | in-memory |
 | `ANBARIC_AUDITOR_TYPE` | the audit sink (`cloud` → platform) | console |
 | `ANBARIC_JSON_STORE_TYPE` | the JSON document store | in-memory |
 | `ANBARIC_SECRET_STORE_TYPE` | the secret store | in-memory (encrypted) |

@@ -10,6 +10,7 @@ import {PostgresAuditRecordStore} from "./data-store/PostgresAuditRecordStore";
 import {PostgresCliKeyStore} from "./data-store/PostgresCliKeyStore";
 import {ensureSchema} from "./data-store/Schema";
 import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore";
+import {PostgresJobRunSchedulePersistence} from "./data-store/PostgresJobRunSchedulePersistence";
 import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
@@ -82,7 +83,8 @@ const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "an
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
-    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins);
+    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
+    new PostgresJobRunSchedulePersistence(pool));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

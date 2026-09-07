@@ -265,6 +265,7 @@ have a definition, or writes to it are rejected.
 ```ts
 id : string
 required : boolean = false
+example? : any                          // a realistic value, for tooling
 validation : (value : any) => boolean   // default: () => true
 
 constructor(id : string)
@@ -275,10 +276,64 @@ Configure by mutation:
 ```ts
 const email = new PropertyDefinition("email");
 email.required = true;
+email.example = "someone@example.com";
 email.validation = (value) => typeof value === "string" && value.includes("@");
 ```
 
 Pass the definitions as the `StateMachine`'s fourth argument.
+
+`example` is carried into the machine's published definition, so tools that
+start a job — the admin console's **Start** dialog, generated documentation —
+can offer a realistic value instead of an empty box. It is never validated and
+never becomes a default; it is purely descriptive.
+
+---
+
+## `Schedule`
+
+Which days a machine runs on, and at what times on those days. See
+[Scheduled runs](../features/scheduled-runs.md).
+
+```ts
+constructor(dayTest : (date : Date) => boolean, times : Array<{ hours : number, minutes : number }>)
+
+getRuns(from : Date, to : Date) : Array<Date>   // exclusive of `from`, inclusive of `to`
+
+static everyDay() : (date : Date) => boolean
+static daysOfWeek(days : Array<number>)         // 0 = Sunday … 6 = Saturday
+static daysOfMonth(days : Array<number>)        // calendar dates
+```
+
+The day test is an ordinary predicate, so any rule you can write in code — the
+last working day of a quarter, every other Tuesday — is a schedule.
+
+---
+
+## `JobRunScheduler`
+
+Starts jobs on a timetable. Runs are planned ahead and stored, so the plan
+survives a restart and missed runs are caught up rather than skipped.
+
+```ts
+static instance() : JobRunScheduler
+
+schedule(machine : StateMachine, at : Schedule,
+         lookaheadMs : number = 86_400_000,
+         randomRunOffsetMs : [number, number] = [0, 120_000]) : void
+
+tick(now? : Date) : Promise<void>   // plan and start everything owed; mostly for tests
+cleanUp() : Promise<void>
+```
+
+`lookaheadMs` is how far ahead runs are planned; `randomRunOffsetMs` spreads
+machines that would otherwise all start on the same second, and is applied when
+the run is planned so the stored time is the time it runs. Pass `[0, 0]` to
+start exactly on the minute. Each scheduled job carries its run in the
+`scheduledFor` property.
+
+Storage comes from `JobRunSchedulePersistenceFactory` — in memory locally, the
+platform database when deployed, where claiming a due run is atomic so several
+instances can schedule the same machines safely.
 
 ---
 

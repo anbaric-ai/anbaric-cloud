@@ -78,6 +78,22 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
         SET app_id = split_part(workflow_id, '/', 1),
             workflow_id = substring(workflow_id from position('/' in workflow_id) + 1)
         WHERE app_id IS NULL AND workflow_id LIKE '%/%'`);
+    // Runs a scheduler has planned. Unique on (app_id, workflow_id, run_at) so
+    // two schedulers planning the same window converge on one row rather than
+    // starting a machine twice.
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS job_run_schedule (
+            id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            app_id      TEXT NOT NULL DEFAULT '',
+            workflow_id TEXT NOT NULL,
+            run_at      TIMESTAMPTZ NOT NULL,
+            claimed_at  TIMESTAMPTZ
+        )
+    `);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS job_run_schedule_run
+        ON job_run_schedule (app_id, workflow_id, run_at)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS job_run_schedule_due
+        ON job_run_schedule (run_at) WHERE claimed_at IS NULL`);
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (

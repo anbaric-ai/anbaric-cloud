@@ -266,6 +266,37 @@ re-evaluates its transitions, so the input drives it on and the wait clears once
 it moves to another state. Actions placed after an `Await` in the same state do
 not run when the job resumes.
 
+Some work is started by the clock rather than by a person or an event. The
+**`JobRunScheduler`** starts jobs on a timetable — give it a machine and a
+`Schedule` and it does the rest:
+
+```ts
+import {JobRunScheduler, Schedule} from "anbaric";
+
+// 02:00 every day
+JobRunScheduler.instance().schedule(
+    reconciliation,
+    new Schedule(Schedule.everyDay(), [{ hours: 2, minutes: 0 }]),
+);
+
+// weekdays at 09:00 and 17:30
+JobRunScheduler.instance().schedule(
+    digest,
+    new Schedule(Schedule.daysOfWeek([1, 2, 3, 4, 5]), [{ hours: 9, minutes: 0 }, { hours: 17, minutes: 30 }]),
+);
+```
+
+The day test is a predicate, so anything expressible in code is a schedule.
+Runs are **planned ahead and stored** rather than discovered at the last moment,
+so a restart keeps the timetable and a scheduler that was down starts the runs
+it missed instead of skipping them; each job carries the run it belongs to in
+`scheduledFor`. Machines due at the same moment are spread by a small random
+offset, applied when the run is planned so the stored time is the real one.
+Locally the plan is in memory; deployed it lives in the platform database, where
+claiming a due run is atomic — so several instances of your app can run the
+scheduler and each run still starts exactly once. See
+[Scheduled runs](anbaric/docs/features/scheduled-runs.md).
+
 Everything is pluggable through env-driven factories: locally (no env vars)
 you get in-memory persistence and queueing; deployed, the same factories talk
 to the platform automatically. The same applies to `JsonStoreFactory`

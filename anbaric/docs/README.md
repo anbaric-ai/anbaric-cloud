@@ -21,6 +21,7 @@ What the framework gives you, one capability at a time.
 - [State machines](features/state-machines.md) — defining and running a workflow
 - [Actions and actors](features/actions-and-actors.md) — who does the work, and how
 - [Awaiting input](features/awaiting-input.md) — pausing a job for a human or external system
+- [Scheduled runs](features/scheduled-runs.md) — starting jobs on a timetable
 - [AI agents](features/ai-agents.md) — letting a model drive a state
 - [Documents and secrets](features/documents-and-secrets.md) — the JSON and secret stores
 - [The SQL store](features/sql-store.md) — a relational database for structured data
