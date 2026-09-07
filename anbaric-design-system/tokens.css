@@ -25,8 +25,14 @@
   /* --- Colour: Accent -------------------------------------- */
   /* Svalbard Blue and Aether Pink, muted — for data and quiet emphasis, not
      neon decoration. */
+  --color-accent-tint: #a5cde8;
   --color-accent: #4f9ecf;
   --color-accent-2: #ce5fa2;
+  /* Accent carries a tint and no shade by design — reach for --color-accent-tint.
+     This is defined only so components that still name a shade resolve to a real
+     colour rather than an invalid one, which silently broke the warning variants
+     of Badge and Alert. Don't use it in new work. */
+  --color-accent-shade: #3a7099;
 
   /* --- Colour: Magister Violet ----------------------------- */
   --color-magister: #7867c9;

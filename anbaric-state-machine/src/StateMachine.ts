@@ -135,7 +135,13 @@ class StateMachine implements AppAware {
                 if (! item.predicate(job)) continue;
                 if (! this.authorizeActor(item.actor, job)) continue;
 
-                const newProperties = await item.run(job);
+                let newProperties : Map<string, any>;
+
+                try {
+                    newProperties = await item.run(job);
+                } catch (error) {
+                    return this.failJob(job, item, error);
+                }
 
                 let applied = false;
                 for (const [key, value] of newProperties) {
@@ -181,6 +187,21 @@ class StateMachine implements AppAware {
         await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
             job, job.properties);
         await this.queue.schedule(job.id, this.getAppId(), this.workflowId, new Date(Date.now() + this.NO_TRANSITION_REQUEUE_DELAY));
+    }
+
+    /* An action that throws used to leave the job silently stuck: the queue
+       message was never confirmed, so the job neither advanced nor visibly
+       failed. Failing it here marks the job, records why in the audit trail,
+       and lets the consumer confirm the message. An update that moves the job
+       on clears the status, so a failure is recoverable rather than terminal. */
+    private async failJob(job : Job, action : Action, error : unknown) : Promise<void> {
+        const reason = error instanceof Error ? error.message : String(error);
+
+        job.status = Job.Status.FAILED;
+
+        console.error(`[${this.workflowId}] action "${action.name}" threw on job ${job.id}: ${reason}`);
+        await this.persistence.save(action.actor,
+            `Action "${action.name}" failed on job ${job.id}: ${reason}`, job);
     }
 
     private async updateJobInternal(actor: Actor, message : string, job: Job, newProperties?: Map<string, any>, newState? : string) {

@@ -53,6 +53,7 @@ namespace Job {
     export const Status = {
         ACTIVE: "active",
         AWAITING_INPUT: "Awaiting input",
+        FAILED: "Failed",
     } as const;
 
 }

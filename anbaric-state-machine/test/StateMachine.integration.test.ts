@@ -98,6 +98,67 @@ describe("StateMachine with in-memory collaborators", () => {
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("mystery"));
     });
 
+    describe("an action that throws", () => {
+
+        const throwingMachine = (message : string) => {
+            const explode = new Action("explode", new Code("exploder"));
+            explode.run = async () => { throw new Error(message); };
+
+            return new StateMachine(
+                "throwing-workflow",
+                [new State("start", [explode], [new Transition("done", () => true)]), new State("done")],
+                "start",
+                [optionalFlag("progressed")],
+                persistence,
+                queue,
+            );
+        };
+
+        it("marks the job failed rather than leaving it silently stuck", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            const machine = throwingMachine("the vendor API is down");
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            const saved = await persistence.retrieve(job.id, actor);
+            expect(saved.status).toBe(Job.Status.FAILED);
+        });
+
+        // The whole point: progressJob resolving is what lets the consumer
+        // confirm the queue message instead of the job wedging.
+        it("does not propagate the error to the consumer", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            const machine = throwingMachine("the vendor API is down");
+
+            const job = await machine.startJob();
+
+            await expect(progress(job.id)).resolves.toBeUndefined();
+        });
+
+        it("records why it failed, naming the action and the reason", async () => {
+            const error = vi.spyOn(console, "error").mockImplementation(() => {});
+            const machine = throwingMachine("the vendor API is down");
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            expect(error).toHaveBeenCalledWith(expect.stringContaining("explode"));
+            expect(error).toHaveBeenCalledWith(expect.stringContaining("the vendor API is down"));
+        });
+
+        it("does not transition a job whose action failed", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            const machine = throwingMachine("boom");
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            expect((await persistence.retrieve(job.id, actor)).state).toBe("start");
+        });
+
+    });
+
     it("does not re-enqueue when an action rewrites an unchanged value", async () => {
         const restamp = new Action("restamp", new Code("restamp"));
         restamp.run = async () => new Map([["progressed", true]]);
