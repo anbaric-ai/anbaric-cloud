@@ -2,18 +2,21 @@ import {WaitForInput} from "../actions/WaitForInput.js";
 
 class Job {
 
-    readonly id : string;
-    readonly state: string;
-    readonly properties : Map<string, any>;
     // A workflow is identified by the composite (appId, workflowId): the app the
     // job's state machine was deployed in, and the machine's own id. appId is
     // undefined when running outside a deployed app (locally).
     readonly appId? : string;
     readonly workflowId? : string;
+
+    readonly id : string;
+    readonly state: string;
+    readonly properties : Map<string, any>;
+    
     readonly startedAt : Date;
     readonly startedBy : string;
     readonly lastUpdated : Date;
     readonly killed : boolean;
+
     // Distinct from state: the job's processing status. A job whose current
     // state reaches an Await is parked in "Awaiting input" until an update
     // resumes it. waitingFor is the id of the await it is parked on (a foreign
