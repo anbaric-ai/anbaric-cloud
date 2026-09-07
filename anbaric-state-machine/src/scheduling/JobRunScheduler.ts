@@ -20,8 +20,10 @@ type ScheduledMachine = {
    due. Planning and starting are separate on purpose - a run is a record long
    before it is a job.
 
-   Claiming a due run is per-process today. Before two schedulers can point at
-   one store, claimDue has to become atomic in the persistence. */
+   How safely two schedulers can share a plan is the persistence's business:
+   the in-memory one claims within a single process, while the platform-backed
+   one claims atomically, so a deployed app can run several instances and each
+   due run still starts exactly once. */
 class JobRunScheduler {
 
     private static singleton? : JobRunScheduler;
@@ -37,8 +39,7 @@ class JobRunScheduler {
         return JobRunScheduler.singleton;
     }
 
-    schedule(machine : StateMachine, at : Schedule, lookaheadMs : number = DEFAULT_LOOKAHEAD_MS,
-             randomRunOffsetMs : [number, number] = DEFAULT_RUN_OFFSET_MS) : void {
+    schedule(machine : StateMachine, at : Schedule, lookaheadMs : number = DEFAULT_LOOKAHEAD_MS, randomRunOffsetMs : [number, number] = DEFAULT_RUN_OFFSET_MS) : void {
         this.machines.set(this.key(machine.getAppId(), machine.workflowId),
             { machine, schedule: at, lookaheadMs, randomRunOffsetMs });
         this.start();
