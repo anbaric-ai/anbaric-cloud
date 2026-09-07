@@ -11,6 +11,7 @@ export * from "./scheduling/InMemoryQueue.js";
 export * from "./scheduling/PullConsumer.js";
 export * from "./scheduling/ConsumerFactory.js";
 export * from "./scheduling/QueueFactory.js";
+export * from "./notifications/NotifierFactory.js";
 export * from "./scheduling/Schedule.js";
 export * from "./scheduling/JobRunScheduler.js";
 export * from "./scheduling/InMemoryJobRunSchedulePersistence.js";

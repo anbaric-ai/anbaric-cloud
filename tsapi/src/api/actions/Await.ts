@@ -9,7 +9,11 @@ import {AwaitParty, WaitForInput} from "./WaitForInput.js";
    through the WaitForInput it assembles: the fields expected, a resolve URL
    (static, or derived per job) and any extra metadata. That WaitForInput is
    stored against the job and audited, and cleared once a transition moves the
-   job on to another state. */
+   job on to another state.
+
+   `notify` names who should be told the job is waiting. It is by convention
+   rather than enforcement: the state machine hands the targets to whatever
+   Notifier it was given, and what a target means is that notifier's business. */
 class Await {
 
     readonly id : string;
@@ -19,12 +23,15 @@ class Await {
     fields : Array<string> = [];
     resolveUrl : string | ((job : Job) => string) = "";
     metadata : (job : Job) => Map<string, any> = (_job : Job) => new Map();
+    notify : Array<string> = [];
 
-    constructor(name : string, waitingFor? : AwaitParty, description : string = "", id : string = crypto.randomUUID()) {
+    constructor(name : string, waitingFor? : AwaitParty, description : string = "",
+                id : string = crypto.randomUUID(), notify : Array<string> = []) {
         this.name = name;
         this.waitingFor = waitingFor;
         this.description = description;
         this.id = id;
+        this.notify = notify;
     }
 
     waitForInput(job : Job) : WaitForInput {

@@ -44,6 +44,7 @@ bundles it to a single `dist/main.js`.
 
 - Formatting: 4-space indent, a space before the type-annotation colon (`id : string`), blank line inside class braces before the first member.
 - Room to breathe: use newlines to seperate groups of related variables, newlines should generally follow block openings (like `if` or `for`).
+- After a bang for a false check use a space: `if (! foo)`.
 - Generics written out: `Array<T>`, `Map<K, V>` — not `T[]`.
 - Named exports gathered at the bottom of the file (`export { Thing }`); no default exports.
 - Implementations are named by strategy plus interface: `InMemoryJobPersistence`, `PostgresQueue`, `CloudJobPersistence`, `DefaultActionResolver`.

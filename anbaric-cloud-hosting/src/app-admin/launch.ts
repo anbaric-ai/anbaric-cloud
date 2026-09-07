@@ -9,6 +9,15 @@ import {AdminServer} from "./AdminServer";
    and its admin port stops answering `ping`. */
 const TSX = process.env.ANBARIC_TSX_BIN ?? "/anbaric/node_modules/.bin/tsx";
 
+/* A host can name a module to load before the app's own entry point, which is
+   how it registers implementations an app picks up through the factories -
+   anything the app should be able to use without knowing it is there. It runs
+   in the app's process, so registering from the launcher would be too early. */
+const preloadArgs = () => {
+    const preload = process.env.ANBARIC_APP_PRELOAD;
+    return preload ? ["--import", preload] : [];
+};
+
 const main = async () => {
     const entryPoint = process.argv[2];
     if (!entryPoint) throw new Error("Expected the app entry point as the first argument");
@@ -17,7 +26,7 @@ const main = async () => {
     const port = await admin.listen();
     console.log(`[anbaric-admin] listening on ${port}`);
 
-    const app = spawn(TSX, [entryPoint], { stdio: "inherit" });
+    const app = spawn(TSX, [...preloadArgs(), entryPoint], { stdio: "inherit" });
 
     const shutdown = (signal : NodeJS.Signals) => app.kill(signal);
     process.on("SIGTERM", shutdown);

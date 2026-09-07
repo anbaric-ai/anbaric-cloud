@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Await, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition} from "anbaric-tsapi";
+import {Action, Await, Consumer, Dequeue, Job, PropertyDefinition, State, Terminal, Transition, WaitForInput} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine.js";
 import {Code} from "../src/actors/Code.js";
 import {Human} from "../src/actors/Human.js";
@@ -96,6 +96,88 @@ describe("StateMachine with in-memory collaborators", () => {
         expect(saved.properties.get("progressed")).toBe(true);
         expect(saved.properties.has("mystery")).toBe(false);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("mystery"));
+    });
+
+    describe("notifying who a job is waiting on", () => {
+
+        const notifier = () => ({
+            notify: vi.fn(async (_targets : Array<string>, _job : Job, _waiting : WaitForInput) => {}),
+        });
+
+        const awaitingMachine = (waiting : Await, notify? : ReturnType<typeof notifier>) =>
+            new StateMachine(
+                "awaiting-workflow",
+                [new State("review", [waiting]), new State("done")],
+                "review",
+                [optionalFlag("progressed")],
+                persistence,
+                queue,
+                notify,
+            );
+
+        const reviewAwait = (targets : Array<string>) => {
+            const waiting = new Await("Review", "HUMAN", "A human reviews it", "await-1", targets);
+            waiting.resolveUrl = (job) => `/runs/${job.id}`;
+            return waiting;
+        };
+
+        it("hands the await's targets to the notifier when a job parks", async () => {
+            const notify = notifier();
+            const machine = awaitingMachine(reviewAwait(["reviewer@example.com"]), notify);
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            expect(notify.notify).toHaveBeenCalledOnce();
+            expect(notify.notify.mock.calls[0][0]).toEqual(["reviewer@example.com"]);
+        });
+
+        // The notifier is given the resolved wait, so it can tell someone where
+        // to go without knowing anything about the machine.
+        it("passes the job and its resolved wait, including the resolve url", async () => {
+            const notify = notifier();
+            const machine = awaitingMachine(reviewAwait(["a@example.com", "b@example.com"]), notify);
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            const [targets, notified, waiting] = notify.notify.mock.calls[0];
+            expect(targets).toHaveLength(2);
+            expect(notified.id).toBe(job.id);
+            expect(waiting.resolveUrl).toBe(`/runs/${job.id}`);
+        });
+
+        it("does not notify when the await names nobody", async () => {
+            const notify = notifier();
+            const machine = awaitingMachine(reviewAwait([]), notify);
+
+            await progress((await machine.startJob()).id);
+
+            expect(notify.notify).not.toHaveBeenCalled();
+        });
+
+        it("parks the job as normal when there is no notifier at all", async () => {
+            const machine = awaitingMachine(reviewAwait(["reviewer@example.com"]), undefined);
+
+            const job = await machine.startJob();
+            await progress(job.id);
+
+            expect((await persistence.retrieve(job.id, actor)).status).toBe(Job.Status.AWAITING_INPUT);
+        });
+
+        // Notifying is a side channel; a job that is legitimately waiting must
+        // not be disturbed because an email bounced.
+        it("still parks the job when notifying throws", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            const notify = { notify: vi.fn(async () => { throw new Error("SMTP is down"); }) };
+            const machine = awaitingMachine(reviewAwait(["reviewer@example.com"]), notify);
+
+            const job = await machine.startJob();
+            await expect(progress(job.id)).resolves.toBeUndefined();
+
+            expect((await persistence.retrieve(job.id, actor)).status).toBe(Job.Status.AWAITING_INPUT);
+        });
+
     });
 
     describe("an action that throws", () => {

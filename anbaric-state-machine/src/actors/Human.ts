@@ -21,9 +21,10 @@ class Human implements Actor {
        only). */
     static async fromSession(source : string | IncomingMessage,
                              resolver : SessionResolver = SessionResolverFactory.instance()) : Promise<Human> {
+
         const token = typeof source === "string" ? source : sessionCookie(source);
         const session = token ? await resolver.resolve(token) : undefined;
-        if (!session) throw new Error("Could not resolve the session");
+        if (! session) throw new Error("Could not resolve the session");
         return new Human(session.id, session.roles);
     }
 

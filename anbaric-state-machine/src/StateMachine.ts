@@ -8,6 +8,7 @@ import {
     currentAppId,
     Job,
     JobPersistence,
+    Notifier,
     PropertyDefinition,
     Queue,
     State,
@@ -17,6 +18,7 @@ import {
 
 import {JobPersistenceFactory} from "./persistence/JobPersistenceFactory.js";
 import {QueueFactory} from "./scheduling/QueueFactory.js";
+import {NotifierFactory} from "./notifications/NotifierFactory.js";
 import {ConsumerFactory} from "./scheduling/ConsumerFactory.js";
 import {AuditorFactory} from "./auditing/AuditorFactory.js";
 import {Code} from "./actors/Code.js";
@@ -32,11 +34,12 @@ class StateMachine implements AppAware {
     private queue: Queue;
     private consumer: Consumer;
     private machineActor: Code;
+    private notifier: Notifier | undefined;
     private auditor: Auditor;
 
     private readonly NO_TRANSITION_REQUEUE_DELAY: number = 5 * 60_000;
 
-    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), auditor : Auditor = AuditorFactory.instance()) {
+    constructor(workflowId : string, states : Array<State>, startState? : string, dataSchema : Array<PropertyDefinition> = [], persistence : JobPersistence = JobPersistenceFactory.instance(), queue : Queue = QueueFactory.instance(), notifier : Notifier | undefined = NotifierFactory.instance(), auditor : Auditor = AuditorFactory.instance()) {
 
         // The workflow's identity is the composite (appId, workflowId): the app
         // it is deployed in (from the environment, via getAppId()) and the
@@ -48,6 +51,7 @@ class StateMachine implements AppAware {
         this.dataSchema = new Map(dataSchema.map(property => [property.id, property]));
         this.persistence = persistence;
         this.queue = queue;
+        this.notifier = notifier;
         this.machineActor = new Code(this.workflowId, "state-machine");
         this.auditor = auditor;
 
@@ -129,6 +133,7 @@ class StateMachine implements AppAware {
                     job.waitingFor = crypto.randomUUID();
                     await this.persistence.save(this.machineActor, `Job ${job.id} awaiting input`, job,
                         propertiesChanged ? job.properties : undefined);
+                    await this.notifyWaitingOn(item, job);
                     return;
                 }
 
@@ -187,6 +192,21 @@ class StateMachine implements AppAware {
         await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
             job, job.properties);
         await this.queue.schedule(job.id, this.getAppId(), this.workflowId, new Date(Date.now() + this.NO_TRANSITION_REQUEUE_DELAY));
+    }
+
+    /* Told after the job is parked, so the people notified can act on it the
+       moment they read the message. Notifying is a side channel: a notifier
+       that fails must not undo a job that is already legitimately waiting, so
+       the failure is logged and the job left alone. */
+    private async notifyWaitingOn(waiting : Await, job : Job) : Promise<void> {
+        if (!this.notifier || waiting.notify.length === 0 || !job.awaitMetadata) return;
+
+        try {
+            await this.notifier.notify(waiting.notify, job, job.awaitMetadata);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            console.error(`[${this.workflowId}] could not notify ${waiting.notify.join(", ")} that job ${job.id} is waiting: ${reason}`);
+        }
     }
 
     /* An action that throws used to leave the job silently stuck: the queue

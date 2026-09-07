@@ -96,7 +96,7 @@ describe("StateMachine", () => {
             ];
 
             new StateMachine(WORKFLOW_ID, states, "start", [requiredNumber("score")],
-                persistence as unknown as JobPersistence, queue, auditor);
+                persistence as unknown as JobPersistence, queue, undefined, auditor);
 
             expect(auditor.audit).toHaveBeenCalledOnce();
             const [, resourceType, resourceId, actor, interaction, , details] = auditor.audit.mock.calls[0];
@@ -119,7 +119,7 @@ describe("StateMachine", () => {
             process.env.ANBARIC_APP_ID = "my-app";
             try {
                 const machine = new StateMachine(WORKFLOW_ID, [new State("start")], "start", [],
-                    persistence as unknown as JobPersistence, queue, auditor);
+                    persistence as unknown as JobPersistence, queue, undefined, auditor);
 
                 expect(machine.getAppId()).toBe("my-app");
                 expect(machine.workflowId).toBe("workflow-1");
