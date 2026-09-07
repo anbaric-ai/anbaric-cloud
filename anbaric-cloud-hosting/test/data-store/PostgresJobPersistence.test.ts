@@ -27,6 +27,22 @@ describe("PostgresJobPersistence", () => {
         expect(insert![1]![8]).toBe(true);
     });
 
+    /* A save carries the job as it was when it was read. If the upsert wrote
+       killed back, a pass that started before a kill would revive the job on
+       finishing - which is exactly how a killed job carried on to its next
+       state. Only kill() may set the column. */
+    it("leaves killed alone when updating an existing job", async () => {
+        const { pool, query, released } = mockPool();
+
+        await new PostgresJobPersistence(pool).create(actor,
+            new Job("job-1", new Map(), "start", "wf", undefined, "system", new Date(), new Date(), false));
+        await released;
+
+        const insert = query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO jobs"));
+        const onConflict = String(insert![0]).split("ON CONFLICT")[1];
+        expect(onConflict).not.toContain("killed = EXCLUDED.killed");
+    });
+
     it("kills a job by id", async () => {
         const { pool, query } = mockPool();
 

@@ -98,14 +98,34 @@ class PushConsumer implements Consumer {
         this.reply(response, 404, { error: "Not found" });
     }
 
+    /* A message is confirmed as soon as this consumer takes it on, not when the
+       work finishes. The queue's lease only guards against two dispatchers
+       claiming the same row at once; it says nothing about how long the work
+       takes. Confirming at the end meant a job whose actions ran longer than
+       the lease was handed out again while it was still being processed, and
+       again, each delivery starting another full pass over the same job.
+
+       A process that dies midway through therefore drops that job's message.
+       That is a separate concern - losing work to a crash - and wants its own
+       answer rather than being papered over by redelivering to a consumer
+       that is already busy with it. */
     private async processAll(messages : Array<QueueMessage>) : Promise<void> {
         for (const message of messages) {
             const processJob = this.subscribers.get(this.key(message.appId, message.workflowId));
             if (!processJob) continue;
+
             try {
-                await processJob(message.jobId);
                 await this.client.request("POST", "/queue/confirm", message);
             } catch {
+                // Unconfirmed, so the platform will offer it again; don't start
+                // work that would then be duplicated by that redelivery.
+                continue;
+            }
+
+            try {
+                await processJob(message.jobId);
+            } catch {
+                // The state machine records a failed job; the queue is done here.
             }
         }
     }

@@ -103,14 +103,57 @@ describe("PushConsumer", () => {
         expect(processJob).toHaveBeenCalledExactlyOnceWith("job-1");
     });
 
-    it("does not confirm a message whose processing fails", async () => {
+    // Taking the message is what confirms it, so a job that then fails is the
+    // state machine's business to record - not something to redeliver.
+    it("confirms a message even when processing it fails", async () => {
         consumer.subscribe(undefined, "workflow-1", vi.fn(async (jobId : string) => {
             if (jobId === "job-bad") throw new Error("processing failed");
         }));
 
         await push([message("job-bad"), message("job-good")]);
 
-        await vi.waitFor(() => expect(confirms).toEqual([message("job-good")]));
+        await vi.waitFor(() => expect(confirms).toEqual([message("job-bad"), message("job-good")]));
+    });
+
+    /* The bug this guards: work that outlives the queue's lease was handed out
+       again mid-flight, and each redelivery started another pass over the same
+       job. Confirming on acceptance makes the lease irrelevant to slow work. */
+    it("confirms before the work finishes, not after", async () => {
+        let finish : () => void = () => {};
+        const started = new Promise<void>((resolve) => { finish = resolve; });
+        let running = false;
+
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {
+            running = true;
+            await started;
+        }));
+
+        await push([message("job-slow")]);
+
+        await vi.waitFor(() => {
+            expect(running).toBe(true);
+            expect(confirms).toEqual([message("job-slow")]);
+        });
+
+        finish();
+    });
+
+    it("does not start work it could not confirm, which the redelivery would duplicate", async () => {
+        const processJob = vi.fn(async () => {});
+        // Points at a port nothing is listening on, so confirming fails.
+        const offline = new PushConsumer("http://127.0.0.1:1", 0);
+        offline.subscribe(undefined, "workflow-1", processJob);
+
+        await vi.waitFor(() => expect(offline.port).toBeDefined());
+        await fetch(`http://127.0.0.1:${offline.port}/process`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ messages: [message("job-1")] }),
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(processJob).not.toHaveBeenCalled();
+        await offline.cleanUp();
     });
 
     it("rejects a malformed body with 400", async () => {

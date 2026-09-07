@@ -49,9 +49,13 @@ class PostgresJobPersistence extends JobPersistence {
             await client.query(
                 `INSERT INTO jobs (id, state, properties, workflow_id, app_id, started_at, started_by, last_updated, killed, status, waiting_for)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                 -- killed is deliberately not updated here. Only kill() sets it,
+                 -- and a save carries whatever the job looked like when it was
+                 -- read: a pass that began before a kill would otherwise write
+                 -- killed=false straight back and bring the job back to life.
                  ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, properties = EXCLUDED.properties,
                      workflow_id = EXCLUDED.workflow_id, app_id = EXCLUDED.app_id, last_updated = EXCLUDED.last_updated,
-                     killed = EXCLUDED.killed, status = EXCLUDED.status, waiting_for = EXCLUDED.waiting_for`,
+                     status = EXCLUDED.status, waiting_for = EXCLUDED.waiting_for`,
                 [job.id, job.state, Object.fromEntries(job.properties), job.workflowId, job.appId || null,
                     job.startedAt, job.startedBy, job.lastUpdated, job.killed, job.status, job.waitingFor ?? null],
             );
