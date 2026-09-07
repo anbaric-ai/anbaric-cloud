@@ -21,7 +21,12 @@ function PageShell({
     >
       {nav}
       <main className="ds-page-main" style={{ maxWidth: width }}>
-        <h1 className="ds-page-heading">{title}</h1>
+        {/* With a nav the heading only repeats the highlighted entry, so it is
+            kept for structure and screen readers but not shown. A page served
+            on its own - the CLI authorize flow - has nothing else naming it. */}
+        <h1 className={nav ? 'ds-page-heading ds-page-heading--assistive' : 'ds-page-heading'}>
+          {title}
+        </h1>
         {children}
       </main>
     </div>

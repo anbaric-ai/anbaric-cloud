@@ -24,6 +24,18 @@
   text-transform: var(--title-transform);
 }
 
+/* Named by the nav already, so it is read but not seen — and it must not leave
+   a gap in the layout the way `visibility: hidden` would. */
+.ds-page-heading--assistive {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (max-width: 40rem) {
   .ds-page-main {
     margin-left: 0;

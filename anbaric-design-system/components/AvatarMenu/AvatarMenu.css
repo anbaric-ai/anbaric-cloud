@@ -43,8 +43,12 @@
 }
 
 /* --- Trigger --------------------------------------------------------------- */
+/* inline-flex, not inline-block: an inline-block wrapper puts the trigger on a
+   text baseline, and an avatar showing a photo has no text to set that baseline
+   from, so the browser used the margin edge and left descender space beneath —
+   about 6px of dead room under the avatar that initials never revealed. */
 .ds-avatar-menu {
-  display: inline-block;
+  display: inline-flex;
 }
 
 .ds-avatar-menu__trigger {
