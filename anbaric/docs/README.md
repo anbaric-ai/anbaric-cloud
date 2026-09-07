@@ -40,6 +40,7 @@ How to put the features together to build something real.
 - [Human-in-the-loop](patterns/human-in-the-loop.md) — approvals, forms and hand-offs
 - [Integrating external systems](patterns/integrating-external-systems.md) — waiting on callbacks and webhooks
 - [Authorization with actors and roles](patterns/authorization.md) — who is allowed to do what
+- [UX practices](patterns/ux-practices.md) — feedback and polling for an asynchronous UI
 - [Testing your app](patterns/testing.md) — driving a machine in memory
 
 ## API reference
