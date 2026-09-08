@@ -53,6 +53,20 @@ class DockerBuildLayer extends BaseBuildLayer {
         super(appsDir, consumerPortBase, probe);
     }
 
+    protected async diagnostics(deployment : Deployment) : Promise<Array<string>> {
+        return new Promise((resolve) => {
+            const lines : Array<string> = [];
+            const take = (buffer : Buffer) => {
+                for (const line of buffer.toString().split("\n")) if (line.trim()) lines.push(line);
+            };
+            const logs = spawn("docker", ["logs", "--tail", "30", this.appHostFor(deployment.appName)]);
+            logs.stdout.on("data", take);
+            logs.stderr.on("data", take);
+            logs.on("close", () => resolve(lines.slice(-30)));
+            logs.on("error", () => resolve([]));
+        });
+    }
+
     protected appHostFor(appName : string) : string {
         return `anbaric-app-${appName}`;
     }
@@ -90,6 +104,7 @@ class DockerBuildLayer extends BaseBuildLayer {
             "--env", "ANBARIC_SECRET_STORE_TYPE=cloud",
             "--env", "ANBARIC_AUDITOR_TYPE=cloud",
             "--env", "ANBARIC_SESSION_RESOLVER_TYPE=cloud",
+            "--env", "ANBARIC_NOTIFIER_TYPE=cloud",
             "--env", `ANBARIC_CONSUMER_PORT=${deployment.consumerPort}`,
             "--env", `ANBARIC_CONSUMER_URL=http://${container}:${deployment.consumerPort}`,
             ...sqlEnv,

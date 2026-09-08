@@ -3,6 +3,7 @@ import {SecretStore} from "anbaric-tsapi";
 import {InMemorySecretStore} from "anbaric-data-store";
 import {Pool} from "pg";
 import {loadAuthenticator} from "./auth/AuthenticatorLoader";
+import {loadNotifier} from "./notifications/NotifierLoader";
 import {CliAuthorizer} from "./auth/CliAuthorizer";
 import {HttpCliKeyStore} from "./auth/HttpCliKeyStore";
 import {TokenAuthenticator} from "./auth/TokenAuthenticator";
@@ -84,7 +85,7 @@ const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "an
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
-    new PostgresJobRunSchedulePersistence(pool));
+    new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

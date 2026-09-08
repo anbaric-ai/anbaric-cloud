@@ -1,21 +1,20 @@
 import {Notifier} from "anbaric-tsapi";
+import {CloudNotifier} from "anbaric-impl-cloud";
 
-/* Unlike the other factories there is no local implementation to fall back on:
-   nothing sensible can be delivered from a laptop, so running outside a
-   platform yields undefined and a state machine simply doesn't notify. A host
-   that can deliver registers one during start-up, before any state machine is
-   constructed, and every machine built afterwards picks it up. */
-
-let registered : Notifier | undefined;
-
+/* Like the other services, the notifier is chosen by environment. There is no
+   local implementation - nothing can be delivered from a laptop - so with no
+   env a machine simply doesn't notify. Deployed, the platform sets
+   ANBARIC_NOTIFIER_TYPE=cloud and the app posts to the platform, which owns
+   delivery. */
 const NotifierFactory = {
 
-    use(notifier : Notifier | undefined) : void {
-        registered = notifier;
-    },
-
     instance() : Notifier | undefined {
-        return registered;
+        switch (process.env.ANBARIC_NOTIFIER_TYPE) {
+            case "cloud":
+                return new CloudNotifier();
+            default:
+                return undefined;
+        }
     },
 
 }

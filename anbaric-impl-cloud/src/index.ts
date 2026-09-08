@@ -4,5 +4,6 @@ export * from "./CloudJsonStore.js";
 export * from "./CloudSecretStore.js";
 export * from "./CloudQueue.js";
 export * from "./CloudJobRunSchedulePersistence.js";
+export * from "./CloudNotifier.js";
 export * from "./CloudAuditor.js";
 export * from "./CloudSessionResolver.js";

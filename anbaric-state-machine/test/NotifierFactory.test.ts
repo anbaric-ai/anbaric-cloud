@@ -1,30 +1,27 @@
-import {afterEach, describe, expect, it, vi} from "vitest";
+import {afterEach, describe, expect, it} from "vitest";
+import {CloudNotifier} from "anbaric-impl-cloud";
 import {NotifierFactory} from "../src/notifications/NotifierFactory.js";
 
 describe("NotifierFactory", () => {
 
     afterEach(() => {
-        NotifierFactory.use(undefined);
+        delete process.env.ANBARIC_NOTIFIER_TYPE;
     });
 
-    // Nothing can be delivered from a laptop, so there is no local fallback -
-    // a machine built outside a platform simply doesn't notify.
-    it("has no notifier until a host registers one", () => {
+    // Nothing can be delivered from a laptop, so a machine built with no
+    // notifier env simply doesn't notify.
+    it("has no notifier by default", () => {
         expect(NotifierFactory.instance()).toBeUndefined();
     });
 
-    it("returns whatever the host registered", () => {
-        const notifier = { notify: vi.fn(async () => {}) };
+    it("posts to the platform when the environment selects cloud", () => {
+        process.env.ANBARIC_NOTIFIER_TYPE = "cloud";
 
-        NotifierFactory.use(notifier);
-
-        expect(NotifierFactory.instance()).toBe(notifier);
+        expect(NotifierFactory.instance()).toBeInstanceOf(CloudNotifier);
     });
 
-    it("lets a host clear the notifier again", () => {
-        NotifierFactory.use({ notify: vi.fn(async () => {}) });
-
-        NotifierFactory.use(undefined);
+    it("treats an unknown type as no notifier", () => {
+        process.env.ANBARIC_NOTIFIER_TYPE = "carrier-pigeon";
 
         expect(NotifierFactory.instance()).toBeUndefined();
     });

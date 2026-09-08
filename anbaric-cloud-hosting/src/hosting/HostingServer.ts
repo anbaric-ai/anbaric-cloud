@@ -1,4 +1,4 @@
-import {JobPersistence, JobRunSchedulePersistence, JsonStore, SecretStore} from "anbaric-tsapi";
+import {JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator} from "../auth/Authenticator";
@@ -19,6 +19,7 @@ import {DocumentsHandler} from "./handlers/DocumentsHandler";
 import {JobsHandler} from "./handlers/JobsHandler";
 import {FaviconHandler} from "./handlers/FaviconHandler";
 import {JobRunSchedulesHandler} from "./handlers/JobRunSchedulesHandler";
+import {NotificationsHandler} from "./handlers/NotificationsHandler";
 import {LogoutHandler} from "./handlers/LogoutHandler";
 import {PagesHandler} from "./handlers/PagesHandler";
 import {PingHandler} from "./handlers/PingHandler";
@@ -56,7 +57,8 @@ class HostingServer {
                 tenant? : string,
                 auditRecords? : AuditRecordStore,
                 plugins : Array<LoadedPlugin> = [],
-                jobRunSchedules? : JobRunSchedulePersistence) {
+                jobRunSchedules? : JobRunSchedulePersistence,
+                notifier? : Notifier) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -84,6 +86,7 @@ class HostingServer {
         if (secrets) publicRouter.registerApi("secrets", secrets);
         if (audits) publicRouter.registerApi("audits", audits);
         if (jobRunSchedules) publicRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
+        if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
@@ -107,6 +110,7 @@ class HostingServer {
         if (secrets) internalRouter.registerApi("secrets", secrets);
         if (audits) internalRouter.registerApi("audits", audits);
         if (jobRunSchedules) internalRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
+        if (notifier) internalRouter.registerApi("notifications", new NotificationsHandler(notifier));
 
         // The favicon is requested by the browser before anyone has signed in,
         // and by deployed apps' pages, so gating it behind a session would send

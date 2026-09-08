@@ -7,7 +7,7 @@ import {ECSClient, CreateServiceCommand, DeleteServiceCommand, DescribeServicesC
 import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
 import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCommand,
     ListServicesCommand} from "@aws-sdk/client-servicediscovery";
-import {CloudWatchLogsClient, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
+import {CloudWatchLogsClient, FilterLogEventsCommand, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
 import {dockerfileFor} from "./DockerBuildLayer";
 
@@ -61,6 +61,19 @@ class FargateBuildLayer extends BaseBuildLayer {
                 private buildPollIntervalMs : number = 5000) {
         super(appsDir, consumerPortBase, probe, FARGATE_LIVENESS_TIMEOUT_MS);
         this.aws = aws ?? defaultClients(options.awsRegion);
+    }
+
+    protected async diagnostics(deployment : Deployment) : Promise<Array<string>> {
+        const response = await this.aws.cloudWatchLogs.send(new FilterLogEventsCommand({
+            logGroupName: this.options.appsLogGroup,
+            logStreamNamePrefix: deployment.appName,
+            startTime: Date.now() - 10 * 60_000,
+            limit: 40,
+        }));
+        return (response.events ?? [])
+            .map((event : any) => (event.message ?? "").trimEnd())
+            .filter((line : string) => line.length > 0)
+            .slice(-30);
     }
 
     protected appHostFor(appName : string) : string {
@@ -179,6 +192,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                     { name: "ANBARIC_SECRET_STORE_TYPE", value: "cloud" },
                     { name: "ANBARIC_AUDITOR_TYPE", value: "cloud" },
                     { name: "ANBARIC_SESSION_RESOLVER_TYPE", value: "cloud" },
+                    { name: "ANBARIC_NOTIFIER_TYPE", value: "cloud" },
                     { name: "ANBARIC_CONSUMER_PORT", value: String(deployment.consumerPort) },
                     { name: "ANBARIC_CONSUMER_URL", value: `http://${deployment.appHost}:${deployment.consumerPort}` },
                     ...(this.options.servicesUrl ? [{ name: "ANBARIC_SERVICES_URL", value: this.options.servicesUrl }] : []),

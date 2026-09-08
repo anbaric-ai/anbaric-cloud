@@ -155,9 +155,27 @@ abstract class BaseBuildLayer implements BuildLayer {
             await new Promise(resolve => setTimeout(resolve, LIVENESS_PROBE_INTERVAL_MS));
         }
 
+        // The admin port never answering almost always means the app process
+        // crashed on boot, so pull whatever it logged and put the real cause in
+        // the deploy result - not just the timeout, which says nothing.
+        const diagnostics = await this.diagnostics(deployment).catch(() => []);
+
         await this.stop(deployment);
         deployment.status = "failed";
         this.log(deployment, `app admin port ${deployment.adminPort} did not answer within ${this.livenessTimeoutMs / 1000}s`);
+        if (diagnostics.length > 0) {
+            this.log(deployment, "the app's last output before it stopped:");
+            for (const line of diagnostics) this.log(deployment, `  ${line}`);
+        } else {
+            this.log(deployment, "no output was captured - the app may have failed before logging, or is still starting");
+        }
+    }
+
+    // The app's recent output, for diagnosing a boot that never became live.
+    // Each build layer reads it from where its apps log (container logs,
+    // CloudWatch); the default has nothing to offer.
+    protected async diagnostics(_deployment : Deployment) : Promise<Array<string>> {
+        return [];
     }
 
     private async linkWorkspacePackages(appDir : string, manifest : { dependencies? : Record<string, string> }) : Promise<void> {
