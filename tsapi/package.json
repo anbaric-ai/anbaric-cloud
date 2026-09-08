@@ -1,6 +1,6 @@
 {
   "name": "anbaric-tsapi",
-  "version": "1.25.0",
+  "version": "1.26.0",
   "description": "These are the shared libraries - types, classes, etc - that both the public state-machine and hosting services share",
   "license": "MIT",
   "author": "chris@anbaric.ai",
