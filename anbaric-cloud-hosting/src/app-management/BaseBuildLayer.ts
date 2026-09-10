@@ -2,6 +2,7 @@ import {ChildProcess, spawn} from "node:child_process";
 import {mkdir, readFile, rm, symlink, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {adminPing} from "../app-admin/adminPing";
+import {DocGenerator} from "../docs/DocGenerator";
 import {BuildLayer, DeploymentStatus, DeploymentSummary} from "./BuildLayer";
 
 type Deployment = {
@@ -30,6 +31,7 @@ const adminProbe : Probe = (host, port) => adminPing(host, port, LIVENESS_PROBE_
 abstract class BaseBuildLayer implements BuildLayer {
 
     protected deployments = new Map<string, Deployment>();
+    protected docGenerator? : DocGenerator;
     private nextAppIndex = 0;
     private hydration? : Promise<void>;
 
@@ -126,6 +128,12 @@ abstract class BaseBuildLayer implements BuildLayer {
         await writeFile(tarballPath, tarball);
         this.log(deployment, "extracting application bundle");
         await this.run(deployment, "tar", ["-xzf", tarballPath, "-C", appDir]);
+
+        // Documentation is generated off the critical path: fire-and-forget from
+        // the extracted source, before the build, so a slow model call can never
+        // delay or fail the deploy. Regenerated on every deploy, replaces=redeploy.
+        void this.docGenerator?.generate(deployment.appName, appDir, { redeploy: !!deployment.replaces })
+            .catch(error => this.log(deployment, `doc generation skipped: ${error instanceof Error ? error.message : error}`));
 
         this.log(deployment, "linking anbaric workspace packages");
         const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));

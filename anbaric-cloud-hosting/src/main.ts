@@ -17,6 +17,9 @@ import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
 import {DockerBuildLayer} from "./app-management/DockerBuildLayer";
 import {FargateBuildLayer} from "./app-management/FargateBuildLayer";
+import {DocGenerator} from "./docs/DocGenerator";
+import {GatewayDocModel} from "./docs/GatewayDocModel";
+import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -32,6 +35,10 @@ const hostingPort = Number(process.env.ANBARIC_HOSTING_PORT ?? 8787);
 const internalPort = Number(process.env.ANBARIC_INTERNAL_PORT ?? 8788);
 const appsDir = process.env.ANBARIC_APPS_DIR ?? "/tmp/anbaric-apps";
 
+// Generates user docs from an app's source on deploy; no-ops without an AI
+// gateway token. The build layer calls it fire-and-forget off the deploy path.
+const docGenerator = new DocGenerator(new GatewayDocModel(), new PostgresAppDocsStore(pool));
+
 const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
     ? new DockerBuildLayer(appsDir, {
         baseImage: process.env.ANBARIC_APP_BASE_IMAGE ?? "anbaric-v2-platform:local",
@@ -39,6 +46,7 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         platformUrl: process.env.ANBARIC_PLATFORM_INTERNAL_URL ?? `http://localhost:${internalPort}`,
         sqlDatabaseUrl: process.env.ANBARIC_APP_SQL_DATABASE_URL,
         sqlSchema: process.env.ANBARIC_SQL_SCHEMA,
+        docGenerator,
     })
     : process.env.ANBARIC_BUILD_LAYER === "fargate"
     ? new FargateBuildLayer(appsDir, {
@@ -60,6 +68,7 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         servicesApiKey: process.env.ANBARIC_SERVICES_API_KEY,
         sqlDatabaseUrlSecretArn: process.env.ANBARIC_AWS_APP_SQL_URL_SECRET,
         sqlSchema: process.env.ANBARIC_SQL_SCHEMA,
+        docGenerator,
     })
     : undefined;
 

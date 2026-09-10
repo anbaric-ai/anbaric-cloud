@@ -9,6 +9,7 @@ import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCo
     ListServicesCommand} from "@aws-sdk/client-servicediscovery";
 import {CloudWatchLogsClient, FilterLogEventsCommand, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
+import {DocGenerator} from "../docs/DocGenerator";
 import {dockerfileFor} from "./DockerBuildLayer";
 
 type FargateBuildLayerOptions = {
@@ -30,6 +31,7 @@ type FargateBuildLayerOptions = {
     servicesApiKey? : string,
     sqlDatabaseUrlSecretArn? : string,
     sqlSchema? : string,
+    docGenerator? : DocGenerator,
 };
 
 type AwsClients = {
@@ -61,6 +63,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                 private buildPollIntervalMs : number = 5000) {
         super(appsDir, consumerPortBase, probe, FARGATE_LIVENESS_TIMEOUT_MS);
         this.aws = aws ?? defaultClients(options.awsRegion);
+        this.docGenerator = options.docGenerator;
     }
 
     protected async diagnostics(deployment : Deployment) : Promise<Array<string>> {
