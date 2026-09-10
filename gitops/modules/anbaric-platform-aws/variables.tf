@@ -161,6 +161,24 @@ variable "additional_services_agentic_model" {
   default     = ""
 }
 
+variable "ai_gateway_token_secret_arn" {
+  description = "Secrets Manager ARN of the OpenAI-compatible gateway token the platform itself uses (doc generation); empty leaves the platform's LLM features off"
+  type        = string
+  default     = ""
+}
+
+variable "ai_gateway_url" {
+  description = "OpenAI-compatible base URL the platform calls for its own LLM features (doc generation)"
+  type        = string
+  default     = ""
+}
+
+variable "agentic_model" {
+  description = "Model id the platform requests for its own LLM features (doc generation)"
+  type        = string
+  default     = ""
+}
+
 variable "deploy_additional_services" {
   description = "Whether to run the shared additional-services instance in this cluster"
   type        = bool

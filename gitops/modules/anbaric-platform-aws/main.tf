@@ -98,7 +98,8 @@ resource "aws_iam_role_policy" "read_secrets" {
         aws_secretsmanager_secret.app_db_password.arn,
         aws_secretsmanager_secret.auth0_client_secret.arn,
         aws_secretsmanager_secret.session_signing.arn,
-      ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [])
+      ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [],
+      var.ai_gateway_token_secret_arn == "" ? [] : [var.ai_gateway_token_secret_arn])
     }]
   })
 }
@@ -164,7 +165,11 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AUTH0_ORGANIZATION", value = var.auth0_organization },
       ], var.deploy_additional_services ? [
       { name = "ANBARIC_SERVICES_URL", value = "http://additional-services.${aws_service_discovery_private_dns_namespace.anbaric.name}:8790" },
-    ] : [])
+      ] : [], var.ai_gateway_url == "" ? [] : [
+      { name = "ANBARIC_AI_GATEWAY_URL", value = var.ai_gateway_url },
+      ], var.agentic_model == "" ? [] : [
+      { name = "ANBARIC_AGENTIC_MODEL", value = var.agentic_model },
+    ])
 
     secrets = concat([
       { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
@@ -174,7 +179,9 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
       ], var.deploy_additional_services ? [
       { name = "ANBARIC_SERVICES_API_KEY", valueFrom = var.additional_services_api_key_secret_arn },
-    ] : [])
+      ] : [], var.ai_gateway_token_secret_arn == "" ? [] : [
+      { name = "ANBARIC_AI_GATEWAY_TOKEN", valueFrom = var.ai_gateway_token_secret_arn },
+    ])
 
     logConfiguration = {
       logDriver = "awslogs"
