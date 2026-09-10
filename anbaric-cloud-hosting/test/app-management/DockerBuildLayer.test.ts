@@ -69,6 +69,56 @@ describe("DockerBuildLayer", () => {
 
     const commandsNamed = (subcommand : string) => dockerCommands.filter(args => args[0] === subcommand);
 
+    describe("documentation generation", () => {
+
+        const layerWithGenerator = (generate : (appName : string, appDir : string, options : { redeploy : boolean }) => Promise<void>) => {
+            const generator = { generate: vi.fn(generate) } as any;
+            const layer = new DockerBuildLayer(
+                join(workDir, "apps"),
+                { baseImage: "b", network: "n", platformUrl: "http://p:8787", docGenerator: generator },
+                CONSUMER_PORT_BASE, recordingRunner, async () => true);
+            return { layer, generator };
+        };
+
+        const deploy = async (layer : DockerBuildLayer) => {
+            const fixtureDir = join(workDir, "fixture");
+            await writeFixtureApp(fixtureDir);
+            layer.deploy("fixture-app", APP_PORT, await packFixture(fixtureDir));
+            await vi.waitFor(() => expect(layer.status("fixture-app")?.status).toBe("running"));
+        };
+
+        it("generates docs from the extracted source on deploy", async () => {
+            const { layer, generator } = layerWithGenerator(async () => {});
+            await deploy(layer);
+
+            expect(generator.generate).toHaveBeenCalledOnce();
+            const [appName, appDir, options] = generator.generate.mock.calls[0];
+            expect(appName).toBe("fixture-app");
+            expect(appDir).toBe(join(workDir, "apps", "fixture-app"));
+            expect(options).toEqual({ redeploy: false });
+            await layer.cleanUp();
+        });
+
+        it("flags a redeploy", async () => {
+            const { layer, generator } = layerWithGenerator(async () => {});
+            await deploy(layer);
+            await deploy(layer);
+
+            expect(generator.generate.mock.calls[1][2]).toEqual({ redeploy: true });
+            await layer.cleanUp();
+        });
+
+        it("still deploys when doc generation throws - it is off the critical path", async () => {
+            const { layer } = layerWithGenerator(async () => { throw new Error("model exploded"); });
+
+            await deploy(layer);
+
+            expect(layer.status("fixture-app")?.status).toBe("running");
+            await layer.cleanUp();
+        });
+
+    });
+
     it("bakes the app onto the pre-canned base image", async () => {
         await deployFixture();
 

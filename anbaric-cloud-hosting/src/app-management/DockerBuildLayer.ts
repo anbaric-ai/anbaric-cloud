@@ -2,6 +2,7 @@ import {spawn} from "node:child_process";
 import {writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
+import {DocGenerator} from "../docs/DocGenerator";
 import {childLines} from "./childLines";
 
 type LogStreamer = (container : string, signal : AbortSignal) => AsyncIterable<string>;
@@ -15,6 +16,7 @@ type DockerBuildLayerOptions = {
     platformUrl : string,
     sqlDatabaseUrl? : string,
     sqlSchema? : string,
+    docGenerator? : DocGenerator,
 };
 
 type CommandRunner = (command : string, args : Array<string>, onOutput : (line : string) => void) => Promise<void>;
@@ -51,6 +53,7 @@ class DockerBuildLayer extends BaseBuildLayer {
                 private runCommand : CommandRunner = spawnRunner, probe? : Probe,
                 private logStreamer : LogStreamer = dockerLogStreamer) {
         super(appsDir, consumerPortBase, probe);
+        this.docGenerator = options.docGenerator;
     }
 
     protected async diagnostics(deployment : Deployment) : Promise<Array<string>> {
