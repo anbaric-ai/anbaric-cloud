@@ -17,13 +17,29 @@ describe("PostgresAppDocsStore", () => {
         const { pool, client } = mockPool();
 
         await new PostgresAppDocsStore(pool).replaceForApp("crm", [
-            { slug: "overview", title: "Overview", markdown: "# Overview" },
-            { slug: "workflows", title: "Workflows", markdown: "# Workflows" },
+            { slug: "introduction", title: "Introduction", markdown: "# Introduction", parentSlug: null, position: 0 },
+            { slug: "workflows", title: "Workflows", markdown: "# Workflows", parentSlug: "introduction", position: 0 },
         ]);
 
         const sql = client.query.mock.calls.map(call => String(call[0]).trim().split(/\s+/)[0]);
         expect(sql).toEqual(["BEGIN", "DELETE", "INSERT", "COMMIT"]);
         expect(client.release).toHaveBeenCalled();
+    });
+
+    it("carries the tree shape into the insert: parent slugs and positions", async () => {
+        const { pool, client } = mockPool();
+
+        await new PostgresAppDocsStore(pool).replaceForApp("crm", [
+            { slug: "introduction", title: "Introduction", markdown: "# Introduction", parentSlug: null, position: 0 },
+            { slug: "workflows", title: "Workflows", markdown: "# Workflows", parentSlug: "introduction", position: 0 },
+            { slug: "readme", title: "README", markdown: "# readme", parentSlug: null, position: 1 },
+        ]);
+
+        const insert = client.query.mock.calls.find(call => String(call[0]).startsWith("INSERT"))!;
+        expect(String(insert[0])).toContain("parent_slug");
+        expect(String(insert[0])).toContain("position");
+        expect(insert[1]![4]).toEqual([null, "introduction", null]);
+        expect(insert[1]![5]).toEqual([0, 0, 1]);
     });
 
     it("deletes even when there are no new docs, so a redeploy that produces none clears them", async () => {
@@ -53,7 +69,7 @@ describe("PostgresAppDocsStore", () => {
         const { pool } = mockPool(client);
 
         await expect(new PostgresAppDocsStore(pool).replaceForApp("crm", [
-            { slug: "x", title: "X", markdown: "x" },
+            { slug: "x", title: "X", markdown: "x", parentSlug: null, position: 0 },
         ])).rejects.toThrow("constraint");
 
         expect(client.query.mock.calls.some(call => String(call[0]).includes("ROLLBACK"))).toBe(true);

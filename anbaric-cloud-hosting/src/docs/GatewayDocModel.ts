@@ -1,11 +1,14 @@
-import {AppDoc} from "../data-store/AppDocsStore";
-import {DocContext, DocModel} from "./DocModel";
+import {DocContext, DocModel, DraftDoc} from "./DocModel";
 
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
 const SYSTEM_PROMPT = `You write user documentation for an application deployed on Anbaric.
 
-Anbaric apps model their domain as state machines: long-lived jobs move through named states, driven by actions and transitions, with data validated against a schema and every change attributed to an actor. Read the whole source you are given and write documentation for the people who will USE this app - what it does, the workflows it runs, how someone drives it, and anything they need to know. Write clear markdown. Prefer several focused docs over one long one; give each a short kebab-case slug and a human title. Do not invent features the source does not show. If the source was truncated, document only what you can see.`;
+Anbaric apps model their domain as state machines: long-lived jobs move through named states, driven by actions and transitions, with data validated against a schema and every change attributed to an actor. Read the whole source you are given and write documentation for the people who will USE this app - what it does, the workflows it runs, how someone drives it, and anything they need to know.
+
+Organise the docs as a shallow tree. Write exactly one top-level page with the slug "introduction" and a null parentSlug: a concise overview of the app that orients a new user. Write every other page as a child, giving its parentSlug as "introduction" (or, to nest one level deeper, the slug of another page). Prefer several focused child pages over one long page. Do not write a page with the slug "readme" - the app's README is added separately.
+
+Write clear markdown. Give each page a short kebab-case slug and a human title. Do not invent features the source does not show. If the source was truncated, document only what you can see.`;
 
 const OUTPUT_SCHEMA = {
     type: "object",
@@ -20,8 +23,9 @@ const OUTPUT_SCHEMA = {
                     slug: { type: "string" },
                     title: { type: "string" },
                     markdown: { type: "string" },
+                    parentSlug: { type: ["string", "null"] },
                 },
-                required: ["slug", "title", "markdown"],
+                required: ["slug", "title", "markdown", "parentSlug"],
             },
         },
     },
@@ -39,7 +43,7 @@ class GatewayDocModel implements DocModel {
                 private model : string = process.env.ANBARIC_AGENTIC_MODEL ?? "gpt-5.4-mini",
                 private fetchFn : FetchFn = (url, init) => fetch(url, init)) {}
 
-    async writeDocs(context : DocContext) : Promise<Array<AppDoc>> {
+    async writeDocs(context : DocContext) : Promise<Array<DraftDoc>> {
         if (!this.apiKey) {
             console.warn(`[docs] no ANBARIC_AI_GATEWAY_TOKEN - skipping documentation for "${context.appName}"`);
             return [];

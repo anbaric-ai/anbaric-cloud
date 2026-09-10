@@ -12,9 +12,13 @@ describe("GatewayDocModel", () => {
 
     it("posts to /chat/completions with a json_schema response format and returns the docs", async () => {
         let sentUrl = "", sentBody : any;
+        const returned = [
+            { slug: "introduction", title: "Introduction", markdown: "# hi", parentSlug: null },
+            { slug: "workflows", title: "Workflows", markdown: "# flows", parentSlug: "introduction" },
+        ];
         const fetchFn = vi.fn(async (url : string, init : RequestInit) => {
             sentUrl = url; sentBody = JSON.parse(String(init.body));
-            return jsonResponse({ choices: [{ message: { content: JSON.stringify({ docs: [{ slug: "overview", title: "Overview", markdown: "# hi" }] }) } }] });
+            return jsonResponse({ choices: [{ message: { content: JSON.stringify({ docs: returned }) } }] });
         });
         const model = new GatewayDocModel("https://gw.example/v1", "tok", "some-model", fetchFn);
 
@@ -22,8 +26,21 @@ describe("GatewayDocModel", () => {
 
         expect(sentUrl).toBe("https://gw.example/v1/chat/completions");
         expect(sentBody.response_format.type).toBe("json_schema");
+        expect(sentBody.response_format.json_schema.schema.properties.docs.items.properties).toHaveProperty("parentSlug");
         expect(sentBody.messages[1].content).toContain("src/machine.ts");
-        expect(docs).toEqual([{ slug: "overview", title: "Overview", markdown: "# hi" }]);
+        expect(docs).toEqual(returned);
+    });
+
+    it("asks for an introduction with the other pages nested under it", async () => {
+        let sentBody : any;
+        const model = new GatewayDocModel("https://gw.example/v1", "tok", "m", async (_url, init) => {
+            sentBody = JSON.parse(String(init.body));
+            return jsonResponse({ choices: [{ message: { content: JSON.stringify({ docs: [] }) } }] });
+        });
+
+        await model.writeDocs(context);
+
+        expect(sentBody.messages[0].content).toContain("introduction");
     });
 
     it("returns nothing and does not call the model when no token is configured", async () => {

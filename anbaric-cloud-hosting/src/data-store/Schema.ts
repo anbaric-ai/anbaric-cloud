@@ -95,17 +95,23 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     await pool.query(`CREATE INDEX IF NOT EXISTS job_run_schedule_due
         ON job_run_schedule (run_at) WHERE claimed_at IS NULL`);
     // User documentation the platform generates from an app's source on deploy,
-    // keyed by (app_id, slug). A redeploy replaces the whole set for an app.
+    // keyed by (app_id, slug) and held as a shallow tree: a root doc has a null
+    // parent_slug, a child names its parent's slug, and position orders
+    // siblings. A redeploy replaces the whole set for an app.
     await pool.query(`
         CREATE TABLE IF NOT EXISTS app_docs (
             app_id       TEXT NOT NULL,
             slug         TEXT NOT NULL,
             title        TEXT NOT NULL DEFAULT '',
             markdown     TEXT NOT NULL,
+            parent_slug  TEXT,
+            position     INTEGER NOT NULL DEFAULT 0,
             generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             PRIMARY KEY (app_id, slug)
         )
     `);
+    await pool.query("ALTER TABLE app_docs ADD COLUMN IF NOT EXISTS parent_slug TEXT");
+    await pool.query("ALTER TABLE app_docs ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0");
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (
