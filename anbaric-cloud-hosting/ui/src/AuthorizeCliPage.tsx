@@ -1,10 +1,11 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 
 import { Card } from '@anbaric/design-system/components/Card'
 import { Form } from '@anbaric/design-system/components/Form'
 import { Alert } from '@anbaric/design-system/components/Alert'
 
 import { PageShell } from './PageShell'
+import { SubscribePage } from './SubscribePage'
 
 const field: CSSProperties = {
   display: 'flex',
@@ -14,6 +15,27 @@ const field: CSSProperties = {
 
 function AuthorizeCliPage({ requestId }: { requestId: string }) {
   const [state, setState] = useState<'form' | 'done' | 'failed'>('form')
+  // A person who has no provisioned tenant yet is sent through subscribe +
+  // provisioning first; only an already-active tenant sees the approve form.
+  const [gate, setGate] = useState<'loading' | 'authorize' | 'subscribe'>('loading')
+
+  useEffect(() => {
+    fetch('/subscribe/status')
+      .then((response) => (response.ok ? response.json() : { status: 'active' }))
+      .then((status) => setGate(status.status === 'active' ? 'authorize' : 'subscribe'))
+      .catch(() => setGate('authorize'))
+  }, [])
+
+  if (gate === 'loading') {
+    return (
+      <PageShell title="Authorize CLI">
+        <Card><p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>Loading…</p></Card>
+      </PageShell>
+    )
+  }
+  if (gate === 'subscribe') {
+    return <SubscribePage requestId={requestId} />
+  }
 
   const approve = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

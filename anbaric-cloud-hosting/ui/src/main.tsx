@@ -6,6 +6,7 @@ import './plugins/PluginRuntime'
 
 import { AuditPage } from './AuditPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
+import { SubscribePage } from './SubscribePage'
 import { ManageKeysPage } from './ManageKeysPage'
 import { PageShell } from './PageShell'
 import { PlatformNav } from './PlatformNav'
@@ -20,7 +21,8 @@ const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= MOB
 // loads the SPA at "/" and never collides with an API route or the app proxy.
 // The CLI-authorize flow is the one exception: it is a real server-served path.
 const routeFromLocation = () => {
-  if (window.location.pathname.startsWith('/authorize-cli/')) return window.location.pathname
+  const pathname = window.location.pathname
+  if (pathname.startsWith('/authorize-cli/') || pathname.startsWith('/subscribe')) return pathname
   return window.location.hash.replace(/^#/, '') || '/'
 }
 
@@ -56,9 +58,13 @@ function App() {
     }
   }, [])
 
-  // The CLI-authorize flow is a standalone page reached directly, outside the nav.
+  // The CLI-authorize and subscribe flows are standalone pages reached directly,
+  // outside the nav.
   if (path.startsWith('/authorize-cli/')) {
     return <AuthorizeCliPage requestId={path.split('/')[2]} />
+  }
+  if (path.startsWith('/subscribe')) {
+    return <SubscribePage />
   }
 
   const navigate = (to: string) => {

@@ -2,7 +2,10 @@ import {randomUUID} from "node:crypto";
 import {StoredKey} from "./CliConfig";
 
 const POLL_INTERVAL_MS = 1000;
-const HANDSHAKE_TIMEOUT_MS = 300_000;
+// A first-time sign-up subscribes and then provisions a whole environment
+// (its own database included) in the browser before the key is issued, so the
+// handshake has to outlast that - minutes, not seconds.
+const HANDSHAKE_TIMEOUT_MS = 1_200_000;
 
 class KeyRequest {
 

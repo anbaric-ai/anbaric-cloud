@@ -29,7 +29,7 @@ class LoginCommand {
         console.log(`\nOpening your browser to authorize this terminal. If nothing opens, visit:\n  ${bold(request.authorizeUrl)}\n`);
         openBrowser(request.authorizeUrl);
 
-        const spinner = new Spinner("waiting for the browser authorization").start();
+        const spinner = new Spinner("waiting for you to finish in the browser (first-time setup can take a few minutes)").start();
         try {
             const key = await request.awaitKey();
             spinner.stop();

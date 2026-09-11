@@ -106,7 +106,17 @@ const clientForDeploy = async () => {
     if (flags.platformUrl || values.environment || !process.stdout.isTTY) return clientFromConfig();
 
     const platformUrl = await choosePlatformUrl();
-    return new PlatformClient(await CliConfig.resolve({ ...flags, platformUrl }));
+    let options = await CliConfig.resolve({ ...flags, platformUrl });
+
+    // First-time deploy from an interactive terminal: authorize inline (the
+    // browser handles sign-up and provisioning) and then carry straight on with
+    // the deploy, so it is one seamless command rather than "now run login".
+    if (!options.key) {
+        await new LoginCommand().run({ ...flags, platformUrl });
+        options = await CliConfig.resolve({ ...flags, platformUrl });
+    }
+
+    return new PlatformClient(options);
 };
 
 const configureCommand = () => new ConfigureCommand({
