@@ -7,6 +7,7 @@ import './plugins/PluginRuntime'
 import { AuditPage } from './AuditPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
 import { SubscribePage } from './SubscribePage'
+import { IdentityBar } from './IdentityBar'
 import { ManageKeysPage } from './ManageKeysPage'
 import { PageShell } from './PageShell'
 import { PlatformNav } from './PlatformNav'
@@ -59,12 +60,19 @@ function App() {
   }, [])
 
   // The CLI-authorize and subscribe flows are standalone pages reached directly,
-  // outside the nav.
-  if (path.startsWith('/authorize-cli/')) {
-    return <AuthorizeCliPage requestId={path.split('/')[2]} />
-  }
-  if (path.startsWith('/subscribe')) {
-    return <SubscribePage />
+  // outside the nav - so they carry their own identity control (who you are,
+  // sign out) pinned top-right.
+  if (path.startsWith('/authorize-cli/') || path.startsWith('/subscribe')) {
+    return (
+      <>
+        <div style={{ position: 'fixed', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
+          <IdentityBar />
+        </div>
+        {path.startsWith('/authorize-cli/')
+          ? <AuthorizeCliPage requestId={path.split('/')[2]} />
+          : <SubscribePage />}
+      </>
+    )
   }
 
   const navigate = (to: string) => {
