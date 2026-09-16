@@ -53,6 +53,7 @@ const runningApp = (appName : string) : BuildLayer => ({
     ping: async () => true,
     logs: async function* () {},
     teardown: async () => true,
+    regenerateDocs: async () => 0,
     cleanUp: async () => {},
 });
 

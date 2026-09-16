@@ -71,7 +71,7 @@ describe("DockerBuildLayer", () => {
 
     describe("documentation generation", () => {
 
-        const layerWithGenerator = (generate : (appName : string, appDir : string, options : { redeploy : boolean }) => Promise<void>) => {
+        const layerWithGenerator = (generate : (appName : string, appDir : string, options : { redeploy : boolean }) => Promise<number>) => {
             const generator = { generate: vi.fn(generate) } as any;
             const layer = new DockerBuildLayer(
                 join(workDir, "apps"),
@@ -88,7 +88,7 @@ describe("DockerBuildLayer", () => {
         };
 
         it("generates docs from the extracted source on deploy", async () => {
-            const { layer, generator } = layerWithGenerator(async () => {});
+            const { layer, generator } = layerWithGenerator(async () => 0);
             await deploy(layer);
 
             expect(generator.generate).toHaveBeenCalledOnce();
@@ -100,7 +100,7 @@ describe("DockerBuildLayer", () => {
         });
 
         it("flags a redeploy", async () => {
-            const { layer, generator } = layerWithGenerator(async () => {});
+            const { layer, generator } = layerWithGenerator(async () => 0);
             await deploy(layer);
             await deploy(layer);
 
@@ -114,6 +114,28 @@ describe("DockerBuildLayer", () => {
             await deploy(layer);
 
             expect(layer.status("fixture-app")?.status).toBe("running");
+            await layer.cleanUp();
+        });
+
+        it("regenerates docs on demand from the deployed source, without redeploying", async () => {
+            const { layer, generator } = layerWithGenerator(async () => 3);
+            await deploy(layer);
+            generator.generate.mockClear();
+
+            const count = await layer.regenerateDocs("fixture-app");
+
+            expect(count).toBe(3);
+            expect(generator.generate).toHaveBeenCalledOnce();
+            const [appName, appDir, options] = generator.generate.mock.calls[0];
+            expect(appName).toBe("fixture-app");
+            expect(appDir).toBe(join(workDir, "apps", "fixture-app"));
+            expect(options).toEqual({ redeploy: true });
+            await layer.cleanUp();
+        });
+
+        it("refuses to regenerate docs for an unknown app", async () => {
+            const { layer } = layerWithGenerator(async () => 0);
+            await expect(layer.regenerateDocs("nope")).rejects.toThrow('No app named "nope"');
             await layer.cleanUp();
         });
 

@@ -15,11 +15,25 @@ class AppsHandler implements RequestHandler {
             case "logs":
                 if (request.id) return this.handleLogs(request, request.id);
                 break;
+            case "docs":
+                if (request.id) return this.handleDocs(request, request.id);
+                break;
             case undefined:
                 if (request.id) return this.handleApp(request, request.id);
                 return this.handleCollection(request);
         }
         request.notFound();
+    }
+
+    private async handleDocs(request : Request, appName : string) : Promise<void> {
+        if (request.method !== "POST") return request.notFound();
+        try {
+            const docs = await this.buildLayer.regenerateDocs(appName);
+            return request.reply(200, { appName, docs });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Could not regenerate documentation";
+            return request.reply(message.startsWith("No app") ? 404 : 400, { error: message });
+        }
     }
 
     private async handleDeploy(request : Request, appName : string) : Promise<void> {

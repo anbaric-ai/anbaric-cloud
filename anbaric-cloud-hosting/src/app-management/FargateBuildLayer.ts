@@ -1,10 +1,12 @@
-import {readFile, writeFile} from "node:fs/promises";
+import {spawn} from "node:child_process";
+import {mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {CodeBuildClient, BatchGetBuildsCommand, StartBuildCommand} from "@aws-sdk/client-codebuild";
 import {ECSClient, CreateServiceCommand, DeleteServiceCommand, DescribeServicesCommand,
     DescribeTaskDefinitionCommand, ListServicesCommand as ListEcsServicesCommand,
     RegisterTaskDefinitionCommand, UpdateServiceCommand} from "@aws-sdk/client-ecs";
-import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
+import {S3Client, GetObjectCommand, PutObjectCommand} from "@aws-sdk/client-s3";
 import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCommand,
     ListServicesCommand} from "@aws-sdk/client-servicediscovery";
 import {CloudWatchLogsClient, FilterLogEventsCommand, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
@@ -344,7 +346,38 @@ class FargateBuildLayer extends BaseBuildLayer {
         return `builds/${appName}.tar.gz`;
     }
 
+    protected async sourceDir(appName : string) : Promise<{ dir : string, cleanup : () => Promise<void> }> {
+        const work = await mkdtemp(join(tmpdir(), `anbaric-docs-${appName}-`));
+        const cleanup = () => rm(work, { recursive: true, force: true });
+
+        try {
+            const object = await this.aws.s3.send(new GetObjectCommand({
+                Bucket: this.options.buildBucket,
+                Key: this.buildKeyFor(appName),
+            }));
+            const bytes = await object.Body.transformToByteArray();
+
+            const tarballPath = join(work, "source.tar.gz");
+            await writeFile(tarballPath, Buffer.from(bytes));
+            const dir = join(work, "src");
+            await mkdir(dir, { recursive: true });
+            await extractTarball(tarballPath, dir);
+
+            return { dir, cleanup };
+        } catch (error) {
+            await cleanup();
+            throw error;
+        }
+    }
+
 }
+
+const extractTarball = (tarballPath : string, dir : string) : Promise<void> =>
+    new Promise((resolve, reject) => {
+        const tar = spawn("tar", ["-xzf", tarballPath, "-C", dir]);
+        tar.on("error", reject);
+        tar.on("close", code => code === 0 ? resolve() : reject(new Error(`tar exited with code ${code}`)));
+    });
 
 export { FargateBuildLayer };
 export type { AwsClients, FargateBuildLayerOptions };

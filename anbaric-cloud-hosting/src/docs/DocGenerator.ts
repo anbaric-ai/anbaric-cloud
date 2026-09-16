@@ -75,20 +75,22 @@ class DocGenerator {
 
     constructor(private model : DocModel, private store : AppDocsStore) {}
 
-    async generate(appName : string, appDir : string, options : { redeploy : boolean }) : Promise<void> {
+    async generate(appName : string, appDir : string, options : { redeploy : boolean }) : Promise<number> {
         try {
             const { files, truncated } = await gatherSources(appDir);
-            if (files.length === 0) return;
+            if (files.length === 0) return 0;
 
             const drafts = await this.model.writeDocs({ appName, files, truncated });
             const readme = files.find(file => README.test(file.path))?.content;
             const docs = buildDocTree(drafts, readme);
-            if (docs.length === 0) return;
+            if (docs.length === 0) return 0;
 
             await this.store.replaceForApp(appName, docs);
             console.log(`[docs] ${options.redeploy ? "regenerated" : "generated"} ${docs.length} doc(s) for "${appName}"`);
+            return docs.length;
         } catch (error) {
             console.error(`[docs] could not generate documentation for "${appName}": ${error instanceof Error ? error.message : error}`);
+            return 0;
         }
     }
 

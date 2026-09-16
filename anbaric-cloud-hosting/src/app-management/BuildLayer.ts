@@ -16,6 +16,9 @@ interface BuildLayer {
     ping(appName : string) : Promise<boolean>;
     logs(appName : string, signal : AbortSignal) : AsyncIterable<string>;
     teardown(appName : string) : Promise<boolean>;
+    // Re-runs documentation generation for an already-deployed app from its
+    // uploaded source, without redeploying it. Returns the number of docs written.
+    regenerateDocs(appName : string) : Promise<number>;
     cleanUp() : Promise<void>;
 
 }

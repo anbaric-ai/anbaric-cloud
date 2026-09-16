@@ -34,6 +34,7 @@ const runningApp = (appName : string, appHost : string, appPort : number) : Buil
     ping: async () => true,
     logs: async function* () {},
     teardown: async () => true,
+    regenerateDocs: async () => 0,
     cleanUp: async () => {},
 });
 

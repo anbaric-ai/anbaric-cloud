@@ -16,6 +16,7 @@ import {JobKillOldCommand} from "./commands/JobKillOldCommand";
 import {JobSetStateCommand} from "./commands/JobSetStateCommand";
 import {JobUpdateCommand} from "./commands/JobUpdateCommand";
 import {LoginCommand} from "./commands/LoginCommand";
+import {RegenerateDocsCommand} from "./commands/RegenerateDocsCommand";
 import {LogoutCommand} from "./commands/LogoutCommand";
 import {StateMachinesCommand} from "./commands/StateMachinesCommand";
 import {WatchCommand} from "./commands/WatchCommand";
@@ -37,6 +38,7 @@ ${bold("Usage")}
   anbaric app status [name]                     show an app's deploy state and whether it is up
   anbaric app tail [name]                       stream an app's runtime logs to stdout (Ctrl-C to stop)
   anbaric app tear-down [name]                  stop and remove a deployed app (--yes to skip the prompt)
+  anbaric app docs regenerate [name]            regenerate the app's user docs from its source, without redeploying
   anbaric state-machines                        list registered state machines
   anbaric jobs create <sm-id> <start-state> [k=v ...]  create a job and queue it for processing
   anbaric jobs list [state-machine-id]          list jobs, optionally for one state machine
@@ -147,6 +149,9 @@ const runAppCommand = async (args : Array<string>) : Promise<number> => {
         case "teardown":
             return new AppTearDownCommand(await clientFromConfig(), values.yes ?? false)
                 .run(await resolveAppName(appName));
+        case "docs":
+            if (args[1] !== "regenerate") return fail("usage: anbaric app docs regenerate [name]");
+            return new RegenerateDocsCommand(await clientFromConfig()).run(await resolveAppName(args[2]));
         default:
             usage();
             return 1;

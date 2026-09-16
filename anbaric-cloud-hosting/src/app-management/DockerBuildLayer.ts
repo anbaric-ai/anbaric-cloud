@@ -120,6 +120,12 @@ class DockerBuildLayer extends BaseBuildLayer {
         await this.removeContainer(deployment, this.appHostFor(deployment.appName));
     }
 
+    // Locally the extracted source from the last deploy is still on disk, so
+    // regeneration reads it in place with nothing to clean up.
+    protected async sourceDir(appName : string) : Promise<{ dir : string, cleanup : () => Promise<void> }> {
+        return { dir: join(this.appsDir, appName), cleanup: async () => {} };
+    }
+
     private async removeContainer(deployment : Deployment, container : string) : Promise<void> {
         await this.docker(deployment, ["rm", "--force", container]).catch(() => {});
     }

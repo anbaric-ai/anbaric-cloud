@@ -114,10 +114,28 @@ abstract class BaseBuildLayer implements BuildLayer {
         }));
     }
 
+    // Regenerates an app's docs from its uploaded source without redeploying it:
+    // the source is materialised (from S3 for Fargate, from disk for Docker) and
+    // the same generator that runs on deploy is invoked against it.
+    async regenerateDocs(appName : string) : Promise<number> {
+        if (!this.deployments.has(appName)) throw new Error(`No app named "${appName}"`);
+        if (!this.docGenerator) throw new Error("Documentation generation is not configured on this platform");
+
+        const { dir, cleanup } = await this.sourceDir(appName);
+        try {
+            return await this.docGenerator.generate(appName, dir, { redeploy: true });
+        } finally {
+            await cleanup();
+        }
+    }
+
     protected abstract appHostFor(appName : string) : string;
     protected abstract start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void>;
     protected abstract stop(deployment : Deployment) : Promise<void>;
     protected abstract streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string>;
+    // Materialises the app's source into a directory for regeneration; the
+    // returned cleanup removes anything temporary the implementation created.
+    protected abstract sourceDir(appName : string) : Promise<{ dir : string, cleanup : () => Promise<void> }>;
 
     private async buildAndStart(deployment : Deployment, tarball : Buffer) : Promise<void> {
         const appDir = join(this.appsDir, deployment.appName);

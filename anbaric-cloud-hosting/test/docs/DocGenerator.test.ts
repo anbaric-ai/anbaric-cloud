@@ -109,7 +109,7 @@ describe("DocGenerator", () => {
         await store.replaceForApp("crm", [root("kept", 0)]);
         const generator = new DocGenerator(model(async () => { throw new Error("model down"); }), store);
 
-        await expect(generator.generate("crm", appDir, { redeploy: true })).resolves.toBeUndefined();
+        await expect(generator.generate("crm", appDir, { redeploy: true })).resolves.toBe(0);
 
         expect(await store.listForApp("crm")).toEqual([root("kept", 0)]);
     });
@@ -126,7 +126,7 @@ describe("DocGenerator", () => {
     it("never throws even if the source directory is unreadable", async () => {
         const generator = new DocGenerator(model(async () => [draft("x")]), store);
 
-        await expect(generator.generate("crm", join(appDir, "missing"), { redeploy: false })).resolves.toBeUndefined();
+        await expect(generator.generate("crm", join(appDir, "missing"), { redeploy: false })).resolves.toBe(0);
     });
 
 });
