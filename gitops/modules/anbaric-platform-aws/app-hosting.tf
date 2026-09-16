@@ -228,8 +228,10 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = "s3:PutObject"
+        Effect = "Allow"
+        # PutObject to upload build contexts on deploy; GetObject so docs can be
+        # regenerated from an app's stored source without redeploying.
+        Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.app_builds.arn}/*"
       },
       {
