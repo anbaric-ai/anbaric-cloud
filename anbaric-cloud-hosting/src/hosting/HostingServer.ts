@@ -16,6 +16,9 @@ import {SessionsHandler} from "./handlers/auth/SessionsHandler";
 import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
 import {ConsumersHandler} from "./handlers/ConsumersHandler";
 import {DocumentsHandler} from "./handlers/DocumentsHandler";
+import {EntitlementsAdminHandler} from "./handlers/EntitlementsAdminHandler";
+import {EntitlementsHandler} from "./handlers/EntitlementsHandler";
+import {EntitlementStore} from "../data-store/EntitlementStore";
 import {JobsHandler} from "./handlers/JobsHandler";
 import {FaviconHandler} from "./handlers/FaviconHandler";
 import {JobRunSchedulesHandler} from "./handlers/JobRunSchedulesHandler";
@@ -58,7 +61,8 @@ class HostingServer {
                 auditRecords? : AuditRecordStore,
                 plugins : Array<LoadedPlugin> = [],
                 jobRunSchedules? : JobRunSchedulePersistence,
-                notifier? : Notifier) {
+                notifier? : Notifier,
+                entitlements? : EntitlementStore) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -87,6 +91,7 @@ class HostingServer {
         if (audits) publicRouter.registerApi("audits", audits);
         if (jobRunSchedules) publicRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
+        if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
@@ -111,6 +116,7 @@ class HostingServer {
         if (audits) internalRouter.registerApi("audits", audits);
         if (jobRunSchedules) internalRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) internalRouter.registerApi("notifications", new NotificationsHandler(notifier));
+        if (entitlements) internalRouter.registerApi("entitlements", new EntitlementsHandler(entitlements));
 
         // The favicon is requested by the browser before anyone has signed in,
         // and by deployed apps' pages, so gating it behind a session would send

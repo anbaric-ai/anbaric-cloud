@@ -171,6 +171,7 @@ CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-host
         expect(run).toContain("ANBARIC_QUEUE_TYPE=cloud");
         expect(run).toContain("ANBARIC_JSON_STORE_TYPE=cloud");
         expect(run).toContain("ANBARIC_SECRET_STORE_TYPE=cloud");
+        expect(run).toContain("ANBARIC_ENTITLEMENTS_TYPE=cloud");
         expect(run).toContain(`ANBARIC_CONSUMER_URL=http://anbaric-app-fixture-app:${CONSUMER_PORT_BASE}`);
         expect(run).toContain("ANBARIC_SQL_STORE_TYPE=cloud");
         expect(run).toContain("ANBARIC_SQL_DATABASE_URL=postgres://anbaric_app:pw@anbaric-v2-postgres:5432/anbaric");

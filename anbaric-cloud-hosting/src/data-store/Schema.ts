@@ -112,6 +112,38 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     `);
     await pool.query("ALTER TABLE app_docs ADD COLUMN IF NOT EXISTS parent_slug TEXT");
     await pool.query("ALTER TABLE app_docs ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0");
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS entitlements (
+            app_id          TEXT,
+            entitlement_id  TEXT NOT NULL,
+            notes           TEXT NOT NULL DEFAULT '',
+            registered_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    `);
+    await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS entitlements_key
+        ON entitlements (COALESCE(app_id, ''), entitlement_id)
+    `);
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS entitlement_grants (
+            id              TEXT PRIMARY KEY,
+            user_id         TEXT NOT NULL,
+            app_id          TEXT,
+            entitlement_id  TEXT NOT NULL,
+            notes           TEXT NOT NULL DEFAULT '',
+            granted_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            granted_by      TEXT NOT NULL
+        )
+    `);
+    await pool.query(`
+        CREATE INDEX IF NOT EXISTS entitlement_grants_lookup
+        ON entitlement_grants (user_id, entitlement_id)
+    `);
+    await pool.query(`
+        INSERT INTO entitlements (app_id, entitlement_id, notes)
+        VALUES (NULL, 'access', 'Global access')
+        ON CONFLICT (COALESCE(app_id, ''), entitlement_id) DO NOTHING
+    `);
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (

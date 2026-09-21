@@ -20,6 +20,7 @@ import {FargateBuildLayer} from "./app-management/FargateBuildLayer";
 import {DocGenerator} from "./docs/DocGenerator";
 import {GatewayDocModel} from "./docs/GatewayDocModel";
 import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
+import {PostgresEntitlementStore} from "./data-store/PostgresEntitlementStore";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -94,7 +95,8 @@ const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "an
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
-    new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE));
+    new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
+    new PostgresEntitlementStore(pool));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

@@ -26,6 +26,7 @@ What the framework gives you, one capability at a time.
 - [Documents and secrets](features/documents-and-secrets.md) — the JSON and secret stores
 - [The SQL store](features/sql-store.md) — a relational database for structured data
 - [Auditing](features/auditing.md) — the record of who changed what
+- [Entitlements](features/entitlements.md) — what a user has been granted, checked per request
 - [Serving a web UI](features/serving-a-web-ui.md) — putting your data on a page
 - [The admin console and widgets](features/admin-console-and-widgets.md) — dashboards and plugins
 - [Deploying](features/deploying.md) — from laptop to Anbaric Cloud

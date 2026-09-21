@@ -53,6 +53,27 @@ if (!user.roles.includes("manager")) {
 await machine.updateJob(jobId, new Map([["approved", true]]), user);
 ```
 
+## Grant capabilities with entitlements
+
+Roles describe a kind of user; an **entitlement** is something a specific user
+has been given - a beta feature, an export capability, a paid tier. Declare the
+ones your app checks at startup and test them against the request, the same way
+you resolve the actor:
+
+```ts
+import {hasEntitlement, registerEntitlement} from "anbaric";
+
+await registerEntitlement("export", "Can export reports as CSV");   // at startup
+
+if (! await hasEntitlement(request, "export")) {                     // per request
+    response.writeHead(403).end("You don't have the export entitlement");
+    return;
+}
+```
+
+Administrators grant and revoke them from the console's **Entitlements** page;
+locally every check passes. See [Entitlements](../features/entitlements.md).
+
 ## Design tips
 
 - **Least privilege.** Give actors the narrowest roles that let them do their job;

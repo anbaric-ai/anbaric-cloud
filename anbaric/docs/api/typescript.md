@@ -10,6 +10,7 @@ import {
     Job, PropertyDefinition,
     Code, Human, SystemActor, Agent, OpenAIAgent, RemoteLLMAgenticAction,
     JsonStoreFactory, SecretStoreFactory, SqlStoreFactory,
+    registerEntitlement, hasEntitlement,
 } from "anbaric";
 
 import type {Actor, ActorType, JsonSchema} from "anbaric";
