@@ -15,6 +15,7 @@ interface CurrentUser {
   roles: string[]
   name?: string
   picture?: string
+  tenant?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -86,7 +87,7 @@ function PlatformNav({
       onChange={(value) => navigate(value)}
       account={{
         name: user?.name ?? user?.id ?? 'Account',
-        subtitle: user && user.roles.length > 0 ? user.roles.join(' · ') : undefined,
+        subtitle: user ? [user.tenant, ...user.roles].filter(Boolean).join(' · ') || undefined : undefined,
         src: user?.picture,
         items: [
           { label: 'Manage keys', onSelect: () => navigate('/manage-keys') },

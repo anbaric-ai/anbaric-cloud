@@ -442,7 +442,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             });
 
             expect(response.status).toBe(200);
-            expect(await response.json()).toEqual({ id: "user-1", roles: ["admin"] });
+            expect(await response.json()).toEqual({ id: "user-1", roles: ["admin"], tenant: "internal" });
         });
 
         it("keeps ping open without a session", async () => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { AvatarMenu } from '@anbaric/design-system/components/AvatarMenu'
 
-type Me = { id: string; name?: string; email?: string; picture?: string }
+type Me = { id: string; name?: string; email?: string; picture?: string; tenant?: string }
 
 // Shows who is signed in, with a way to sign out / switch user, on the
 // standalone pages (authorize-cli, subscribe) that have no nav of their own.
@@ -22,7 +22,7 @@ function IdentityBar() {
   return (
     <AvatarMenu
       name={me.name ?? me.email ?? me.id}
-      subtitle={me.email}
+      subtitle={[me.tenant, me.email].filter(Boolean).join(' · ') || undefined}
       src={me.picture}
       items={[{ label: 'Sign out', onSelect: () => (window.location.href = '/logout') }]}
     />

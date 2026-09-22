@@ -88,7 +88,7 @@ class HostingServer {
         publicRouter.register("favicon.ico", new FaviconHandler());
         publicRouter.register("logout", new LogoutHandler(authenticator));
         if (plugins.length > 0) publicRouter.registerApi("plugins", new PluginsHandler(plugins));
-        publicRouter.registerApi("whoami", new WhoamiHandler());
+        publicRouter.registerApi("whoami", new WhoamiHandler(tenant));
         publicRouter.registerApi("sessions", sessions);
         publicRouter.registerApi("jobs", jobs);
         publicRouter.registerApi("queue", queueHandler);
