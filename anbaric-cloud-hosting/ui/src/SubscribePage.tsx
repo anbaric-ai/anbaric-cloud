@@ -43,6 +43,9 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   const [failedLoads, setFailedLoads] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
   const [busy, setBusy] = useState<Plan | undefined>(undefined)
+  const [promoCode, setPromoCode] = useState('')
+  const [redeeming, setRedeeming] = useState(false)
+  const [promoError, setPromoError] = useState<string | undefined>(undefined)
   const approved = useRef(false)
   const redirectingRef = useRef(false)
   redirectingRef.current = redirecting
@@ -106,6 +109,32 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     }
     setRedirecting(false)
     setBusy(undefined)
+  }
+
+  // A promo code skips checkout: on success the status flips to provisioning
+  // and the poll above takes over with the progress screen.
+  const redeem = async () => {
+    const code = promoCode.trim()
+    if (!code) return
+    setRedeeming(true)
+    setPromoError(undefined)
+    try {
+      const response = await fetch('/subscribe/redeem', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setPromoError(body?.error ?? "That promo code isn't valid")
+        return
+      }
+      setData((current) => current ? { ...current, status: 'provisioning' } : current)
+    } catch {
+      setPromoError("Couldn't redeem that code. Try again.")
+    } finally {
+      setRedeeming(false)
+    }
   }
 
   // Once a plan is chosen we are navigating to Stripe: show only the redirect
@@ -182,6 +211,20 @@ function SubscribePage({ requestId }: { requestId?: string }) {
         ))}
       </div>
       <p style={subtle}>You can add more apps to any plan later.</p>
+      <Card>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <span style={{ ...muted, fontSize: '0.8rem' }}>Have a promo code? No card needed.</span>
+            <input value={promoCode} onChange={(event) => setPromoCode(event.target.value)} placeholder="PROMO-CODE"
+                   style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
+                   onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
+          </div>
+          <Button variant="ghost" loading={redeeming} disabled={busy !== undefined || !promoCode.trim()} onClick={() => void redeem()}>
+            Redeem
+          </Button>
+        </div>
+        {promoError ? <p style={{ margin: 'var(--space-sm) 0 0', color: 'var(--color-danger)', fontSize: '0.85rem' }}>{promoError}</p> : null}
+      </Card>
     </PageShell>
   )
 }
