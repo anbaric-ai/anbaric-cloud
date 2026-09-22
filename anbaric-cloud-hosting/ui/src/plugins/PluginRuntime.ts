@@ -14,6 +14,7 @@ import * as LoadingBar from '@anbaric/design-system/components/LoadingBar'
 import * as Modal from '@anbaric/design-system/components/Modal'
 import * as OptionsMenu from '@anbaric/design-system/components/OptionsMenu'
 import * as RadioGroup from '@anbaric/design-system/components/RadioGroup'
+import * as Section from '@anbaric/design-system/components/Section'
 import * as SideNav from '@anbaric/design-system/components/SideNav'
 import * as Slider from '@anbaric/design-system/components/Slider'
 import * as SplitButton from '@anbaric/design-system/components/SplitButton'
@@ -41,6 +42,7 @@ const DesignSystem = {
   ...Modal,
   ...OptionsMenu,
   ...RadioGroup,
+  ...Section,
   ...SideNav,
   ...Slider,
   ...SplitButton,
