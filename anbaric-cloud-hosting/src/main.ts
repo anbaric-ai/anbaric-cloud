@@ -22,6 +22,7 @@ import {GatewayDocModel} from "./docs/GatewayDocModel";
 import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
 import {PostgresEntitlementStore} from "./data-store/PostgresEntitlementStore";
 import {PostgresUserDirectory} from "./data-store/PostgresUserDirectory";
+import {HttpMembershipService} from "./auth/HttpMembershipService";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -93,11 +94,17 @@ const tokenAuthenticator = new TokenAuthenticator(cliKeyStore, process.env.ANBAR
 
 const plugins = await new PluginLoader().load(process.env.ANBARIC_PLUGINS ?? "anbaric-plugins/state-machines");
 
+// Invitations are managed by the central login that issued this tenant, which
+// is the same service the CLI key lookup already points at.
+const memberships = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARIC_TENANT
+    ? new HttpMembershipService(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
+    : undefined;
+
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
-    new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool));
+    new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

@@ -14,6 +14,8 @@ import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
 import {KeysHandler} from "./handlers/auth/KeysHandler";
 import {SessionsHandler} from "./handlers/auth/SessionsHandler";
 import {UsersHandler} from "./handlers/auth/UsersHandler";
+import {InvitationsHandler} from "./handlers/auth/InvitationsHandler";
+import {MembershipService} from "../auth/MembershipService";
 import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
 import {UserDirectory} from "../auth/UserDirectory";
 import {ConsumersHandler} from "./handlers/ConsumersHandler";
@@ -65,7 +67,8 @@ class HostingServer {
                 jobRunSchedules? : JobRunSchedulePersistence,
                 notifier? : Notifier,
                 entitlements? : EntitlementStore,
-                userDirectory? : UserDirectory) {
+                userDirectory? : UserDirectory,
+                memberships? : MembershipService) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -96,6 +99,7 @@ class HostingServer {
         if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
         if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
         if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
+        if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships));
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
