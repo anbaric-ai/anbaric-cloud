@@ -56,8 +56,8 @@ on screen turns a failure into a mystery.
 
 Every app built on Anbaric carries a small **"Built with Anbaric"** line, at the
 foot of the page or the bottom of the nav. It's an attribution, not a feature:
-small type, a muted tint, the black ident at text height, and nothing that
-draws the eye away from the app's own UI.
+small type, a muted tint, the ident (its Asriel Ink is near enough black) at
+text height, and nothing that draws the eye away from the app's own UI.
 
 With the design system, it's one component:
 
@@ -67,12 +67,12 @@ import { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnb
 <footer><BuiltWithAnbaric /></footer>
 ```
 
-Without it, the same thing by hand - the black ident lives at
-`shared/assets/anbaric-ident-black.svg` in the design system:
+Without it, the same thing by hand - the ident lives at
+`shared/assets/anbaric-ident.svg` in the design system:
 
 ```html
 <a href="https://anbaric.ai" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;opacity:.7;text-decoration:none;color:inherit">
-    <img src="anbaric-ident-black.svg" alt="" width="12" height="12"> Built with Anbaric
+    <img src="anbaric-ident.svg" alt="" width="12" height="12"> Built with Anbaric
 </a>
 ```
 

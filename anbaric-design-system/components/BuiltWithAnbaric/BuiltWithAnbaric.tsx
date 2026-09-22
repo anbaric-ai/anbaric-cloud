@@ -1,7 +1,7 @@
 import './BuiltWithAnbaric.css'
 import { type HTMLAttributes } from 'react'
 
-import identUrl from '../../shared/assets/anbaric-ident-black.svg'
+import identUrl from '../../shared/assets/anbaric-ident.svg'
 
 export interface BuiltWithAnbaricProps extends HTMLAttributes<HTMLElement> {
   /** Where the label links to. */
@@ -10,9 +10,9 @@ export interface BuiltWithAnbaricProps extends HTMLAttributes<HTMLElement> {
 
 /**
  * BuiltWithAnbaric — a small, quiet attribution for the foot of a page or the
- * bottom of a nav: the black ident at text height and the words "Built with
- * Anbaric", in a muted foreground tint. Sized and toned to sit beneath the
- * app's own UI rather than compete with it.
+ * bottom of a nav: the ident (Asriel Ink) at text height and the words "Built
+ * with Anbaric", in a muted foreground tint. Sized and toned to sit beneath
+ * the app's own UI rather than compete with it.
  */
 export function BuiltWithAnbaric({ href = 'https://anbaric.ai', className, ...rest }: BuiltWithAnbaricProps) {
   return (

@@ -41,8 +41,7 @@ design-system/
 ├── shared/             # cross-cutting shared resources
 │   └── assets/
 │       ├── anbaric-logo.png    # the logotype (wordmark)
-│       ├── anbaric-ident.png   # the ident (mark)
-│       └── anbaric-ident-black.svg  # the ident in black, for small/muted uses
+│       └── anbaric-ident.png   # the ident (mark)
 └── components/         # React components (each: <Name>.tsx, <Name>.css, index.ts)
     ├── BuiltWithAnbaric/  # the small "Built with Anbaric" attribution line
     ├── Card/           # glass surface container, concentric radii
@@ -88,11 +87,10 @@ import '@anbaric/design-system/tokens.css'
 // Brand assets resolve to URLs through your bundler.
 import logoUrl from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 import identUrl from '@anbaric/design-system/shared/assets/anbaric-ident.svg'
-import identBlackUrl from '@anbaric/design-system/shared/assets/anbaric-ident-black.svg'
 
 // The attribution every app built on Anbaric carries, at the foot of the page
-// or the bottom of the nav: the black ident plus "Built with Anbaric", small
-// and muted so it never competes with the app's own UI.
+// or the bottom of the nav: the ident plus "Built with Anbaric", small and
+// muted so it never competes with the app's own UI.
 import { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnbaric'
 ```
 
