@@ -25,6 +25,8 @@ export * from "./auth/MembershipService";
 export * from "./auth/HttpMembershipService";
 export * from "./auth/InMemoryMembershipService";
 export * from "./hosting/handlers/auth/InvitationsHandler";
+export * from "./data-store/PostgresPromptManager";
+export * from "./hosting/handlers/PromptsHandler";
 export * from "./app-management/DockerBuildLayer";
 export * from "./app-management/FargateBuildLayer";
 export * from "./app-admin/AdminServer";

@@ -144,6 +144,18 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
         VALUES (NULL, 'access', 'Global access')
         ON CONFLICT (COALESCE(app_id, ''), entitlement_id) DO NOTHING
     `);
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS prompts (
+            app_id         TEXT NOT NULL,
+            prompt_id      TEXT NOT NULL,
+            version        INTEGER NOT NULL,
+            instructions   TEXT NOT NULL,
+            input_schema   JSONB,
+            output_schema  JSONB,
+            created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+            PRIMARY KEY (app_id, prompt_id, version)
+        )
+    `);
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (

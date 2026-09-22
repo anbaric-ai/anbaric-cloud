@@ -86,6 +86,42 @@ const key = await secrets.retrieve("stripe-key", actor);
 
 ---
 
+## `PromptManager`
+
+Versioned prompts - instructions plus optional input and output schemas - owned
+by the calling app.
+
+```ts
+PromptManagerFactory.instance() : PromptManager
+
+// methods:
+save(promptId : string, instructions : string, inputSchema? : JsonSchema, outputSchema? : JsonSchema) : Promise<Prompt>
+retrieve(promptId : string, version? : number) : Promise<Prompt>
+list() : Promise<Array<Prompt>>
+history(promptId : string) : Promise<Array<Prompt>>
+
+type Prompt = {
+    appId : string, promptId : string, version : number, instructions : string,
+    inputSchema? : JsonSchema, outputSchema? : JsonSchema, createdAt : string,
+}
+```
+
+```ts
+const prompts = PromptManagerFactory.instance();
+await prompts.save("triage", "Decide the priority.", undefined, { type: "object", properties: { priority: { type: "string" } } });
+const latest   = await prompts.retrieve("triage");      // highest version
+const specific = await prompts.retrieve("triage", 1);
+const all      = await prompts.list();                  // latest of each prompt
+const versions = await prompts.history("triage");       // newest first
+```
+
+- `save` stores a new version only when the content differs from the latest; an identical save returns the existing version, so registering at every startup is safe.
+- Versions auto-increment from 1; there is no rollback or tagging.
+- `retrieve` of an unknown prompt throws `No prompt found with id "..."`.
+- Env var: **`ANBARIC_PROMPT_MANAGER_TYPE`** (`cloud` deployed; in-memory otherwise).
+
+---
+
 ## `SqlStore`
 
 A relational database — SQLite locally, PostgreSQL deployed.

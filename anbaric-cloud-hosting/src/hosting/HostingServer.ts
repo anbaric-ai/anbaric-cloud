@@ -1,4 +1,4 @@
-import {JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, SecretStore} from "anbaric-tsapi";
+import {JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, PromptManager, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator} from "../auth/Authenticator";
@@ -15,6 +15,7 @@ import {KeysHandler} from "./handlers/auth/KeysHandler";
 import {SessionsHandler} from "./handlers/auth/SessionsHandler";
 import {UsersHandler} from "./handlers/auth/UsersHandler";
 import {InvitationsHandler} from "./handlers/auth/InvitationsHandler";
+import {PromptsHandler} from "./handlers/PromptsHandler";
 import {MembershipService} from "../auth/MembershipService";
 import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
 import {UserDirectory} from "../auth/UserDirectory";
@@ -68,7 +69,8 @@ class HostingServer {
                 notifier? : Notifier,
                 entitlements? : EntitlementStore,
                 userDirectory? : UserDirectory,
-                memberships? : MembershipService) {
+                memberships? : MembershipService,
+                promptManagerFor? : (appId : string) => PromptManager) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -100,6 +102,8 @@ class HostingServer {
         if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
         if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
         if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships));
+        const prompts = promptManagerFor && new PromptsHandler(promptManagerFor);
+        if (prompts) publicRouter.registerApi("prompts", prompts);
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
@@ -125,6 +129,7 @@ class HostingServer {
         if (jobRunSchedules) internalRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) internalRouter.registerApi("notifications", new NotificationsHandler(notifier));
         if (entitlements) internalRouter.registerApi("entitlements", new EntitlementsHandler(entitlements));
+        if (prompts) internalRouter.registerApi("prompts", prompts);
 
         // The favicon is requested by the browser before anyone has signed in,
         // and by deployed apps' pages, so gating it behind a session would send

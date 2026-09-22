@@ -23,6 +23,7 @@ import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
 import {PostgresEntitlementStore} from "./data-store/PostgresEntitlementStore";
 import {PostgresUserDirectory} from "./data-store/PostgresUserDirectory";
 import {HttpMembershipService} from "./auth/HttpMembershipService";
+import {PostgresPromptManager} from "./data-store/PostgresPromptManager";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
@@ -104,7 +105,8 @@ const server = new HostingServer(new PostgresJobPersistence(pool), queue, regist
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
-    new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships);
+    new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
+    (appId) => new PostgresPromptManager(pool, appId));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

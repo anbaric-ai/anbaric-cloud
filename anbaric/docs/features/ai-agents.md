@@ -54,6 +54,25 @@ must return. The model is constrained to it (strict structured output), so you
 get well-typed properties back rather than free text. Keep the schema tight —
 only the properties you want written to the job.
 
+## Keep the prompt in the prompt manager
+
+Instructions change more often than code. Rather than a string literal, save
+the prompt with the [prompt manager](prompts.md) at startup and read the
+latest where the action is built - every edit is versioned and visible in the
+console's **Prompts** page:
+
+```ts
+import {PromptManagerFactory} from "anbaric";
+
+const prompts = PromptManagerFactory.instance();
+await prompts.save("triage", "Decide the priority of the support ticket from its subject.",
+    undefined, { type: "object", properties: { priority: { type: "string", enum: ["low", "high"] } } });
+
+const prompt = await prompts.retrieve("triage");
+const triage = new RemoteLLMAgenticAction("Triage the ticket", triager,
+    [{ role: "system", content: prompt.instructions }], prompt.outputSchema!);
+```
+
 ## Bring your own model
 
 `OpenAIAgent` targets any OpenAI-compatible endpoint. Configure it with a
