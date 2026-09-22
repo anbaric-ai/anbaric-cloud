@@ -26,6 +26,12 @@ sent twice.
 After acknowledging, watch the job so the page reflects reality rather than a
 guess. Poll it and re-render as the state changes:
 
+- **Update the page in place - don't reload it.** Expose the job's state as JSON
+  (read it from the machine's persistence and `serializeJob` it) and `fetch` that
+  from the page, updating the DOM as it changes. A full page refresh - a form
+  `POST` answered with a redirect, a meta refresh, `location.reload()` - is the
+  fallback for a client that cannot run script, not the default: it shows the
+  state as of the reload and leaves the person refreshing by hand to see it move.
 - **Poll at most once per second.** Anything faster adds load without telling
   the user anything new; a job that transitions immediately is still only
   observable per processing pass.

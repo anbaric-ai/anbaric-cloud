@@ -22,7 +22,10 @@ rejected`. The review step waits for a human.
 
 ```ts
 // src/machine.ts
-import {Action, Await, Code, PropertyDefinition, State, StateMachine, Terminal, Transition} from "anbaric";
+import {Action, Await, Code, JobPersistenceFactory, PropertyDefinition, State, StateMachine, Terminal, Transition} from "anbaric";
+
+// Shared with the web layer so pages can read a job's state without a reload.
+const persistence = JobPersistenceFactory.instance();
 
 const amount = new PropertyDefinition("amount");
 amount.required = true;
@@ -56,9 +59,9 @@ const expenses = new StateMachine("expenses", [
     ]),
     new Terminal("paid", Terminal.Outcome.SUCCESS),
     new Terminal("rejected", Terminal.Outcome.FAILURE),
-], "submitted", [amount, approved, paid]);
+], "submitted", [amount, approved, paid], persistence);
 
-export {expenses};
+export {expenses, persistence};
 ```
 
 Notice the shape: the `submitted` state parks on `review` until a manager sets
@@ -68,16 +71,53 @@ state pays automatically and ends at `paid`.
 ## 3. Serve a tiny UI
 
 The review page reads the job id from the query string and resolves the `Await`
-by updating the job. (Any HTML works; here's the shape.)
+by updating the job. Updating a job only *queues* the change, so the page
+acknowledges the click, then **polls the job and updates in place** until it
+settles - it never reloads to find out what happened. (Any HTML works; here's
+the shape.)
 
 ```ts
 // src/main.ts
 import {createServer} from "node:http";
-import {Human} from "anbaric";
-import {expenses} from "./machine.js";
+import {Human, serializeJob, SystemActor} from "anbaric";
+import {expenses, persistence} from "./machine.js";
+
+const reviewPage = (jobId : string) => `<!doctype html>
+<p id="status">Loading…</p>
+<button id="approve">Approve</button>
+<script>
+    const jobId = ${JSON.stringify(jobId)};
+    const status = document.getElementById("status");
+    const approve = document.getElementById("approve");
+    let submitted = false;
+    let polls = 0;
+    // Done when the job ended, or is parked waiting for this person's decision.
+    const settled = (job) => job.status !== "ACTIVE" || (job.waitingFor && ! submitted);
+
+    const refresh = async () => {
+        const job = await (await fetch("status?job=" + jobId)).json();   // relative link!
+        status.textContent = job.status === "FAILED" ? "Failed - see the audit trail" : "State: " + job.state;
+        approve.disabled = job.state !== "submitted";
+        if (settled(job)) return;
+        if (polls++ < 60) setTimeout(refresh, 1000);                       // at most once a second
+        else status.textContent += " - still working, check back shortly";
+    };
+
+    approve.onclick = async () => {
+        approve.disabled = true;
+        submitted = true;
+        polls = 0;
+        status.textContent = "Approval submitted - processing…";
+        await fetch("review?job=" + jobId, { method: "POST" });
+        refresh();
+    };
+
+    refresh();
+</script>`;
 
 createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
+    const jobId = url.searchParams.get("job") ?? "";
 
     if (url.pathname === "/submit") {
         const job = await expenses.startJob(new Map([["amount", 42]]));
@@ -85,18 +125,27 @@ createServer(async (req, res) => {
         return;
     }
 
-    if (url.pathname === "/review" && req.method === "POST") {
-        const jobId = url.searchParams.get("job")!;
-        const actor = await Human.fromSession(req);            // the logged-in manager
-        await expenses.updateJob(jobId, new Map([["approved", true]]), actor);
-        res.writeHead(303, { Location: "review?job=" + jobId }).end();  // relative link!
+    if (url.pathname === "/status") {
+        const job = await persistence.retrieve(jobId, SystemActor.actor);
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(serializeJob(job)));
         return;
     }
 
-    res.writeHead(200, { "content-type": "text/html" })
-       .end(`<form method="post" action="review?job=${url.searchParams.get("job") ?? ""}">…</form>`);
+    if (url.pathname === "/review" && req.method === "POST") {
+        const actor = await Human.fromSession(req);            // the logged-in manager
+        await expenses.updateJob(jobId, new Map([["approved", true]]), actor);
+        res.writeHead(202).end();                              // queued - the page polls for the outcome
+        return;
+    }
+
+    res.writeHead(200, { "content-type": "text/html" }).end(reviewPage(jobId));
 }).listen(Number(process.env.PORT ?? 3000));
 ```
+
+Only fall back to a plain form `POST` with a redirect back to the page when the
+client can't run script; then the page shows the state as of the reload, and the
+person has to refresh to see it move. See
+[UX practices](ux-practices.md) for the rules on polling and feedback.
 
 > Locally there's no signed session, so `Human.fromSession` will throw — for a
 > local run, substitute `new Human("dev", "manager")`. Deployed, the real session
