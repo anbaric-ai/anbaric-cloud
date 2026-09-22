@@ -1,0 +1,29 @@
+/* =============================================================
+   BuiltWithAnbaric — a quiet attribution line. Muted tint, small type, the
+   ident at text height; slightly more present on hover. Depends on tokens.css.
+   ============================================================= */
+
+.ds-built-with {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--color-foreground-tint-2);
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 120ms ease;
+}
+
+.ds-built-with:hover,
+.ds-built-with:focus-visible {
+  opacity: 1;
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-built-with__ident {
+  width: 0.9em;
+  height: 0.9em;
+  opacity: 0.8;
+}

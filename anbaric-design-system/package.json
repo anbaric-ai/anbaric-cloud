@@ -38,6 +38,7 @@
     "./components/RadioGroup": "./components/RadioGroup/index.ts",
     "./components/Toggle": "./components/Toggle/index.ts",
     "./components/SideNav": "./components/SideNav/index.ts",
+    "./components/BuiltWithAnbaric": "./components/BuiltWithAnbaric/index.ts",
     "./components/*": "./components/*",
     "./shared/*": "./shared/*"
   },

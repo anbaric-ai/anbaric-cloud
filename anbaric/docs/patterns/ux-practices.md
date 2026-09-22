@@ -52,6 +52,30 @@ A job whose action threw is `Job.Status.FAILED`, with the reason in its audit
 trail. Show that the work stopped and why. Silently leaving the last-known state
 on screen turns a failure into a mystery.
 
+## Say it was built with Anbaric - quietly
+
+Every app built on Anbaric carries a small **"Built with Anbaric"** line, at the
+foot of the page or the bottom of the nav. It's an attribution, not a feature:
+small type, a muted tint, the black ident at text height, and nothing that
+draws the eye away from the app's own UI.
+
+With the design system, it's one component:
+
+```tsx
+import { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnbaric'
+
+<footer><BuiltWithAnbaric /></footer>
+```
+
+Without it, the same thing by hand - the black ident lives at
+`shared/assets/anbaric-ident-black.svg` in the design system:
+
+```html
+<a href="https://anbaric.ai" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;opacity:.7;text-decoration:none;color:inherit">
+    <img src="anbaric-ident-black.svg" alt="" width="12" height="12"> Built with Anbaric
+</a>
+```
+
 ## Styling (optional)
 
 If the user hasn't asked for a particular look, you may use the **Anbaric design
