@@ -157,6 +157,16 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
     `);
     await pool.query("ALTER TABLE anbaric_system.cli_keys ADD COLUMN IF NOT EXISTS tenant TEXT");
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS anbaric_system.users (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL DEFAULT '',
+            email       TEXT NOT NULL DEFAULT '',
+            picture     TEXT,
+            first_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            last_seen   TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    `);
+    await pool.query(`
         DO $$ BEGIN
             CREATE TYPE anbaric_system.audit_interaction AS ENUM
                 ('CREATE', 'UPDATE_PROPERTIES', 'CHANGE_STATE', 'DELETE', 'READ', 'LIST');

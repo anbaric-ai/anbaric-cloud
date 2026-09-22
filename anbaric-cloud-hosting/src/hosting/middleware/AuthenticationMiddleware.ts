@@ -1,10 +1,14 @@
 import {Authenticator} from "../../auth/Authenticator";
 import {SessionSigner} from "../../auth/SessionSigner";
 import {TokenAuthenticator} from "../../auth/TokenAuthenticator";
+import {User} from "../../auth/User";
+import {UserDirectory} from "../../auth/UserDirectory";
 import {Middleware} from "../Middleware";
 import {Request} from "../Request";
 
 type OpenRequestPredicate = (request : Request) => boolean;
+
+const DIRECTORY_REFRESH_MS = 60 * 60 * 1000;
 
 /* Decorates the request with its authenticated user and tenant - bearer
    tokens first, then a valid platform session cookie, then the authenticator -
@@ -12,13 +16,17 @@ type OpenRequestPredicate = (request : Request) => boolean;
    authenticator entirely (no identity-provider round-trip) and slides its
    expiry; a fresh authenticator login mints one. Requests matching the open
    predicate (ping, the one-time CLI key poll) pass through untouched, as does
-   everything when no authenticator is configured. */
+   everything when no authenticator is configured. Browser-session users are
+   recorded in the tenant's user directory, at most once an hour each. */
 class AuthenticationMiddleware implements Middleware {
+
+    private recorded = new Map<string, number>();
 
     constructor(private authenticator? : Authenticator,
                 private tokenAuthenticator? : TokenAuthenticator,
                 private isOpen : OpenRequestPredicate = () => false,
-                private sessionSigner : SessionSigner = new SessionSigner()) {}
+                private sessionSigner : SessionSigner = new SessionSigner(),
+                private userDirectory? : UserDirectory) {}
 
     async apply(request : Request) : Promise<boolean> {
         if (this.isOpen(request)) return true;
@@ -35,6 +43,7 @@ class AuthenticationMiddleware implements Middleware {
             if (session) {
                 [request.user, request.tenant] = session;
                 this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
+                await this.remember(request.user!);
                 return this.authorized(request);
             }
         }
@@ -57,7 +66,24 @@ class AuthenticationMiddleware implements Middleware {
         if (this.sessionSigner.configured && !request.handled) {
             this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
         }
+        await this.remember(request.user!);
         return this.authorized(request);
+    }
+
+    private async remember(user : User) : Promise<void> {
+        if (! this.userDirectory) return;
+
+        const now = Date.now();
+        const last = this.recorded.get(user.id) ?? 0;
+        if (now - last < DIRECTORY_REFRESH_MS) return;
+
+        this.recorded.set(user.id, now);
+        try {
+            await this.userDirectory.record(user);
+        } catch (error) {
+            this.recorded.delete(user.id);
+            console.error(`Could not record user "${user.id}" in the directory:`, error);
+        }
     }
 
     private isStateChanging(method : string) : boolean {

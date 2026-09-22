@@ -13,7 +13,9 @@ import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
 import {KeysHandler} from "./handlers/auth/KeysHandler";
 import {SessionsHandler} from "./handlers/auth/SessionsHandler";
+import {UsersHandler} from "./handlers/auth/UsersHandler";
 import {WhoamiHandler} from "./handlers/auth/WhoamiHandler";
+import {UserDirectory} from "../auth/UserDirectory";
 import {ConsumersHandler} from "./handlers/ConsumersHandler";
 import {DocumentsHandler} from "./handlers/DocumentsHandler";
 import {EntitlementsAdminHandler} from "./handlers/EntitlementsAdminHandler";
@@ -62,7 +64,8 @@ class HostingServer {
                 plugins : Array<LoadedPlugin> = [],
                 jobRunSchedules? : JobRunSchedulePersistence,
                 notifier? : Notifier,
-                entitlements? : EntitlementStore) {
+                entitlements? : EntitlementStore,
+                userDirectory? : UserDirectory) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -92,6 +95,7 @@ class HostingServer {
         if (jobRunSchedules) publicRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
         if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
+        if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
         if (cliAuthorizer) {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
@@ -128,7 +132,7 @@ class HostingServer {
 
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
-            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests),
+            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory),
         ]);
         this.internalServer = new Server(internalRouter);
     }
