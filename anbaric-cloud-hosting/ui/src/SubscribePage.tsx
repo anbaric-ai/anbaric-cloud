@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Button } from '@anbaric/design-system/components/Button'
+import { Alert } from '@anbaric/design-system/components/Alert'
 import { Card } from '@anbaric/design-system/components/Card'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
 
@@ -18,6 +19,10 @@ type Status = {
   // pass through. Absent until there is something being built.
   stage?: string
   stages?: Array<string>
+  // True once a subscription has been paid for. A failed attempt that never
+  // reached payment can simply be made again; one that did must not be, or the
+  // person is charged twice for the same tenant.
+  subscribed?: boolean
 }
 
 const PLANS: Array<{ plan: Plan; name: string; blurb: string }> = [
@@ -188,16 +193,21 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     )
   }
 
-  if (data.status === 'failed') {
+  if (data.status === 'failed' && data.subscribed) {
     return (
       <PageShell title="Setting things up">
-        <ProvisioningPage failed message="Something went wrong setting up your environment. Please contact support and we'll sort it out." />
+        <ProvisioningPage failed message="Something went wrong setting up your environment, and you have already paid. Please contact support and we'll sort it out rather than charge you again." />
       </PageShell>
     )
   }
 
   return (
     <PageShell title="Choose a plan">
+      {data.status === 'failed' ? (
+        <Alert variant="warning" title="That didn't finish">
+          Your last attempt did not complete, so nothing was set up and you have not been charged. Choose a plan to try again.
+        </Alert>
+      ) : null}
       <div style={grid}>
         {PLANS.map(({ plan, name, blurb }) => (
           <Card key={plan}>
