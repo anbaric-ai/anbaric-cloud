@@ -46,6 +46,7 @@ export * from "./docs/DocModel";
 export * from "./docs/GatewayDocModel";
 export * from "./docs/DocGenerator";
 export * from "./data-store/PostgresJsonStore";
+export * from "./data-store/Migrations";
 export * from "./data-store/Schema";
 export * from "./data-store/SecretsManagerSecretStore";
 export * from "./hosting/HostingServer";

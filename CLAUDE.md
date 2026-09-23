@@ -52,6 +52,11 @@ bundles it to a single `dist/main.js`.
 - Interfaces whose implementations may cross a process boundary are async: methods return `Promise`, even when an implementation is trivially synchronous.
 - Errors are `throw new Error(...)` with a clear human-readable message quoting the offending id or key, e.g. `No job found with id "x"`.
 - Env vars are prefixed `ANBARIC_`.
+- Database changes are migrations: append a numbered entry to
+  `anbaric-cloud-hosting/src/data-store/PlatformMigrations.ts` (or central's
+  `CentralMigrations.ts`), which the shared `migrate` runner applies once at
+  boot. Never edit a migration that has shipped, never reuse an id, and never
+  add ad-hoc DDL to a store.
 
 ## Front-end
 

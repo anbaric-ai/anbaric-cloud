@@ -74,3 +74,10 @@ they are persisted.
 
 Postgres schema management is automatic on boot (`ensureSchema`): workflow
 tables in `public`, platform tables in `anbaric_system`.
+
+Schema changes are migrations. `src/data-store/PlatformMigrations.ts` lists them
+in order, each with a stable id; `migrate` records the ids it has applied in
+`anbaric_schema_migrations`, takes an advisory lock so two instances starting
+together take turns, and runs each migration in its own transaction. A migration
+that fails stops the boot. To change the schema, append a numbered entry —
+never edit one that has shipped, and never reuse an id.
