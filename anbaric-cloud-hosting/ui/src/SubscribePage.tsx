@@ -55,6 +55,8 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   const [promoCode, setPromoCode] = useState('')
   const [redeeming, setRedeeming] = useState(false)
   const [promoError, setPromoError] = useState<string | undefined>(undefined)
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | undefined>(undefined)
   const approved = useRef(false)
   const redirectingRef = useRef(false)
   redirectingRef.current = redirecting
@@ -98,6 +100,20 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       if (timer) clearInterval(timer)
     }
   }, [])
+
+  const retry = async () => {
+    setRetrying(true)
+    setRetryError(undefined)
+    try {
+      const response = await fetch('/subscribe/retry', { method: 'POST' })
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'That did not work')
+      setData((current) => (current ? { ...current, status: 'provisioning', stage: undefined } : current))
+    } catch (error) {
+      setRetryError(error instanceof Error ? error.message : 'That did not work')
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   const choose = async (plan: Plan) => {
     setBusy(plan)
@@ -196,7 +212,17 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   if (data.status === 'failed' && data.subscribed) {
     return (
       <PageShell title="Setting things up">
-        <ProvisioningPage failed message="Something went wrong setting up your environment, and you have already paid. Please contact support and we'll sort it out rather than charge you again." />
+        <ProvisioningPage failed message="Something went wrong while we were building your environment. Your subscription is fine and you will not be charged again — we can simply run it through once more." />
+        <Card>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
+            <p style={{ margin: 0, flex: '1 1 16rem' }}>
+              {retryError ?? 'Most failures are temporary. If this one is not, get in touch and we will sort it out.'}
+            </p>
+            <Button variant="primary" loading={retrying} disabled={retrying} onClick={() => void retry()}>
+              Try again
+            </Button>
+          </div>
+        </Card>
       </PageShell>
     )
   }
