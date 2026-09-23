@@ -7,6 +7,7 @@ import './plugins/PluginRuntime'
 import { AuditPage } from './AuditPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
 import { SubscribePage } from './SubscribePage'
+import { ChooseTenantPage } from './ChooseTenantPage'
 import { IdentityBar } from './IdentityBar'
 import { ManageKeysPage } from './ManageKeysPage'
 import { PageShell } from './PageShell'
@@ -24,6 +25,7 @@ const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= MOB
 const routeFromLocation = () => {
   const pathname = window.location.pathname
   if (pathname.startsWith('/authorize-cli/') || pathname.startsWith('/subscribe')) return pathname
+  if (pathname.startsWith('/choose-tenant')) return pathname
   return window.location.hash.replace(/^#/, '') || '/'
 }
 
@@ -59,10 +61,10 @@ function App() {
     }
   }, [])
 
-  // The CLI-authorize and subscribe flows are standalone pages reached directly,
-  // outside the nav - so they carry their own identity control (who you are,
-  // sign out) pinned top-right.
-  if (path.startsWith('/authorize-cli/') || path.startsWith('/subscribe')) {
+  // The CLI-authorize, subscribe and choose-tenant flows are standalone pages
+  // reached directly, outside the nav - so they carry their own identity
+  // control (who you are, sign out) pinned top-right.
+  if (path.startsWith('/authorize-cli/') || path.startsWith('/subscribe') || path.startsWith('/choose-tenant')) {
     return (
       <>
         <div style={{ position: 'fixed', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
@@ -70,7 +72,9 @@ function App() {
         </div>
         {path.startsWith('/authorize-cli/')
           ? <AuthorizeCliPage requestId={path.split('/')[2]} />
-          : <SubscribePage />}
+          : path.startsWith('/choose-tenant')
+            ? <ChooseTenantPage />
+            : <SubscribePage />}
       </>
     )
   }

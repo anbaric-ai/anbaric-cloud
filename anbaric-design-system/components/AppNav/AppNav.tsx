@@ -2,7 +2,7 @@ import './AppNav.css'
 import { type ReactNode } from 'react'
 
 import { SideNav, type NavEntry } from '../SideNav'
-import { AvatarMenu, type AvatarMenuItem } from '../AvatarMenu'
+import { AvatarMenu, type AvatarMenuAction, type AvatarMenuItem } from '../AvatarMenu'
 import identUrl from '../../shared/assets/anbaric-ident.svg'
 
 export interface AppNavAccount {
@@ -11,6 +11,8 @@ export interface AppNavAccount {
   subtitle?: ReactNode
   src?: string
   items: AvatarMenuItem[]
+  /** An icon button beside the identity, at the foot of the account menu. */
+  action?: AvatarMenuAction
 }
 
 export interface AppNavProps {
@@ -48,6 +50,7 @@ export function AppNav({
           subtitle={account.subtitle}
           src={account.src}
           items={account.items}
+          action={account.action}
         />
       }
       items={items}

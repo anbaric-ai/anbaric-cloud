@@ -7,6 +7,14 @@ export interface AvatarMenuItem {
   disabled?: boolean
 }
 
+export interface AvatarMenuAction {
+  /** The glyph to show, e.g. a Material Symbols span. */
+  icon: ReactNode
+  /** Names the button for a tooltip and for assistive technology. */
+  label: string
+  onSelect: () => void
+}
+
 export interface AvatarMenuProps {
   /** The person's name — shown in the menu and used for the initials fallback. */
   name: string
@@ -16,6 +24,8 @@ export interface AvatarMenuProps {
   src?: string
   /** The menu actions. */
   items: AvatarMenuItem[]
+  /** An icon button beside the identity, at the foot of the menu. */
+  action?: AvatarMenuAction
   className?: string
 }
 
@@ -46,7 +56,7 @@ function Avatar({ name, src }: { name: string; src?: string }) {
  * only, no movement), so the avatar itself never appears to shift. Built on the
  * native Popover API — top layer, light-dismiss for free.
  */
-export function AvatarMenu({ name, subtitle, src, items, className }: AvatarMenuProps) {
+export function AvatarMenu({ name, subtitle, src, items, action, className }: AvatarMenuProps) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -132,6 +142,20 @@ export function AvatarMenu({ name, subtitle, src, items, className }: AvatarMenu
               <span className="ds-avatar-menu__subtitle">{subtitle}</span>
             ) : null}
           </div>
+          {action ? (
+            <button
+              type="button"
+              className="ds-avatar-menu__action"
+              title={action.label}
+              aria-label={action.label}
+              onClick={() => {
+                action.onSelect()
+                menuRef.current?.hidePopover()
+              }}
+            >
+              {action.icon}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

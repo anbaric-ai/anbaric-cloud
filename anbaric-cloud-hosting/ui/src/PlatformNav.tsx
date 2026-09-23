@@ -16,6 +16,7 @@ interface CurrentUser {
   name?: string
   picture?: string
   tenant?: string
+  tenantRole?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -87,12 +88,17 @@ function PlatformNav({
       onChange={(value) => navigate(value)}
       account={{
         name: user?.name ?? user?.id ?? 'Account',
-        subtitle: user ? [user.tenant, ...user.roles].filter(Boolean).join(' · ') || undefined : undefined,
+        subtitle: user ? [user.tenant, user.tenantRole].filter(Boolean).join(' · ') || undefined : undefined,
         src: user?.picture,
         items: [
           { label: 'Manage keys', onSelect: () => navigate('/manage-keys') },
           { label: 'Sign out', onSelect: () => (window.location.href = '/logout') },
         ],
+        action: {
+          icon: <Sym name="swap_horiz" />,
+          label: 'Switch tenant',
+          onSelect: () => (window.location.href = '/choose-tenant'),
+        },
       }}
       collapsed={collapsed}
       onCollapsedChange={onCollapsedChange}

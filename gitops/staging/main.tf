@@ -57,11 +57,6 @@ variable "auth0_client_secret" {
   sensitive = true
 }
 
-variable "auth0_organization" {
-  type    = string
-  default = ""
-}
-
 variable "platform_public_url" {
   type    = string
   default = ""
@@ -93,7 +88,6 @@ module "platform" {
   auth0_domain        = var.auth0_domain
   auth0_client_id     = var.auth0_client_id
   auth0_client_secret = var.auth0_client_secret
-  auth0_organization  = var.auth0_organization
   platform_public_url = var.platform_public_url
   platform_domain     = var.platform_domain
   tenant              = var.tenant

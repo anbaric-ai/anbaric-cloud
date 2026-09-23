@@ -60,12 +60,6 @@ variable "auth0_client_secret" {
   sensitive   = true
 }
 
-variable "auth0_organization" {
-  description = "Auth0 Organization (id or name slug) this tenant's logins are scoped to"
-  type        = string
-  default     = ""
-}
-
 variable "edge" {
   description = "own: this stack runs its own CloudFront distribution (self-host default). shared: a central distribution routes to this stack's ALB, so no CloudFront/ACM/domain resources are created."
   type        = string

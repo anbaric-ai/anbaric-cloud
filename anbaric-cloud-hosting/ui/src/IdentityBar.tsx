@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react'
 
 import { AvatarMenu } from '@anbaric/design-system/components/AvatarMenu'
 
+// The design system takes icons as nodes; the console's glyphs are Material
+// Symbols, already loaded by the page.
+const Sym = ({ name }: { name: string }) => (
+  <span className="material-symbols-rounded" aria-hidden="true">{name}</span>
+)
+
 type Me = { id: string; name?: string; email?: string; picture?: string; tenant?: string }
 
 // Shows who is signed in, with a way to sign out / switch user, on the
@@ -25,6 +31,11 @@ function IdentityBar() {
       subtitle={[me.tenant, me.email].filter(Boolean).join(' · ') || undefined}
       src={me.picture}
       items={[{ label: 'Sign out', onSelect: () => (window.location.href = '/logout') }]}
+      action={{
+        icon: <Sym name="swap_horiz" />,
+        label: 'Switch tenant',
+        onSelect: () => (window.location.href = '/choose-tenant'),
+      }}
     />
   )
 }

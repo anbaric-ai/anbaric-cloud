@@ -161,8 +161,7 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AUTHENTICATOR", value = "anbaric-cloud-hosting-auth-auth0" },
       { name = "ANBARIC_AUTH0_DOMAIN", value = var.auth0_domain },
       { name = "ANBARIC_AUTH0_CLIENT_ID", value = var.auth0_client_id },
-      ], var.auth0_organization == "" ? [] : [
-      { name = "ANBARIC_AUTH0_ORGANIZATION", value = var.auth0_organization },
+      ], [
       ], var.deploy_additional_services ? [
       { name = "ANBARIC_SERVICES_URL", value = "http://additional-services.${aws_service_discovery_private_dns_namespace.anbaric.name}:8790" },
       ] : [], var.ai_gateway_url == "" ? [] : [

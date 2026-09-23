@@ -157,10 +157,40 @@
   gap: var(--space-sm);
 }
 
+/* Takes the slack so a foot action steals width from the ellipsis rather than
+   pushing the panel wider - its 13rem is what place() clamps against. */
 .ds-avatar-menu__identity {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
+}
+
+/* Sized and bottom-aligned exactly like the avatar, so the foot stays one row
+   and the panel's content bottom is still the avatar's bottom - which is what
+   the overlay maths in place() depends on. Its radius is the inner concentric
+   one, the same value the first menu item's top corners use. */
+.ds-avatar-menu__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--ds-avatar-size, 2rem);
+  height: var(--ds-avatar-size, 2rem);
+  padding: 0;
+  font-size: 1.1rem;
+  color: var(--color-foreground-tint-2);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--_menu-radius) - var(--space-sm));
+  cursor: pointer;
+}
+
+.ds-avatar-menu__action:hover,
+.ds-avatar-menu__action:focus-visible {
+  outline: none;
+  color: var(--color-foreground);
+  background: var(--color-background-shade-1);
 }
 
 .ds-avatar-menu__name {
