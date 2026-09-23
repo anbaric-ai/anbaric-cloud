@@ -1,6 +1,6 @@
 {
   "name": "anbaric-plugins",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "description": "Open-source Anbaric platform plugins: pages and widgets loaded by the hosting server via ANBARIC_PLUGINS",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -14,7 +14,7 @@
   "devDependencies": {
     "@anbaric/design-system": "file:../anbaric-design-system",
     "@types/react": "^19.2.14",
-    "anbaric-cloud-hosting": "^1.40.0",
+    "anbaric-cloud-hosting": "^1.41.0",
     "react": "^19.2.6",
     "typescript": "^7.0.2"
   },

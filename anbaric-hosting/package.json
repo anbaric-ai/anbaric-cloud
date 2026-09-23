@@ -1,6 +1,6 @@
 {
   "name": "anbaric-hosting",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "description": "Run an Anbaric platform: the hosted API, dispatcher, build layers and app proxy, bootable with the anbaric-hosting command",
   "license": "MIT",
   "type": "module",
@@ -14,7 +14,7 @@
     "bin"
   ],
   "dependencies": {
-    "anbaric-cloud-hosting": "^1.40.0",
+    "anbaric-cloud-hosting": "^1.41.0",
     "tsx": "^4.20.0"
   }
 }
