@@ -1,6 +1,10 @@
 /* What a person may do in the tenant this platform serves. The roles are
    assigned in Anbaric Cloud's central login, which owns the tenant definitions
-   and the user-to-tenant mapping; the platform only enforces them. */
+   and the user-to-tenant mapping; the platform only enforces them.
+
+   Mirrored by that control plane's own tenants/TenantRole.ts rather than
+   shared with it, so the two repos need not move in lockstep over a four-value
+   union. Keep them in step. */
 type TenantRole = "OWNER" | "ADMIN" | "BUILDER" | "USER";
 
 const TENANT_ROLES : Array<TenantRole> = ["OWNER", "ADMIN", "BUILDER", "USER"];
