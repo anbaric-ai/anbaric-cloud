@@ -57,9 +57,17 @@ variable "max_connections" {
   default     = "500"
 }
 
+/* Pinned together on purpose: leave the engine version to RDS and it picks
+   whatever major is current, which then refuses the parameter group family
+   named here. */
+variable "engine_version" {
+  type    = string
+  default = "18"
+}
+
 variable "parameter_group_family" {
   type    = string
-  default = "postgres17"
+  default = "postgres18"
 }
 
 variable "backup_retention_days" {

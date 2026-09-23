@@ -44,6 +44,7 @@ resource "aws_security_group" "database" {
 resource "aws_db_instance" "anbaric" {
   identifier              = "anbaric-${var.name}"
   engine                  = "postgres"
+  engine_version          = var.engine_version
   instance_class          = var.instance_class
   allocated_storage       = var.allocated_storage
   max_allocated_storage   = var.max_allocated_storage
@@ -62,9 +63,12 @@ resource "aws_db_instance" "anbaric" {
   parameter_group_name = aws_db_parameter_group.anbaric.name
 }
 
+/* name_prefix, not name: the group is replaced whenever its family or settings
+   change, and create_before_destroy would otherwise collide with the name the
+   old one still holds. */
 resource "aws_db_parameter_group" "anbaric" {
-  name   = "anbaric-${var.name}"
-  family = var.parameter_group_family
+  name_prefix = "anbaric-${var.name}-"
+  family      = var.parameter_group_family
 
   parameter {
     name         = "max_connections"
