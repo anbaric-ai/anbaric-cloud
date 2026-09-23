@@ -7,7 +7,11 @@ OpenTofu environments for the Anbaric platform (the `anbaric-cloud-hosting` serv
 - `local/` — runs the platform on Docker Desktop: a `postgres:17` container and the platform image built from the monorepo's `anbaric-cloud-hosting/Dockerfile`. The platform listens on `http://localhost:8787`.
 - `staging/` — AWS via the shared module, small sizing.
 - `prod/` — AWS: same module, bigger database and task.
-- `modules/anbaric-platform-aws/` — the full AWS estate, created from nothing: a dedicated VPC (two public subnets, internet gateway), RDS Postgres (private, security-group access only), an ECR repository with the platform image built and pushed on `apply` whenever the source changes, a Fargate service health-checked on `/ping` behind an ALB that only admits CloudFront's origin-facing IPs, secrets in Secrets Manager, CloudWatch logs, and a CloudFront distribution in front of everything.
+- `modules/anbaric-cell-aws/` — the network many tenants share: a VPC (two public subnets, internet gateway), one ALB admitting only CloudFront's origin-facing IPs, and optional peering to wherever the database clusters live. Tenants are told apart inside a cell by their own security groups and by an ALB listener rule matching `x-anbaric-tenant`, never by addresses.
+- `modules/anbaric-database-aws/` — a Postgres cluster shared by many tenants, each holding its own database and login role. Run one for platform data and another for app data so the two scale independently.
+- `modules/anbaric-platform-aws/` — one tenant inside a cell: its security groups, ECS cluster and Fargate service health-checked on `/ping`, an ECR repository with the platform image built and pushed on `apply` whenever the source changes, its ALB target group and listener rule, secrets in Secrets Manager, CloudWatch logs, and optionally its own CloudFront distribution.
+
+A single-tenant install is one tenant in a cell of its own, which is what `staging/` and `prod/` compose — the same shape as the hosted estate rather than a second topology.
 
 Both AWS environments default to **eu-west-3 (Paris)** — the lowest-latency region for the UK outside eu-west-1/eu-west-2, which host the existing Anbaric v1 estate; a validation rule refuses those two regions outright.
 
@@ -23,7 +27,7 @@ tofu init
 tofu apply
 ```
 
-Local expects Docker Desktop to be running. Staging and prod expect AWS credentials and docker in the environment (the image build/push happens during `apply`), a `db_password` in `terraform.tfvars`, and an S3 state backend configured (see the commented `backend` block) before the first shared apply. The `platform_url` output — the CloudFront domain unless `platform_public_url` overrides it with a custom domain — is the platform address, and with Auth0 enabled `<platform_url>/callback` must be added to the Auth0 application's Allowed Callback URLs.
+Local expects Docker Desktop to be running. Staging and prod expect AWS credentials and docker in the environment (the image build/push happens during `apply`), a `db_password` and an `app_db_password` in `terraform.tfvars`, and an S3 state backend configured (see the commented `backend` block) before the first shared apply. The `platform_url` output — the CloudFront domain unless `platform_public_url` overrides it with a custom domain — is the platform address, and with Auth0 enabled `<platform_url>/callback` must be added to the Auth0 application's Allowed Callback URLs.
 
 Environment-specific configuration (Auth0 tenants, AWS settings) is supplied per environment via a gitignored `terraform.tfvars` — never commit tenant ids, domains, or credentials to this repo:
 

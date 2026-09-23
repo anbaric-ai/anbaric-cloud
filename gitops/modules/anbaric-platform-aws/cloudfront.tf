@@ -24,7 +24,7 @@ resource "aws_cloudfront_distribution" "platform" {
 
   origin {
     origin_id   = "platform-alb"
-    domain_name = aws_lb.platform.dns_name
+    domain_name = var.load_balancer_dns_name
 
     custom_origin_config {
       http_port                = 80
@@ -63,5 +63,5 @@ locals {
   platform_public_url = (var.platform_public_url != "" ? var.platform_public_url
     : var.platform_domain != "" ? "https://${var.platform_domain}"
     : var.edge == "own" ? "https://${aws_cloudfront_distribution.platform[0].domain_name}"
-    : "http://${aws_lb.platform.dns_name}")
+  : "http://${var.load_balancer_dns_name}")
 }

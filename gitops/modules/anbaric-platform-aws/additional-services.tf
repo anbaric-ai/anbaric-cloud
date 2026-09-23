@@ -110,7 +110,7 @@ resource "aws_ecs_service" "additional_services" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = var.subnet_ids
     security_groups  = [aws_security_group.apps.id]
     assign_public_ip = true
   }

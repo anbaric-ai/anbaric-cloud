@@ -31,7 +31,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "app_builds" {
 
 resource "aws_service_discovery_private_dns_namespace" "anbaric" {
   name = "anbaric-${var.environment}.local"
-  vpc  = aws_vpc.anbaric.id
+  vpc  = var.vpc_id
 }
 
 resource "aws_service_discovery_service" "platform" {
@@ -50,7 +50,7 @@ resource "aws_service_discovery_service" "platform" {
 
 resource "aws_security_group" "apps" {
   name   = "anbaric-${var.environment}-apps"
-  vpc_id = aws_vpc.anbaric.id
+  vpc_id = var.vpc_id
 
   ingress {
     from_port       = 1024
@@ -124,7 +124,7 @@ resource "aws_iam_role_policy" "app_execution_sql_secret" {
     Statement = [{
       Effect   = "Allow"
       Action   = "secretsmanager:GetSecretValue"
-      Resource = aws_secretsmanager_secret.app_db_url.arn
+      Resource = data.aws_secretsmanager_secret.app_db_url.arn
     }]
   })
 }

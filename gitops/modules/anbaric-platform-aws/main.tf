@@ -24,14 +24,18 @@ resource "terraform_data" "platform_image" {
   }
 }
 
-resource "aws_secretsmanager_secret" "database_url" {
-  name                    = "anbaric-${var.environment}/database-url"
-  recovery_window_in_days = 0
+/* This tenant's two connection URLs, one for the platform's own data and one
+   handed to every app it deploys. Both are written before the stack is applied -
+   by the control plane during signup, or by the root for a self-hosted install -
+   because creating a database and a role in a shared cluster is SQL, not
+   infrastructure, and takes no time at all. The platform never holds a
+   credential that can reach any database but its own. */
+data "aws_secretsmanager_secret" "database_url" {
+  name = "anbaric-tenant/${var.tenant}/database-url"
 }
 
-resource "aws_secretsmanager_secret_version" "database_url" {
-  secret_id     = aws_secretsmanager_secret.database_url.id
-  secret_string = "postgres://anbaric:${var.db_password}@${aws_db_instance.anbaric.address}:5432/anbaric?sslmode=no-verify"
+data "aws_secretsmanager_secret" "app_db_url" {
+  name = "anbaric-tenant/${var.tenant}/app-db-url"
 }
 
 resource "aws_secretsmanager_secret" "auth0_client_secret" {
@@ -94,11 +98,10 @@ resource "aws_iam_role_policy" "read_secrets" {
       Effect = "Allow"
       Action = "secretsmanager:GetSecretValue"
       Resource = concat([
-        aws_secretsmanager_secret.database_url.arn,
-        aws_secretsmanager_secret.app_db_password.arn,
+        data.aws_secretsmanager_secret.database_url.arn,
         aws_secretsmanager_secret.auth0_client_secret.arn,
         aws_secretsmanager_secret.session_signing.arn,
-      ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [],
+        ], var.deploy_additional_services ? [var.additional_services_api_key_secret_arn] : [],
       var.ai_gateway_token_secret_arn == "" ? [] : [var.ai_gateway_token_secret_arn])
     }]
   })
@@ -142,7 +145,7 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_PLATFORM_PUBLIC_URL", value = local.platform_public_url },
       { name = "ANBARIC_BUILD_LAYER", value = "fargate" },
       { name = "ANBARIC_AWS_CLUSTER", value = aws_ecs_cluster.anbaric.name },
-      { name = "ANBARIC_AWS_SUBNETS", value = join(",", aws_subnet.public[*].id) },
+      { name = "ANBARIC_AWS_SUBNETS", value = join(",", var.subnet_ids) },
       { name = "ANBARIC_AWS_APP_SECURITY_GROUP", value = aws_security_group.apps.id },
       { name = "ANBARIC_AWS_NAMESPACE_ID", value = aws_service_discovery_private_dns_namespace.anbaric.id },
       { name = "ANBARIC_AWS_NAMESPACE_NAME", value = aws_service_discovery_private_dns_namespace.anbaric.name },
@@ -154,7 +157,7 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP_ARN", value = aws_cloudwatch_log_group.apps.arn },
       { name = "ANBARIC_SQL_SCHEMA", value = "anbaric_app_data" },
-      { name = "ANBARIC_AWS_APP_SQL_URL_SECRET", value = aws_secretsmanager_secret.app_db_url.arn },
+      { name = "ANBARIC_AWS_APP_SQL_URL_SECRET", value = data.aws_secretsmanager_secret.app_db_url.arn },
       ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
       { name = "ANBARIC_TENANT", value = var.tenant },
       ], var.auth0_domain == "" ? [] : [
@@ -171,8 +174,7 @@ resource "aws_ecs_task_definition" "platform" {
     ])
 
     secrets = concat([
-      { name = "ANBARIC_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
-      { name = "ANBARIC_APP_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.app_db_password.arn },
+      { name = "ANBARIC_DATABASE_URL", valueFrom = data.aws_secretsmanager_secret.database_url.arn },
       { name = "ANBARIC_SESSION_SIGNING_SECRET", valueFrom = aws_secretsmanager_secret.session_signing.arn },
       ], var.auth0_domain == "" ? [] : [
       { name = "ANBARIC_AUTH0_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.auth0_client_secret.arn },
@@ -193,19 +195,11 @@ resource "aws_ecs_task_definition" "platform" {
   }])
 }
 
-resource "aws_lb" "platform" {
-  name               = "anbaric-${var.environment}"
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.load_balancer.id]
-  subnets            = aws_subnet.public[*].id
-  idle_timeout       = 120
-}
-
 resource "aws_lb_target_group" "platform" {
   name        = "anbaric-${var.environment}"
   port        = var.hosting_port
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.anbaric.id
+  vpc_id      = var.vpc_id
   target_type = "ip"
 
   health_check {
@@ -216,14 +210,26 @@ resource "aws_lb_target_group" "platform" {
   }
 }
 
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.platform.arn
-  port              = 80
-  protocol          = "HTTP"
+/* How this tenant claims its share of the cell's load balancer. The edge
+   resolves the tenant from the routing cookie and stamps x-anbaric-tenant, so
+   the header is the only thing that distinguishes one tenant's traffic from
+   another's here. Priorities come from the control plane rather than from a
+   hash or a sorted position: both of those collide or renumber when tenants
+   come and go, and a clashing priority is a failed signup. */
+resource "aws_lb_listener_rule" "tenant" {
+  listener_arn = var.load_balancer_listener_arn
+  priority     = var.load_balancer_rule_priority
 
-  default_action {
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.platform.arn
+  }
+
+  condition {
+    http_header {
+      http_header_name = "x-anbaric-tenant"
+      values           = [var.tenant]
+    }
   }
 }
 
@@ -242,7 +248,7 @@ resource "aws_ecs_service" "platform" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = var.subnet_ids
     security_groups  = [aws_security_group.platform.id]
     assign_public_ip = true
   }
@@ -257,5 +263,5 @@ resource "aws_ecs_service" "platform" {
     registry_arn = aws_service_discovery_service.platform.arn
   }
 
-  depends_on = [aws_lb_listener.http, terraform_data.platform_image]
+  depends_on = [aws_lb_listener_rule.tenant, terraform_data.platform_image]
 }

@@ -67,9 +67,79 @@ variable "platform_domain" {
   default = ""
 }
 
+variable "app_db_password" {
+  description = "Master password for the app data cluster"
+  type        = string
+  sensitive   = true
+}
+
 variable "tenant" {
-  type    = string
-  default = ""
+  description = "Tenant name this install serves; also the routing key the load balancer matches on"
+  type        = string
+  default     = "anbaric"
+}
+
+/* A self-hosted install is one tenant in a cell of its own. The shape is the
+   same as the hosted one - a cell holds the network and the load balancer, the
+   clusters hold the data - so there is one topology to reason about rather than
+   two. */
+module "cell" {
+  source = "../modules/anbaric-cell-aws"
+
+  name       = "prod"
+  cidr_block = "10.30.0.0/16"
+}
+
+module "platform_database" {
+  source = "../modules/anbaric-database-aws"
+
+  name            = "prod-platform"
+  vpc_id          = module.cell.vpc_id
+  subnet_ids      = module.cell.subnet_ids
+  database_name   = "anbaric"
+  master_password = var.db_password
+
+  allowed_cidr_blocks = [module.cell.vpc_cidr_block]
+  instance_class      = "db.t4g.small"
+}
+
+/* Apps get their own cluster so their load never competes with the platform's,
+   and so an app can be given a credential that cannot reach platform data at
+   all - a different cluster, not merely a different schema. */
+module "app_database" {
+  source = "../modules/anbaric-database-aws"
+
+  name            = "prod-apps"
+  vpc_id          = module.cell.vpc_id
+  subnet_ids      = module.cell.subnet_ids
+  database_name   = "anbaric"
+  master_password = var.app_db_password
+
+  allowed_cidr_blocks = [module.cell.vpc_cidr_block]
+  instance_class      = "db.t4g.small"
+}
+
+/* The platform reads both URLs from Secrets Manager by name. In the hosted
+   estate the control plane writes them while creating the tenant's databases;
+   here there is one tenant per cluster, so the master credential is its own. */
+resource "aws_secretsmanager_secret" "database_url" {
+  name                    = "anbaric-tenant/${var.tenant}/database-url"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "database_url" {
+  secret_id     = aws_secretsmanager_secret.database_url.id
+  secret_string = "postgres://${module.platform_database.master_username}:${urlencode(var.db_password)}@${module.platform_database.endpoint}/anbaric?sslmode=no-verify"
+}
+
+resource "aws_secretsmanager_secret" "app_db_url" {
+  name                    = "anbaric-tenant/${var.tenant}/app-db-url"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "app_db_url" {
+  secret_id     = aws_secretsmanager_secret.app_db_url.id
+  secret_string = "postgres://${module.app_database.master_username}:${urlencode(var.app_db_password)}@${module.app_database.endpoint}/anbaric?sslmode=no-verify"
 }
 
 module "platform" {
@@ -83,7 +153,13 @@ module "platform" {
   environment = "prod"
   aws_region  = var.aws_region
   source_root = "${path.root}/../.."
-  db_password = var.db_password
+
+  vpc_id                          = module.cell.vpc_id
+  subnet_ids                      = module.cell.subnet_ids
+  load_balancer_dns_name          = module.cell.load_balancer_dns
+  load_balancer_security_group_id = module.cell.load_balancer_security_group_id
+  load_balancer_listener_arn      = module.cell.load_balancer_listener_arn
+  load_balancer_rule_priority     = 1000
 
   auth0_domain        = var.auth0_domain
   auth0_client_id     = var.auth0_client_id
@@ -92,17 +168,22 @@ module "platform" {
   platform_domain     = var.platform_domain
   tenant              = var.tenant
 
-  db_instance_class = "db.t4g.small"
-  cpu               = 1024
-  memory            = 2048
+  depends_on = [aws_secretsmanager_secret_version.database_url, aws_secretsmanager_secret_version.app_db_url]
+
+  cpu    = 1024
+  memory = 2048
 }
 
 output "platform_url" {
   value = module.platform.platform_url
 }
 
-output "database_endpoint" {
-  value = module.platform.database_endpoint
+output "platform_database_endpoint" {
+  value = module.platform_database.endpoint
+}
+
+output "app_database_endpoint" {
+  value = module.app_database.endpoint
 }
 
 output "cluster_name" {

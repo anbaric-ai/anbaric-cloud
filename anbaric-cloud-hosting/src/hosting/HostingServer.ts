@@ -37,6 +37,7 @@ import {StateMachinesHandler} from "./handlers/StateMachinesHandler";
 import {PluginsHandler} from "./handlers/PluginsHandler";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
+import {TenantRoutingMiddleware} from "./middleware/TenantRoutingMiddleware";
 import {LoadedPlugin} from "../plugins/Plugin";
 import {Request} from "./Request";
 import {Router} from "./Router";
@@ -141,6 +142,7 @@ class HostingServer {
 
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
+            new TenantRoutingMiddleware(tenant),
             new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships),
         ]);
         this.internalServer = new Server(internalRouter);

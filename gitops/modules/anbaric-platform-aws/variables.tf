@@ -11,14 +11,32 @@ variable "source_root" {
   type        = string
 }
 
-variable "db_password" {
-  type      = string
-  sensitive = true
+/* The cell this tenant sits in. Many tenants share one network and one load
+   balancer; they are kept apart by their own security groups and by the
+   listener rule that matches their slug, never by addresses. */
+variable "vpc_id" {
+  type = string
 }
 
-variable "db_instance_class" {
-  type    = string
-  default = "db.t4g.micro"
+variable "subnet_ids" {
+  type = list(string)
+}
+
+variable "load_balancer_dns_name" {
+  type = string
+}
+
+variable "load_balancer_security_group_id" {
+  type = string
+}
+
+variable "load_balancer_listener_arn" {
+  type = string
+}
+
+variable "load_balancer_rule_priority" {
+  description = "Allocated by the control plane, so two signups cannot race to the same priority"
+  type        = number
 }
 
 variable "cpu" {
@@ -89,10 +107,16 @@ variable "extra_environment" {
   default     = {}
 }
 
+/* Also the routing key: the edge stamps it as x-anbaric-tenant and the cell's
+   listener matches on it, so it must be the same shape the edge validates. */
 variable "tenant" {
-  description = "Tenant this stack serves (returned to the CLI during login)"
+  description = "Tenant this stack serves (returned to the CLI during login, and matched by the listener rule)"
   type        = string
-  default     = ""
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]{1,63}$", var.tenant))
+    error_message = "tenant must be lower-case alphanumeric with hyphens, 1 to 63 characters."
+  }
 }
 
 variable "platform_domain" {
@@ -175,12 +199,6 @@ variable "agentic_model" {
 
 variable "deploy_additional_services" {
   description = "Whether to run the shared additional-services instance in this cluster"
-  type        = bool
-  default     = false
-}
-
-variable "enable_bastion" {
-  description = "Run a keyless SSM bastion for reaching the private database from a laptop (Session Manager port forwarding; no inbound SSH)"
   type        = bool
   default     = false
 }
