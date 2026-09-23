@@ -150,12 +150,12 @@ const ensureSchema = async (pool : Pool) : Promise<void> => {
             prompt_id      TEXT NOT NULL,
             version        INTEGER NOT NULL,
             instructions   TEXT NOT NULL,
-            input_schema   JSONB,
             output_schema  JSONB,
             created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
             PRIMARY KEY (app_id, prompt_id, version)
         )
     `);
+    await pool.query("ALTER TABLE prompts DROP COLUMN IF EXISTS input_schema");
     await pool.query("CREATE SCHEMA IF NOT EXISTS anbaric_system");
     await pool.query(`
         CREATE TABLE IF NOT EXISTS anbaric_system.cli_keys (

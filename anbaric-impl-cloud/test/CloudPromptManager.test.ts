@@ -40,7 +40,7 @@ describe("CloudPromptManager", () => {
         const received : Received = {};
         const prompts = new CloudPromptManager(await start(prompt, received));
 
-        const saved = await prompts.save("triage", "Decide.", undefined, { type: "object" });
+        const saved = await prompts.save("triage", "Decide.", { type: "object" });
 
         expect(received).toEqual({
             method: "PUT", url: "/api/v2/prompts/triage", app: "crm", body: { instructions: "Decide.", outputSchema: { type: "object" } },

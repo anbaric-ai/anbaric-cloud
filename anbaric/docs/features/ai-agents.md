@@ -66,7 +66,7 @@ import {PromptManagerFactory} from "anbaric";
 
 const prompts = PromptManagerFactory.instance();
 await prompts.save("triage", "Decide the priority of the support ticket from its subject.",
-    undefined, { type: "object", properties: { priority: { type: "string", enum: ["low", "high"] } } });
+    { type: "object", properties: { priority: { type: "string", enum: ["low", "high"] } } });
 
 const prompt = await prompts.retrieve("triage");
 const triage = new RemoteLLMAgenticAction("Triage the ticket", triager,

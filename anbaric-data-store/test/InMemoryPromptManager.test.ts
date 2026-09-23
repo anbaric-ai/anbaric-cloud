@@ -8,10 +8,9 @@ describe("InMemoryPromptManager", () => {
     it("saves a first version for the app and returns it", async () => {
         const prompts = new InMemoryPromptManager("crm");
 
-        const saved = await prompts.save("triage", "Decide the priority.", undefined, schema);
+        const saved = await prompts.save("triage", "Decide the priority.", schema);
 
         expect(saved).toMatchObject({ appId: "crm", promptId: "triage", version: 1, instructions: "Decide the priority.", outputSchema: schema });
-        expect(saved.inputSchema).toBeUndefined();
         expect(saved.createdAt).toMatch(/^\d{4}-/);
     });
 
@@ -27,9 +26,9 @@ describe("InMemoryPromptManager", () => {
 
     it("does not store a new version when the content is identical", async () => {
         const prompts = new InMemoryPromptManager("crm");
-        await prompts.save("triage", "Decide the priority.", { type: "object", required: ["subject"] }, schema);
+        await prompts.save("triage", "Decide the priority.", { type: "object", required: ["priority"] });
 
-        const again = await prompts.save("triage", "Decide the priority.", { required: ["subject"], type: "object" }, schema);
+        const again = await prompts.save("triage", "Decide the priority.", { required: ["priority"], type: "object" });
 
         expect(again.version).toBe(1);
         expect(await prompts.history("triage")).toHaveLength(1);
@@ -64,7 +63,7 @@ describe("InMemoryPromptManager", () => {
 
     it("hands out copies, so callers cannot mutate stored versions", async () => {
         const prompts = new InMemoryPromptManager("crm");
-        const saved = await prompts.save("triage", "v1", undefined, { type: "object" });
+        const saved = await prompts.save("triage", "v1", { type: "object" });
         saved.outputSchema!.type = "array";
 
         expect((await prompts.retrieve("triage")).outputSchema).toEqual({ type: "object" });

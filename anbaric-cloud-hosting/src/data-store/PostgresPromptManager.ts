@@ -1,14 +1,13 @@
 import {Pool} from "pg";
 import {JsonSchema, Prompt, PromptManager, samePromptContent} from "anbaric-tsapi";
 
-const COLUMNS = "app_id, prompt_id, version, instructions, input_schema, output_schema, created_at";
+const COLUMNS = "app_id, prompt_id, version, instructions, output_schema, created_at";
 
 const rowToPrompt = (row : any) : Prompt => ({
     appId: row.app_id,
     promptId: row.prompt_id,
     version: row.version,
     instructions: row.instructions,
-    inputSchema: row.input_schema ?? undefined,
     outputSchema: row.output_schema ?? undefined,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
 });
@@ -20,7 +19,7 @@ class PostgresPromptManager implements PromptManager {
 
     constructor(private pool : Pool, private appId : string) {}
 
-    async save(promptId : string, instructions : string, inputSchema? : JsonSchema, outputSchema? : JsonSchema) : Promise<Prompt> {
+    async save(promptId : string, instructions : string, outputSchema? : JsonSchema) : Promise<Prompt> {
         const client = await this.pool.connect();
 
         try {
@@ -30,17 +29,16 @@ class PostgresPromptManager implements PromptManager {
                  ORDER BY version DESC LIMIT 1 FOR UPDATE`, [this.appId, promptId]);
             const current = latest.rows[0] && rowToPrompt(latest.rows[0]);
 
-            if (current && samePromptContent(current, instructions, inputSchema, outputSchema)) {
+            if (current && samePromptContent(current, instructions, outputSchema)) {
                 await client.query("COMMIT");
                 return current;
             }
 
             const inserted = await client.query(
-                `INSERT INTO prompts (app_id, prompt_id, version, instructions, input_schema, output_schema)
-                 VALUES ($1, $2, $3, $4, $5, $6)
+                `INSERT INTO prompts (app_id, prompt_id, version, instructions, output_schema)
+                 VALUES ($1, $2, $3, $4, $5)
                  RETURNING ${COLUMNS}`,
                 [this.appId, promptId, (current?.version ?? 0) + 1, instructions,
-                 inputSchema === undefined ? null : JSON.stringify(inputSchema),
                  outputSchema === undefined ? null : JSON.stringify(outputSchema)]);
             await client.query("COMMIT");
             return rowToPrompt(inserted.rows[0]);

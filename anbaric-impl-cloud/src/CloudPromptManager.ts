@@ -15,8 +15,8 @@ class CloudPromptManager implements PromptManager, AppAware {
         return currentAppId();
     }
 
-    async save(promptId : string, instructions : string, inputSchema? : JsonSchema, outputSchema? : JsonSchema) : Promise<Prompt> {
-        return this.client.request("PUT", this.promptPath(promptId), { instructions, inputSchema, outputSchema });
+    async save(promptId : string, instructions : string, outputSchema? : JsonSchema) : Promise<Prompt> {
+        return this.client.request("PUT", this.promptPath(promptId), { instructions, outputSchema });
     }
 
     async retrieve(promptId : string, version? : number) : Promise<Prompt> {

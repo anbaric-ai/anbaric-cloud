@@ -47,9 +47,9 @@ describe("prompts end to end through the cloud client", () => {
     it("saves, versions and retrieves an app's prompts", async () => {
         const prompts = new CloudPromptManager(internalUrl);
 
-        const first = await prompts.save("triage", "Decide the priority.", undefined, { type: "object" });
-        const same = await prompts.save("triage", "Decide the priority.", undefined, { type: "object" });
-        const second = await prompts.save("triage", "Decide the priority, favouring high.", undefined, { type: "object" });
+        const first = await prompts.save("triage", "Decide the priority.", { type: "object" });
+        const same = await prompts.save("triage", "Decide the priority.", { type: "object" });
+        const second = await prompts.save("triage", "Decide the priority, favouring high.", { type: "object" });
 
         expect([first.version, same.version, second.version]).toEqual([1, 1, 2]);
         expect((await prompts.retrieve("triage")).version).toBe(2);

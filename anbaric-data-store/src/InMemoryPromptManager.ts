@@ -6,17 +6,16 @@ class InMemoryPromptManager implements PromptManager {
 
     constructor(private appId : string = currentAppId()) {}
 
-    async save(promptId : string, instructions : string, inputSchema? : JsonSchema, outputSchema? : JsonSchema) : Promise<Prompt> {
+    async save(promptId : string, instructions : string, outputSchema? : JsonSchema) : Promise<Prompt> {
         const history = this.versions.get(promptId) ?? [];
         const latest = history[history.length - 1];
-        if (latest && samePromptContent(latest, instructions, inputSchema, outputSchema)) return this.copy(latest);
+        if (latest && samePromptContent(latest, instructions, outputSchema)) return this.copy(latest);
 
         const prompt : Prompt = {
             appId: this.appId,
             promptId,
             version: (latest?.version ?? 0) + 1,
             instructions,
-            inputSchema: this.copySchema(inputSchema),
             outputSchema: this.copySchema(outputSchema),
             createdAt: new Date().toISOString(),
         };
@@ -47,7 +46,7 @@ class InMemoryPromptManager implements PromptManager {
     }
 
     private copy(prompt : Prompt) : Prompt {
-        return { ...prompt, inputSchema: this.copySchema(prompt.inputSchema), outputSchema: this.copySchema(prompt.outputSchema) };
+        return { ...prompt, outputSchema: this.copySchema(prompt.outputSchema) };
     }
 
     private copySchema(schema? : JsonSchema) : JsonSchema | undefined {

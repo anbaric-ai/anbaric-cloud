@@ -20,15 +20,14 @@ const prompts = PromptManagerFactory.instance();
 await prompts.save(
     "triage",
     "Decide the priority of the support ticket from its subject and body. Escalate anything mentioning an outage.",
-    { type: "object", required: ["subject", "body"], properties: { subject: { type: "string" }, body: { type: "string" } } },
     { type: "object", required: ["priority"], properties: { priority: { type: "string", enum: ["low", "high"] } } },
 );
 ```
 
-A prompt has an **id**, its **instructions**, and optionally an **input
-schema** (the shape of what the model is given) and an **output schema** (what
-it must produce). Edit the instructions and redeploy: the next save stores
-version 2. There's no rollback and no tagging - an app always gets the latest.
+A prompt has an **id**, its **instructions**, and optionally an **output
+schema** - what the model must produce. Edit the instructions and redeploy: the
+next save stores version 2. There's no rollback and no tagging - an app always
+gets the latest.
 
 ## Use the latest where you call the model
 
@@ -56,7 +55,8 @@ const versions = await prompts.history("triage"); // every version, newest first
 ```
 
 The console's **Prompts** page shows the same for every app on the tenant: each
-prompt, its current instructions and schemas, and the full history to browse.
+prompt, its current instructions and output schema, and the full history to
+browse.
 
 ## Everything is scoped to your app
 

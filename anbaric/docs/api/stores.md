@@ -88,27 +88,27 @@ const key = await secrets.retrieve("stripe-key", actor);
 
 ## `PromptManager`
 
-Versioned prompts - instructions plus optional input and output schemas - owned
-by the calling app.
+Versioned prompts - instructions plus an optional output schema - owned by the
+calling app.
 
 ```ts
 PromptManagerFactory.instance() : PromptManager
 
 // methods:
-save(promptId : string, instructions : string, inputSchema? : JsonSchema, outputSchema? : JsonSchema) : Promise<Prompt>
+save(promptId : string, instructions : string, outputSchema? : JsonSchema) : Promise<Prompt>
 retrieve(promptId : string, version? : number) : Promise<Prompt>
 list() : Promise<Array<Prompt>>
 history(promptId : string) : Promise<Array<Prompt>>
 
 type Prompt = {
     appId : string, promptId : string, version : number, instructions : string,
-    inputSchema? : JsonSchema, outputSchema? : JsonSchema, createdAt : string,
+    outputSchema? : JsonSchema, createdAt : string,
 }
 ```
 
 ```ts
 const prompts = PromptManagerFactory.instance();
-await prompts.save("triage", "Decide the priority.", undefined, { type: "object", properties: { priority: { type: "string" } } });
+await prompts.save("triage", "Decide the priority.", { type: "object", properties: { priority: { type: "string" } } });
 const latest   = await prompts.retrieve("triage");      // highest version
 const specific = await prompts.retrieve("triage", 1);
 const all      = await prompts.list();                  // latest of each prompt

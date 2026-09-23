@@ -23,10 +23,10 @@ class PromptsHandler implements RequestHandler {
     }
 
     private async save(request : Request, manager : PromptManager, promptId : string) : Promise<void> {
-        const body = await request.body() as { instructions? : string, inputSchema? : object, outputSchema? : object } | undefined;
+        const body = await request.body() as { instructions? : string, outputSchema? : object } | undefined;
         if (typeof body?.instructions !== "string") return request.reply(400, { error: "instructions is required" });
 
-        request.reply(200, await manager.save(promptId, body.instructions, body.inputSchema, body.outputSchema));
+        request.reply(200, await manager.save(promptId, body.instructions, body.outputSchema));
     }
 
     private async retrieve(request : Request, manager : PromptManager, promptId : string) : Promise<void> {

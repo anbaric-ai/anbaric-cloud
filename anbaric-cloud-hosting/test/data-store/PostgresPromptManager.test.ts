@@ -3,7 +3,7 @@ import {Pool} from "pg";
 import {PostgresPromptManager} from "../../src/data-store/PostgresPromptManager";
 
 const row = (version : number, instructions : string, over : object = {}) => ({
-    app_id: "crm", prompt_id: "triage", version, instructions, input_schema: null, output_schema: { type: "object" },
+    app_id: "crm", prompt_id: "triage", version, instructions, output_schema: { type: "object" },
     created_at: new Date("2026-09-22T10:00:00Z"), ...over,
 });
 
@@ -26,13 +26,12 @@ describe("PostgresPromptManager", () => {
         const client = mockClient([{ rows: [] }, { rows: [] }, { rows: [row(1, "Decide.")] }, { rows: [] }]);
         const { pool } = mockPool(client);
 
-        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "Decide.", undefined, { type: "object" });
+        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "Decide.", { type: "object" });
 
         expect(statements(client)).toEqual(["BEGIN", "SELECT", "INSERT", "COMMIT"]);
         expect(String(client.query.mock.calls[1][0])).toContain("FOR UPDATE");
-        expect(client.query.mock.calls[2][1]).toEqual(["crm", "triage", 1, "Decide.", null, JSON.stringify({ type: "object" })]);
+        expect(client.query.mock.calls[2][1]).toEqual(["crm", "triage", 1, "Decide.", JSON.stringify({ type: "object" })]);
         expect(saved).toMatchObject({ appId: "crm", promptId: "triage", version: 1, outputSchema: { type: "object" }, createdAt: "2026-09-22T10:00:00.000Z" });
-        expect(saved.inputSchema).toBeUndefined();
         expect(client.release).toHaveBeenCalled();
     });
 
@@ -40,7 +39,7 @@ describe("PostgresPromptManager", () => {
         const client = mockClient([{ rows: [] }, { rows: [row(3, "Old.")] }, { rows: [row(4, "New.")] }, { rows: [] }]);
         const { pool } = mockPool(client);
 
-        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "New.", undefined, { type: "object" });
+        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "New.", { type: "object" });
 
         expect(client.query.mock.calls[2][1]![2]).toBe(4);
         expect(saved.version).toBe(4);
@@ -50,10 +49,20 @@ describe("PostgresPromptManager", () => {
         const client = mockClient([{ rows: [] }, { rows: [row(3, "Same.")] }, { rows: [] }]);
         const { pool } = mockPool(client);
 
-        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "Same.", undefined, { type: "object" });
+        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "Same.", { type: "object" });
 
         expect(statements(client)).toEqual(["BEGIN", "SELECT", "COMMIT"]);
         expect(saved.version).toBe(3);
+    });
+
+    it("stores a prompt with no output schema as null", async () => {
+        const client = mockClient([{ rows: [] }, { rows: [] }, { rows: [row(1, "Free text.", { output_schema: null })] }, { rows: [] }]);
+        const { pool } = mockPool(client);
+
+        const saved = await new PostgresPromptManager(pool, "crm").save("triage", "Free text.");
+
+        expect(client.query.mock.calls[2][1]).toEqual(["crm", "triage", 1, "Free text.", null]);
+        expect(saved.outputSchema).toBeUndefined();
     });
 
     it("rolls back when the insert fails", async () => {
