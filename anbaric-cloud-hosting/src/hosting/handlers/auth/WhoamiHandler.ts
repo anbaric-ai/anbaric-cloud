@@ -14,6 +14,7 @@ class WhoamiHandler implements RequestHandler {
                 roles: request.user.roles.map(role => role.id),
                 name: request.user.name,
                 picture: request.user.picture,
+                tenantRole: request.user.tenantRole,
                 tenant: this.tenant ?? request.tenant?.id,
             });
         }

@@ -36,6 +36,7 @@ describe("invitations through the console entry point", () => {
     beforeEach(async () => {
         process.env.ANBARIC_SESSION_SIGNING_SECRET = SECRET;
         memberships = new InMemoryMembershipService("https://central.example/invitations");
+        memberships.add("ada", "OWNER");
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
             undefined, undefined, memberships);
@@ -62,6 +63,40 @@ describe("invitations through the console entry point", () => {
         expect(invitation.link).toBe(`https://central.example/invitations/${invitation.token}`);
     });
 
+    it("refuses to manage members for a role that cannot invite", async () => {
+        memberships.add("bob", "BUILDER");
+        const asBuilder = `anbaric_session=${new SessionSigner(SECRET).mint(new User("bob", [], [], "Bob"), new Tenant("acme"))}`;
+
+        const listed = await fetch(`${baseUrl}/api/v2/invitations`, { headers: { cookie: asBuilder } });
+        const invited = await fetch(`${baseUrl}/api/v2/invitations`, {
+            method: "POST", headers: { "content-type": "application/json", cookie: asBuilder },
+            body: JSON.stringify({ email: "fox@example.com" }),
+        });
+
+        expect(listed.status).toBe(403);
+        expect(invited.status).toBe(403);
+    });
+
+    it("refuses a session belonging to no member of this tenant at all", async () => {
+        const stranger = `anbaric_session=${new SessionSigner(SECRET).mint(new User("nobody"), new Tenant("acme"))}`;
+
+        const response = await fetch(`${baseUrl}/api/v2/invitations`, { headers: { cookie: stranger } });
+
+        expect(response.status).toBe(403);
+        expect((await response.json()).error).toContain("not a member");
+    });
+
+    it("invites at a named role, and never as an owner", async () => {
+        const invite = (role : string) => fetch(`${baseUrl}/api/v2/invitations`, {
+            method: "POST", headers: { "content-type": "application/json", cookie: cookie() },
+            body: JSON.stringify({ email: "fox@example.com", role }),
+        });
+
+        expect((await (await invite("ADMIN")).json()).role).toBe("ADMIN");
+        expect((await invite("OWNER")).status).toBe(400);
+        expect((await invite("SUPERUSER")).status).toBe(400);
+    });
+
     it("rejects an address that is not an email", async () => {
         expect((await invite("fox")).status).toBe(400);
     });
@@ -69,12 +104,13 @@ describe("invitations through the console entry point", () => {
     it("lists what is pending and revokes by token", async () => {
         const { token } = await (await invite("fox@example.com")).json();
 
-        const pending = await (await fetch(`${baseUrl}/api/v2/invitations`)).json();
+        const pending = await (await fetch(`${baseUrl}/api/v2/invitations`, { headers: { cookie: cookie() } })).json();
         expect(pending.map((invitation : any) => invitation.token)).toEqual([token]);
 
-        expect((await fetch(`${baseUrl}/api/v2/invitations/${token}`, { method: "DELETE" })).status).toBe(204);
-        expect((await fetch(`${baseUrl}/api/v2/invitations/${token}`, { method: "DELETE" })).status).toBe(404);
-        expect(await (await fetch(`${baseUrl}/api/v2/invitations`)).json()).toEqual([]);
+        const remove = () => fetch(`${baseUrl}/api/v2/invitations/${token}`, { method: "DELETE", headers: { cookie: cookie() } });
+        expect((await remove()).status).toBe(204);
+        expect((await remove()).status).toBe(404);
+        expect(await (await fetch(`${baseUrl}/api/v2/invitations`, { headers: { cookie: cookie() } })).json()).toEqual([]);
     });
 
 });

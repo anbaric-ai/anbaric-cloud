@@ -1,8 +1,10 @@
+import {TenantRole} from "./TenantRole";
+
 type PendingInvitation = {
 
     token : string,
     email : string,
-    role : string,
+    role : TenantRole,
     invitedBy : string,
     invitedByName? : string,
     link : string,
@@ -19,16 +21,19 @@ type Inviter = {
 
 };
 
-/* Invitations into this tenant. Membership itself is decided wherever people
-   sign in (Anbaric Cloud's central login), so a platform only asks that
-   service to invite, list and revoke on the tenant's behalf. */
+/* Who belongs to this tenant and as what, and the invitations that get them
+   here. Membership is decided wherever people sign in (Anbaric Cloud's central
+   login), which owns the tenant definitions; a platform asks it who its caller
+   is, and asks it to invite, list and revoke on the tenant's behalf. */
 interface MembershipService {
 
-    invite(email : string, invitedBy : Inviter) : Promise<PendingInvitation>;
+    roleFor(userId : string) : Promise<TenantRole | undefined>;
 
-    pending() : Promise<Array<PendingInvitation>>;
+    invite(email : string, role : TenantRole, invitedBy : Inviter) : Promise<PendingInvitation>;
 
-    revoke(token : string) : Promise<boolean>;
+    pending(asking : Inviter) : Promise<Array<PendingInvitation>>;
+
+    revoke(token : string, asking : Inviter) : Promise<boolean>;
 
 }
 

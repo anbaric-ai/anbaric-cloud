@@ -3,6 +3,7 @@ import {ServerResponse} from "node:http";
 import {SESSION_COOKIE} from "./Authenticator";
 import {Role} from "./Role";
 import {Tenant} from "./Tenant";
+import {TenantRole, isTenantRole} from "./TenantRole";
 import {User} from "./User";
 
 const DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -43,6 +44,7 @@ class SessionSigner {
             name: user.name,
             picture: user.picture,
             email: user.email,
+            tenantRole: user.tenantRole,
             exp: nowSeconds() + this.ttlSeconds,
         };
         const payload = base64url(JSON.stringify(claims));
@@ -55,7 +57,7 @@ class SessionSigner {
         const [payload, signature] = token.split(".");
         if (!payload || !signature || !this.signatureMatches(payload, signature)) return undefined;
 
-        let claims : { sub? : unknown, tenant? : unknown, roles? : unknown, name? : unknown, picture? : unknown, email? : unknown, exp? : unknown };
+        let claims : { sub? : unknown, tenant? : unknown, roles? : unknown, name? : unknown, picture? : unknown, email? : unknown, tenantRole? : unknown, exp? : unknown };
         try {
             claims = JSON.parse(Buffer.from(payload, "base64url").toString());
         } catch {
@@ -70,7 +72,8 @@ class SessionSigner {
         const name = typeof claims.name === "string" ? claims.name : undefined;
         const picture = typeof claims.picture === "string" ? claims.picture : undefined;
         const email = typeof claims.email === "string" ? claims.email : undefined;
-        return [new User(claims.sub, roles, [], name, picture, email), tenant];
+        const tenantRole = isTenantRole(claims.tenantRole) ? claims.tenantRole as TenantRole : undefined;
+        return [new User(claims.sub, roles, [], name, picture, email, tenantRole), tenant];
     }
 
     // Sets (or, for a still-valid session, refreshes) the session cookie.

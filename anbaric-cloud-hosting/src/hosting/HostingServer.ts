@@ -141,7 +141,7 @@ class HostingServer {
 
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
-            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory),
+            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships),
         ]);
         this.internalServer = new Server(internalRouter);
     }

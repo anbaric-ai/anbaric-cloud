@@ -3,6 +3,7 @@ import {SessionSigner} from "../../auth/SessionSigner";
 import {TokenAuthenticator} from "../../auth/TokenAuthenticator";
 import {User} from "../../auth/User";
 import {UserDirectory} from "../../auth/UserDirectory";
+import {MembershipService} from "../../auth/MembershipService";
 import {Middleware} from "../Middleware";
 import {Request} from "../Request";
 
@@ -26,7 +27,8 @@ class AuthenticationMiddleware implements Middleware {
                 private tokenAuthenticator? : TokenAuthenticator,
                 private isOpen : OpenRequestPredicate = () => false,
                 private sessionSigner : SessionSigner = new SessionSigner(),
-                private userDirectory? : UserDirectory) {}
+                private userDirectory? : UserDirectory,
+                private memberships? : MembershipService) {}
 
     async apply(request : Request) : Promise<boolean> {
         if (this.isOpen(request)) return true;
@@ -35,6 +37,7 @@ class AuthenticationMiddleware implements Middleware {
             const user = await this.tokenAuthenticator.authenticate(request.raw, request.rawResponse);
             if (!user) return false;
             request.user = user;
+            if (! await this.admitted(request)) return false;
             return this.authorized(request);
         }
 
@@ -42,6 +45,7 @@ class AuthenticationMiddleware implements Middleware {
             const session = this.sessionSigner.verify(request.session);
             if (session) {
                 [request.user, request.tenant] = session;
+                if (! await this.admitted(request)) return false;
                 this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
                 await this.remember(request.user!);
                 return this.authorized(request);
@@ -63,11 +67,32 @@ class AuthenticationMiddleware implements Middleware {
         if (!authenticated) return false;
 
         [request.user, request.tenant] = authenticated;
+        if (! await this.admitted(request)) return false;
         if (this.sessionSigner.configured && !request.handled) {
             this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
         }
         await this.remember(request.user!);
         return this.authorized(request);
+    }
+
+    /* Membership in this tenant is what admits a browser session at all, and
+       the role it carries is what the handlers gate on. A platform with no
+       membership service - a local or unmanaged install - admits everyone, as
+       it always has. Central being unreachable must not lock the tenant out,
+       so a lookup that throws is left to the handlers to refuse. */
+    private async admitted(request : Request) : Promise<boolean> {
+        if (! this.memberships || ! request.user) return true;
+
+        try {
+            request.user.tenantRole = await this.memberships.roleFor(request.user.id);
+        } catch (error) {
+            console.error(`[membership] could not resolve a role for "${request.user.id}":`, error);
+            return true;
+        }
+
+        if (request.user.tenantRole) return true;
+        if (! request.handled) request.reply(403, { error: "You are not a member of this tenant" });
+        return false;
     }
 
     private async remember(user : User) : Promise<void> {

@@ -1,4 +1,5 @@
 import {BuildLayer} from "../../app-management/BuildLayer";
+import {deniesBuild} from "../../auth/TenantRole";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 
@@ -7,6 +8,11 @@ class AppsHandler implements RequestHandler {
     constructor(private buildLayer : BuildLayer) {}
 
     async handle(request : Request) : Promise<void> {
+        // Changing what is deployed is a builder's job; a USER may look.
+        if (this.changesApps(request) && deniesBuild(request.user?.tenantRole)) {
+            return request.reply(403, { error: "Your role in this tenant cannot deploy or remove apps" });
+        }
+
         await this.buildLayer.ensureHydrated();
         switch (request.subresource) {
             case "deploy":
@@ -23,6 +29,11 @@ class AppsHandler implements RequestHandler {
                 return this.handleCollection(request);
         }
         request.notFound();
+    }
+
+    private changesApps(request : Request) : boolean {
+        if (request.subresource === "deploy" || request.subresource === "docs") return true;
+        return request.subresource === undefined && request.method === "DELETE";
     }
 
     private async handleDocs(request : Request, appName : string) : Promise<void> {

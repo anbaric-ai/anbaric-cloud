@@ -1,5 +1,6 @@
 import {CliKey} from "./CliKey";
 import {CliKeyStore} from "./CliKeyStore";
+import {TenantRole} from "./TenantRole";
 
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
@@ -44,8 +45,10 @@ class HttpCliKeyStore implements CliKeyStore {
         if (response.status === 404) return undefined;
         if (!response.ok) throw new Error(`The key lookup failed with status ${response.status}`);
 
-        const found = await response.json() as { userId : string, clientName? : string, publicKey : string, tenant? : string };
-        return new CliKey(id, found.userId, found.clientName ?? "", found.publicKey, found.tenant ?? undefined);
+        const found = await response.json() as
+            { userId : string, clientName? : string, publicKey : string, tenant? : string, tenantRole? : TenantRole };
+        return new CliKey(id, found.userId, found.clientName ?? "", found.publicKey, found.tenant ?? undefined,
+            new Date(), found.tenantRole);
     }
 
 }

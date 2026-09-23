@@ -37,7 +37,7 @@ class TokenAuthenticator {
         if (this.tenant && key.tenant && key.tenant !== this.tenant) return undefined;
         if (!this.signatureValid(headerPart, payloadPart, signaturePart, key.publicKey)) return undefined;
 
-        return new User(key.userId);
+        return new User(key.userId, [], [], undefined, undefined, undefined, key.tenantRole);
     }
 
     private signatureValid(headerPart : string, payloadPart : string, signaturePart : string,

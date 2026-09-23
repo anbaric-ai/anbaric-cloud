@@ -507,7 +507,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 body: JSON.stringify({ clientName }),
             });
 
-        it("returns the session's tenant with the issued keypair, preferring it over the platform's", async () => {
+        it("returns the platform's own tenant with the issued keypair, not the session's", async () => {
             const tenantServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new StubAuthenticator(),
                 new CliAuthorizer(new InMemoryCliKeyStore()), undefined, "fallback-tenant");
@@ -516,7 +516,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await approve("req-tenant", "chris laptop", tenantUrl);
             const issued = await (await fetch(`${tenantUrl}/authorize-cli/req-tenant/poll`)).json();
 
-            expect(issued.tenant).toBe("internal");
+            expect(issued.tenant).toBe("fallback-tenant");
             expect(issued.privateKey).toContain("PRIVATE KEY");
             await tenantServer.close();
         });
