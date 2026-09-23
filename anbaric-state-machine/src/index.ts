@@ -3,6 +3,8 @@ export * from "./actions/RemoteLLMAgenticAction.js";
 export * from "./actors/Code.js";
 export * from "./actors/Human.js";
 export * from "./actors/agents/OpenAIAgent.js";
+export * from "./actors/agents/AnthropicAgent.js";
+export * from "./actors/agents/GeminiAgent.js";
 export * from "./auditing/AuditorFactory.js";
 export * from "./auditing/ConsoleAuditor.js";
 export * from "./entitlements/PermissiveAuthorizer.js";

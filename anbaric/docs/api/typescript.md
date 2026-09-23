@@ -8,7 +8,7 @@ almost everything:
 import {
     StateMachine, State, Terminal, Action, Await, Transition,
     Job, PropertyDefinition,
-    Code, Human, SystemActor, Agent, OpenAIAgent, RemoteLLMAgenticAction,
+    Code, Human, SystemActor, Agent, OpenAIAgent, AnthropicAgent, GeminiAgent, RemoteLLMAgenticAction,
     JsonStoreFactory, SecretStoreFactory, SqlStoreFactory, PromptManagerFactory,
     registerEntitlement, hasEntitlement,
 } from "anbaric";
@@ -26,7 +26,7 @@ An Anbaric app is a standard Node.js **ESM** program in TypeScript: set
   `Action`, `Await`, `WaitForInput`, `Transition`, `Job`, `PropertyDefinition`,
   `Actor`.
 - **[Actors and agents](actors-and-agents.md)** — `Code`, `Human`,
-  `SystemActor`, `Agent`, `RemoteLLMAgenticAction`, `OpenAIAgent`.
+  `SystemActor`, `Agent`, `RemoteLLMAgenticAction`, `OpenAIAgent`, `AnthropicAgent`, `GeminiAgent`.
 - **[Stores](stores.md)** — `JsonStore`, `SecretStore`, `SqlStore`,
   `PromptManager` and their factories, plus `JsonSchema`.
 - **[Entitlements](../features/entitlements.md)** — `registerEntitlement`,

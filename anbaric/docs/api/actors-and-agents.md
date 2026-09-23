@@ -3,7 +3,7 @@
 Who performs work, and how AI models plug in. Import from `anbaric`.
 
 ```ts
-import {Code, Human, SystemActor, Agent, OpenAIAgent, RemoteLLMAgenticAction} from "anbaric";
+import {Code, Human, SystemActor, Agent, OpenAIAgent, AnthropicAgent, GeminiAgent, RemoteLLMAgenticAction} from "anbaric";
 import type {Actor, ActorType} from "anbaric";
 ```
 
@@ -154,6 +154,53 @@ const triager = new OpenAIAgent("triager", "support", {
 
 The optional `fetchFn` lets you inject a custom fetch (useful in tests). Requests
 that fail throw `The OpenAI request failed with status <n>`.
+
+### `AnthropicAgent`
+
+An `Agent` backed by the Anthropic Messages API. The API has no JSON-schema
+response format, so the output schema is offered as a single tool the model is
+forced to call; its arguments are the structured output. System messages are
+lifted out of the conversation into the API's own `system` field.
+
+```ts
+class AnthropicAgent extends Agent
+constructor(id : string, role : string, connection : AnthropicConnection, fetchFn? : FetchFn)
+
+type AnthropicConnection = {
+    apiKey : string,
+    model : string,
+    baseUrl? : string,        // default "https://api.anthropic.com/v1"
+    version? : string,        // anthropic-version header, default "2023-06-01"
+    maxTokens? : number,      // the Messages API requires a budget, default 4096
+}
+```
+
+Failures throw `The Anthropic request failed with status <n>`; a model that
+answers with prose instead of calling the tool throws `The Anthropic response
+carried no structured content`.
+
+### `GeminiAgent`
+
+An `Agent` backed by the Gemini generative language API, asking for JSON against
+the output schema. System messages become `systemInstruction`, assistant turns
+are sent as the `model` role, and the API key travels as a header rather than a
+query parameter.
+
+```ts
+class GeminiAgent extends Agent
+constructor(id : string, role : string, connection : GeminiConnection, fetchFn? : FetchFn)
+
+type GeminiConnection = {
+    apiKey : string,
+    model : string,
+    baseUrl? : string,        // default "https://generativelanguage.googleapis.com/v1beta"
+}
+```
+
+Gemini's `responseSchema` is an OpenAPI subset rather than JSON Schema, so the
+schema you pass is converted: types are upper-cased and keywords it rejects
+(`additionalProperties` among them) are dropped. Failures throw `The Gemini
+request failed with status <n>`.
 
 ---
 

@@ -73,21 +73,40 @@ const triage = new RemoteLLMAgenticAction("Triage the ticket", triager,
     [{ role: "system", content: prompt.instructions }], prompt.outputSchema!);
 ```
 
-## Bring your own model
+## Choose a provider
 
-`OpenAIAgent` targets any OpenAI-compatible endpoint. Configure it with a
-connection object:
+Three agents ship with the library. They take the same `(id, role, connection)`
+shape, produce the same structured output against your schema, and are
+interchangeable in an agentic action - only the connection differs:
 
 ```ts
+import {AnthropicAgent, GeminiAgent, OpenAIAgent} from "anbaric";
+
 new OpenAIAgent("triager", "support", {
     apiKey: process.env.OPENAI_API_KEY!,
     model: "gpt-5.4-mini",
     baseUrl: "https://api.openai.com/v1",   // optional; override for a compatible provider
     organization: "org_...",                 // optional
 });
+
+new AnthropicAgent("triager", "support", {
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    model: "claude-opus-5",
+    maxTokens: 4096,                         // optional; the Messages API needs a budget
+});
+
+new GeminiAgent("triager", "support", {
+    apiKey: process.env.GEMINI_API_KEY!,
+    model: "gemini-3-pro",
+});
 ```
 
-For a different provider entirely, implement an `Agent.Client` (a class with a
+Each asks its provider for structured output the way that provider supports it -
+OpenAI's JSON-schema response format, a forced tool call on Anthropic, Gemini's
+JSON response schema - so your action only ever sees properties matching the
+schema you gave it.
+
+For a provider none of them covers, implement an `Agent.Client` (a class with a
 `generate(request)` method) and pass it to a plain `Agent`. See the [API
 reference](../api/actors-and-agents.md#agents-and-ai) for the client contract.
 
