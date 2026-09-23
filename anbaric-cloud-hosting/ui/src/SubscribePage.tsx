@@ -14,6 +14,10 @@ type Status = {
   status: 'none' | 'subscribing' | 'provisioning' | 'active' | 'failed'
   slug: string
   prices: Record<Plan, PlanPrice>
+  // Where the provisioner has actually got to, and the run of stages it will
+  // pass through. Absent until there is something being built.
+  stage?: string
+  stages?: Array<string>
 }
 
 const PLANS: Array<{ plan: Plan; name: string; blurb: string }> = [
@@ -175,7 +179,11 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   if (data.status === 'subscribing' || data.status === 'provisioning') {
     return (
       <PageShell title="Setting things up">
-        <ProvisioningPage message="This usually takes a few minutes. You can keep this tab open — it updates itself." />
+        <ProvisioningPage
+          message="This usually takes a couple of minutes. You can keep this tab open — it updates itself."
+          stages={data.stages}
+          stage={data.stage}
+        />
       </PageShell>
     )
   }

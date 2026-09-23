@@ -4,18 +4,22 @@ import { Card } from '@anbaric/design-system/components/Card'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
 
 // Deliberately non-specific, reassuring language - a "train of thought" rather
-// than raw infrastructure steps ("Creating your network", not "Provisioning a VPC").
-const THOUGHTS = [
-  'Setting up your account',
-  'Creating your private network',
-  'Preparing your database',
-  'Building your platform',
-  'Wiring up secure access',
-  'Starting your environment',
-  'Running the final checks',
-]
+// than raw infrastructure steps ("Preparing your database", not "Creating an
+// RDS instance"). The keys come from the provisioner, which reports what it is
+// actually doing; the words live here so the two can change apart.
+const WORDS: Record<string, string> = {
+  queued: 'Setting up your account',
+  network: 'Securing your private network',
+  database: 'Preparing your database',
+  platform: 'Building your platform',
+  starting: 'Starting your environment',
+  checks: 'Running the final checks',
+}
 
-const REVEAL_MS = 3500
+// A stage that runs longer than this gets a running time beside it. Silence on
+// a slow step reads as a hang, and saying how long it has been is kinder than
+// a spinner that could mean anything.
+const PATIENCE_MS = 45_000
 
 const heading: CSSProperties = {
   margin: 0,
@@ -48,24 +52,52 @@ const thought = (state: 'done' | 'current' | 'upcoming'): CSSProperties => ({
   transition: 'opacity var(--duration-medium, 200ms) ease',
 })
 
-const dot = (state: 'done' | 'current'): CSSProperties => ({
+const dot = (state: 'done' | 'current' | 'upcoming'): CSSProperties => ({
   width: '0.55rem',
   height: '0.55rem',
   borderRadius: '50%',
   flex: '0 0 auto',
-  background: state === 'done' ? 'var(--color-success, var(--color-primary))' : 'var(--color-primary)',
+  background: state === 'upcoming' ? 'var(--color-foreground-tint-3, var(--color-foreground-tint-2))'
+    : state === 'done' ? 'var(--color-success, var(--color-primary))' : 'var(--color-primary)',
   boxShadow: state === 'current' ? '0 0 0 0.2rem color-mix(in srgb, var(--color-primary) 25%, transparent)' : 'none',
   animation: state === 'current' ? 'ds-pulse 1.2s ease-in-out infinite' : 'none',
 })
 
-function ProvisioningPage({ message, failed = false }: { message: string; failed?: boolean }) {
-  const [revealed, setRevealed] = useState(1)
+const elapsed: CSSProperties = {
+  marginLeft: 'auto',
+  fontSize: '0.8rem',
+  color: 'var(--color-foreground-tint-2)',
+  fontVariantNumeric: 'tabular-nums',
+}
+
+const since = (from: number) => {
+  const seconds = Math.floor((Date.now() - from) / 1000)
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+}
+
+type Props = {
+  message: string
+  failed?: boolean
+  stages?: Array<string>
+  stage?: string
+}
+
+function ProvisioningPage({ message, failed = false, stages = [], stage }: Props) {
+  const [, tick] = useState(0)
+  const [startedAt] = useState(() => Date.now())
+  const [stageAt, setStageAt] = useState(() => Date.now())
+
+  useEffect(() => setStageAt(Date.now()), [stage])
 
   useEffect(() => {
     if (failed) return
-    const timer = setInterval(() => setRevealed((n) => Math.min(n + 1, THOUGHTS.length)), REVEAL_MS)
+    const timer = setInterval(() => tick((n) => n + 1), 1000)
     return () => clearInterval(timer)
   }, [failed])
+
+  const reached = stage ? stages.indexOf(stage) : -1
+  const waiting = Date.now() - stageAt
+  const patient = Date.now() - startedAt > 10 * 60_000
 
   return (
     <Card>
@@ -75,18 +107,25 @@ function ProvisioningPage({ message, failed = false }: { message: string; failed
 
       {failed ? null : <LoadingBar messages={[]} />}
 
-      {failed ? null : (
+      {failed || stages.length === 0 ? null : (
         <div style={log}>
-          {THOUGHTS.slice(0, revealed).map((line, i) => {
-            const state = i < revealed - 1 ? 'done' : 'current'
+          {stages.map((key, index) => {
+            const state = index < reached ? 'done' : index === reached ? 'current' : 'upcoming'
             return (
-              <div key={line} style={thought(state)}>
+              <div key={key} style={thought(state)}>
                 <span style={dot(state)} aria-hidden="true" />
-                {line}
+                {WORDS[key] ?? 'Working on it'}
+                {state === 'current' && waiting > PATIENCE_MS ? <span style={elapsed}>{since(stageAt)}</span> : null}
               </div>
             )
           })}
         </div>
+      )}
+
+      {failed || !patient ? null : (
+        <p style={{ ...lead, margin: 'var(--space-lg) 0 0' }}>
+          Still working. This one is taking longer than usual, but nothing has gone wrong.
+        </p>
       )}
     </Card>
   )
