@@ -19,13 +19,18 @@ describe("WorkflowDefinition.describe", () => {
         expect(definition.states[0].transitions).toEqual([{ to: "closed" }]);
     });
 
-    it("omits awaits from the graph - they are pause points, not actors acting", () => {
-        const state = new State("review", [new Await("Wait", "HUMAN"), new Action("Triage", actor)]);
+    it("keeps awaits apart from actions, with what each waits on", () => {
+        const state = new State("review", [
+            new Await("Wait", "HUMAN", "A manager decides"), new Action("Triage", actor), new Await("Callback"),
+        ]);
 
         const definition = WorkflowDefinition.describe(undefined, "wf", "review", [state], []);
 
-        expect(definition.states[0].actions).toHaveLength(1);
-        expect(definition.states[0].actions[0].name).toBe("Triage");
+        expect(definition.states[0].actions.map(action => action.name)).toEqual(["Triage"]);
+        expect(definition.states[0].awaits).toEqual([
+            { name: "Wait", description: "A manager decides", waitingFor: "HUMAN" },
+            { name: "Callback", description: "" },
+        ]);
     });
 
     // So the console can show what a transition tests, not just where it goes.

@@ -4,10 +4,10 @@ import {PropertyDefinition} from "../jobs/PropertyDefinition.js";
 import {Await} from "../actions/Await.js";
 
 /* The serialisable graph of a state machine: its states, each state's actions
-   (identity only — the run/predicate bodies aren't persistable) and
-   transitions. Recorded as the details of an audit record when a state machine
-   initialises. Awaits are pause points rather than actors acting, so they are
-   not part of the graph - awaiting jobs are surfaced separately. */
+   (identity only — the run/predicate bodies aren't persistable), its awaits
+   (the pause points, and which kind of party each waits on) and transitions.
+   Recorded as the details of an audit record when a state machine
+   initialises. Awaiting jobs themselves are surfaced separately. */
 type WorkflowDefinition = {
 
     appId? : string,
@@ -18,6 +18,7 @@ type WorkflowDefinition = {
         id : string,
         isTerminal : boolean,
         actions : Array<{ name : string, description : string, actor : { id : string, type : string, roles : Array<string> } }>,
+        awaits : Array<{ name : string, description : string, waitingFor? : "HUMAN" | "EXTERNAL_SYSTEM" }>,
         transitions : Array<{ to : string, predicate? : string }>,
     }>,
 
@@ -61,6 +62,13 @@ namespace WorkflowDefinition {
                     name: action.name,
                     description: action.description,
                     actor: { id: action.actor.id, type: action.actor.type, roles: action.actor.roles },
+                })),
+            awaits: state.actions
+                .filter((action) : action is Await => action instanceof Await)
+                .map(waiting => ({
+                    name: waiting.name,
+                    description: waiting.description,
+                    ...(waiting.waitingFor === undefined ? {} : { waitingFor: waiting.waitingFor }),
                 })),
             transitions: state.transitions.map(transition => ({
                 to: transition.to,
