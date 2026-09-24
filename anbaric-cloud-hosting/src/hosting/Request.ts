@@ -2,6 +2,7 @@ import {randomUUID} from "node:crypto";
 import {IncomingMessage, ServerResponse} from "node:http";
 import {Tenant} from "../auth/Tenant";
 import {User} from "../auth/User";
+import {ErrorPage, NOT_FOUND, render} from "./pages/ErrorPage";
 
 /* One inbound request: the parsed URL and body plus everything the server's
    middleware decorates it with - session, user, tenant, ray trace id -
@@ -125,7 +126,32 @@ class Request {
     }
 
     notFound() : void {
-        this.reply(404, { error: "Not found" });
+        this.replyProblem(NOT_FOUND);
+    }
+
+    /* Answers in whatever the caller can read: a person gets a page that says
+       what happened, a client gets the json it was expecting. Deciding by the
+       Accept header rather than by the route means an api call never has html
+       pushed at it, and a browser never sees a bare error object. */
+    replyProblem(page : ErrorPage) : void {
+        const retry = page.retryAfter ? { "retry-after": String(page.retryAfter) } : {};
+
+        if (! this.wantsHtml()) {
+            this.response.writeHead(page.status, { "content-type": "application/json", ...retry });
+            this.response.end(JSON.stringify({ error: page.heading, detail: page.detail }));
+            return;
+        }
+
+        this.response.writeHead(page.status, {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store",
+            ...retry,
+        });
+        this.response.end(render(page));
+    }
+
+    private wantsHtml() : boolean {
+        return String(this.header("accept") ?? "").includes("text/html");
     }
 
 }

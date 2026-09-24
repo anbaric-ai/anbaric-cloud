@@ -2,6 +2,7 @@ import {IncomingHttpHeaders, OutgoingHttpHeaders, request as httpRequest} from "
 import {BuildLayer} from "../../app-management/BuildLayer";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
+import {DEPLOYING, FAILED, NOT_RUNNING} from "../pages/ErrorPage";
 
 /* Headers that describe a single hop and must not be forwarded across the
    proxy in either direction. */
@@ -25,7 +26,17 @@ class AppProxyHandler implements RequestHandler {
         const appName = request.id;
         if (!appName) return request.notFound();
         const app = this.buildLayer.status(appName);
-        if (!app || app.status !== "running") return request.notFound();
+        if (! app) return request.notFound();
+
+        /* An app is torn down while its replacement builds, so a visitor who
+           arrives mid-deploy would otherwise be told the app does not exist.
+           It does; it is just between versions, and saying so - with a page
+           that comes back on its own - is the difference between a blip and an
+           outage as far as anyone watching is concerned. */
+        if (app.status !== "running") {
+            return request.replyProblem(
+                app.status === "building" ? DEPLOYING : app.status === "failed" ? FAILED : NOT_RUNNING);
+        }
 
         const appPath = request.url.pathname.slice(`/app/${appName}`.length) || "/";
         const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.rawBody();
