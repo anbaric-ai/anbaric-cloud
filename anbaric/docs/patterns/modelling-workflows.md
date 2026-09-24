@@ -98,6 +98,20 @@ amount.required = true;
 amount.validation = (v) => typeof v === "number" && v > 0;
 ```
 
+Give every property that is not a plain string an **`example`**. The console's
+Start dialog opens on a JSON object built from the schema, and the example is
+what it shows for that property; without one it can only guess from the name,
+and for anything it cannot place it puts `null`. A job started that way then
+runs straight into your actions, so read such properties with a default:
+
+```ts
+const companies = new PropertyDefinition("companies");
+companies.example = [{ slug: "acme", companyName: "Acme Corp" }];
+
+// in an action
+const companies = job.properties.get("companies") ?? [];
+```
+
 ## See also
 
 - [State machines](../features/state-machines.md)
