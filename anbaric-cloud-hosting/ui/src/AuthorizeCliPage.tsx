@@ -15,6 +15,7 @@ const field: CSSProperties = {
 
 function AuthorizeCliPage({ requestId }: { requestId: string }) {
   const [state, setState] = useState<'form' | 'done' | 'failed'>('form')
+  const [refusal, setRefusal] = useState<string | undefined>(undefined)
   // A person who has no provisioned tenant yet is sent through subscribe +
   // provisioning first; only an already-active tenant sees the approve form.
   const [gate, setGate] = useState<'loading' | 'authorize' | 'subscribe'>('loading')
@@ -45,7 +46,14 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ clientName }),
     })
-    setState(response.ok ? 'done' : 'failed')
+    if (response.ok) return setState('done')
+
+    // Say what the platform actually objected to. The common refusal is a role
+    // that cannot create keys in the tenant this session is currently in, which
+    // "try again" will never fix - switching tenant will.
+    const reason = (await response.json().catch(() => ({}))).error
+    setRefusal(typeof reason === 'string' ? reason : undefined)
+    setState('failed')
   }
 
   return (
@@ -76,8 +84,9 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
           </Form>
           {state === 'failed' ? (
             <Alert variant="danger" title="Authorization failed">
-              The platform rejected the request — check the terminal is still
-              waiting and try again.
+              {refusal
+                ? `${refusal}. If this is the wrong tenant, switch to the one you meant and run the command again.`
+                : 'The platform rejected the request — check the terminal is still waiting and try again.'}
             </Alert>
           ) : null}
         </Card>

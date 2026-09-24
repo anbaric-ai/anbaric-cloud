@@ -1,6 +1,6 @@
 {
   "name": "anbaric-data-store",
-  "version": "1.47.0",
+  "version": "1.48.0",
   "description": "Data stores for Anbaric apps: schema-validated JSON documents, encrypted secrets, and a relational (SQL) store, backed in memory / SQLite locally or by the Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -20,8 +20,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "anbaric-impl-cloud": "^1.47.0",
-    "anbaric-tsapi": "^1.47.0",
+    "anbaric-impl-cloud": "^1.48.0",
+    "anbaric-tsapi": "^1.48.0",
     "pg": "^8.16.0"
   },
   "devDependencies": {
