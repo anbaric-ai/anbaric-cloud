@@ -7,6 +7,7 @@ import { Card } from '@anbaric/design-system/components/Card'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
 
 import { PageShell } from './PageShell'
+import { signedOut, signInAgain } from './session'
 import { ProvisioningPage } from './ProvisioningPage'
 
 type Plan = 'solo' | 'team'
@@ -79,6 +80,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       if (redirectingRef.current) return
       try {
         const response = await fetch('/subscribe/status')
+        if (signedOut(response)) return signInAgain()
         if (!response.ok) throw new Error('status')
         const status: Status = await response.json()
         if (!live) return
