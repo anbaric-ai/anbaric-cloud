@@ -83,20 +83,31 @@ class SessionSigner {
 
     // Sets (or, for a still-valid session, refreshes) the session cookie.
     issue(response : ServerResponse, user : User, tenant? : Tenant) : void {
-        const cookie = `${SESSION_COOKIE}=${this.mint(user, tenant)}; ${this.attributes(this.ttlSeconds)}`;
-        const existing = response.getHeader("Set-Cookie");
-        if (existing === undefined) response.setHeader("Set-Cookie", cookie);
-        else response.setHeader("Set-Cookie", Array.isArray(existing) ? [...existing, cookie] : [String(existing), cookie]);
+        this.setCookies(response, [`${SESSION_COOKIE}=${this.mint(user, tenant)}; ${this.attributes(this.ttlSeconds)}`, ...this.hostOnlyExpiry()]);
     }
 
     // Expires the session cookie; the attributes must match issue() or the
     // browser keeps the original cookie alongside this one.
     clear(response : ServerResponse) : void {
-        response.setHeader("Set-Cookie", `${SESSION_COOKIE}=; ${this.attributes(0)}`);
+        this.setCookies(response, [`${SESSION_COOKIE}=; ${this.attributes(0)}`, ...this.hostOnlyExpiry()]);
     }
 
-    private attributes(maxAge : number) : string {
-        return `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}${this.domain ? `; Domain=${this.domain}` : ""}`;
+    private setCookies(response : ServerResponse, cookies : Array<string>) : void {
+        const existing = response.getHeader("Set-Cookie");
+        const before = existing === undefined ? [] : Array.isArray(existing) ? existing : [String(existing)];
+        response.setHeader("Set-Cookie", [...before, ...cookies]);
+    }
+
+    private attributes(maxAge : number, domain = this.domain) : string {
+        return `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}${domain ? `; Domain=${domain}` : ""}`;
+    }
+
+    /* A browser that logged in before the cookie was scoped to the domain still
+       holds a host-only cookie of the same name, sends it first, and would be
+       refused for ever. Expiring that variant alongside the real cookie ends
+       it on the first response. */
+    private hostOnlyExpiry() : Array<string> {
+        return this.domain ? [`${SESSION_COOKIE}=; ${this.attributes(0, "")}`] : [];
     }
 
     private sign(payload : string) : string {

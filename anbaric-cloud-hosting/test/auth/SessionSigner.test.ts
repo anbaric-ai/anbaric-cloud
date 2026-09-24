@@ -9,6 +9,7 @@ const cookieResponse = () => {
     return {
         response: { getHeader: (name : string) => headers[name], setHeader: (name : string, value : any) => { headers[name] = value; } } as any,
         cookie: () => String(headers["Set-Cookie"]),
+        cookies: () => [headers["Set-Cookie"]].flat().map(String),
     };
 };
 
@@ -69,9 +70,22 @@ describe("SessionSigner", () => {
         scoped.issue(issued.response, new User("ada"));
         scoped.clear(cleared.response);
 
-        expect(issued.cookie()).toContain("; Domain=staging.example");
-        expect(cleared.cookie()).toContain("; Domain=staging.example");
-        expect(cleared.cookie()).toContain("Max-Age=0");
+        expect(issued.cookies()[0]).toContain("; Domain=staging.example");
+        expect(cleared.cookies()[0]).toContain("; Domain=staging.example");
+        expect(cleared.cookies()[0]).toContain("Max-Age=0");
+    });
+
+    it("expires a host-only cookie left from before the domain was configured", () => {
+        const scoped = new SessionSigner("test-secret", 60, "staging.example");
+        const issued = cookieResponse();
+
+        scoped.issue(issued.response, new User("ada"));
+
+        const stale = issued.cookies()[1];
+        expect(stale).toMatch(/^anbaric_session=; /);
+        expect(stale).toContain("Max-Age=0");
+        expect(stale).not.toContain("Domain=");
+        expect(new SessionSigner("test-secret", 60, undefined).mint(new User("ada"))).toBeDefined();
     });
 
     it("uses the configured ttl for the cookie lifetime", () => {
