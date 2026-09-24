@@ -41,10 +41,18 @@ class LoginCommand {
             if (tenant) console.log(`${check} Logged into tenant ${bold(tenant)}`);
             console.log(dim(`  keypair saved to ${keyPath}, config to ${path}`));
 
+            /* Being authorized and having somewhere to deploy are two different
+               things, and the terminal is the last place anyone finds out. Say
+               which one is missing and where to go and finish it, rather than
+               leaving a cross on the screen with nothing to do about it. */
             if (tenant) {
-                console.log(await this.tenantReachable(platformUrl, tenant)
-                    ? `${check} Connected to tenant ${bold(tenant)} successfully`
-                    : `${cross} No infra is provisioned for ${bold(tenant)}`);
+                if (await this.tenantReachable(platformUrl, tenant)) {
+                    console.log(`${check} Connected to tenant ${bold(tenant)} successfully`);
+                } else {
+                    console.log(`${cross} Nothing is running yet for ${bold(tenant)}`);
+                    console.log(dim(`  You are logged in, but this tenant has no environment to deploy to.`));
+                    console.log(dim(`  Finish setting it up at ${bold(`${platformUrl}/subscribe`)}, then try again.`));
+                }
             }
             return 0;
         } catch (error) {
