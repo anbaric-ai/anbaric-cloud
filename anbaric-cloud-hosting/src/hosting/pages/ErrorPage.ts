@@ -1,11 +1,16 @@
+import {readFileSync} from "node:fs";
+
 /* Pages for the moments when there is nothing to show. These are served by the
    platform itself rather than the console bundle, so they carry no assets and
-   no stylesheet: the values below are the design system's own tokens, copied
-   because the platform has no way to read that package at runtime. Keep them in
-   step with anbaric-design-system/tokens.css.
+   no stylesheet: the values below are the design system's own tokens, and the
+   logo beside them is its lockup, both copied because the platform has no way
+   to read that package at runtime. Keep them in step with
+   anbaric-design-system/tokens.css and shared/assets/anbaric-logo.svg.
 
    A page that says "back in a moment" is worth more than a stack trace to
    someone who only wanted to look at an app while it happened to be mid-deploy. */
+
+const LOGO = `data:image/svg+xml;base64,${readFileSync(new URL("./assets/anbaric-logo.svg", import.meta.url)).toString("base64")}`;
 
 const TOKENS = {
     background: "#f7f8fa",
@@ -13,7 +18,6 @@ const TOKENS = {
     edge: "#eaebef",
     foreground: "#14131c",
     muted: "#6f6f7c",
-    primary: "#e4637b",
     title: '"Founders Grotesk", "Inter", system-ui, -apple-system, sans-serif',
 };
 
@@ -60,14 +64,7 @@ ${page.retryAfter ? `<meta http-equiv="refresh" content="${page.retryAfter}">` :
     border-radius: 1.125rem;
     padding: 2rem;
   }
-  .brand {
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: ${TOKENS.primary};
-    margin: 0 0 1.5rem;
-  }
+  .logo { display: block; height: 3rem; width: auto; margin: 0 0 1.5rem }
   h1 { margin: 0 0 0.5rem; font-size: 1.4rem; line-height: 1.25; text-transform: uppercase }
   p { margin: 0; color: ${TOKENS.muted}; font-size: 0.95rem; line-height: 1.6 }
   .waiting { margin-top: 1.5rem; font-size: 0.85rem; color: ${TOKENS.muted} }
@@ -75,7 +72,7 @@ ${page.retryAfter ? `<meta http-equiv="refresh" content="${page.retryAfter}">` :
 </head>
 <body>
   <main>
-    <p class="brand">Anbaric</p>
+    <img class="logo" src="${LOGO}" alt="Anbaric">
     <h1>${escapeHtml(page.heading)}</h1>
     <p>${escapeHtml(page.detail)}</p>
     ${page.retryAfter ? `<p class="waiting">This page checks again every ${page.retryAfter} seconds.</p>` : ""}

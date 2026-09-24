@@ -3,10 +3,10 @@ import {DEPLOYING, FAILED, NOT_FOUND, NOT_RUNNING, render} from "../../src/hosti
 
 describe("ErrorPage", () => {
 
-    it("names the product and says what happened", () => {
+    it("shows the logo, named for screen readers, and says what happened", () => {
         const page = render(NOT_FOUND);
 
-        expect(page).toContain("Anbaric");
+        expect(page).toMatch(/<img class="logo" src="data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+" alt="Anbaric">/);
         expect(page).toContain("Nothing here");
         expect(page).toContain("<!doctype html>");
     });
@@ -35,7 +35,9 @@ describe("ErrorPage", () => {
         const page = render(DEPLOYING);
 
         expect(page).not.toContain("http://");
-        expect(page).not.toMatch(/<(script|link|img)\b/);
+        expect(page).not.toContain("https://");
+        expect(page).not.toMatch(/<(script|link)\b/);
+        expect(page).not.toMatch(/<img\b[^>]*src="(?!data:)/);
     });
 
 });

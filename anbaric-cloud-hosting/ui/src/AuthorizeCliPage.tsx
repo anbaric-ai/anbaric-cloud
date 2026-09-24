@@ -81,7 +81,7 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
                 name="clientName"
                 required
                 data-warning="Give this CLI a name"
-                placeholder="e.g. Chris's laptop"
+                placeholder="e.g. Work laptop"
               />
             </label>
             <button type="submit">Authorize</button>

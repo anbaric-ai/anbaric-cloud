@@ -1,7 +1,7 @@
 import './PageShell.css'
 import type { CSSProperties, ReactNode } from 'react'
 
-import ident from '@anbaric/design-system/shared/assets/anbaric-ident.svg'
+import logo from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 
 /* Two shapes, told apart by whether a nav was given. Inside the console the nav
    names the page and the content sits beside it. On its own - signing up,
@@ -33,8 +33,7 @@ function PageShell({
       <main className="ds-page-main" style={{ maxWidth: width }}>
         {alone ? (
           <header className="ds-page-brand">
-            <img className="ds-page-brand__mark" src={ident} alt="" />
-            <span className="ds-page-brand__name">Anbaric</span>
+            <img className="ds-page-brand__logo" src={logo} alt="Anbaric" />
           </header>
         ) : null}
         {/* With a nav the heading only repeats the highlighted entry, so it is

@@ -59,25 +59,17 @@
 .ds-page-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
 }
 
-.ds-page-brand__mark {
-  height: 2rem;
+/* The full lockup - the wordmark is in the image, so nothing spells the name
+   beside it; the alt text carries it for screen readers. */
+.ds-page-brand__logo {
+  height: 3.5rem;
   width: auto;
   flex: 0 0 auto;
 }
 
-.ds-page-brand__name {
-  font-family: var(--font-title);
-  font-weight: var(--font-weight-bold);
-  font-size: 1.1rem;
-  line-height: 1;
-  text-transform: var(--title-transform);
-  color: var(--color-foreground);
-}
-
-/* The mark already names the product at the top of the page, so the heading
+/* The logo already names the product at the top of the page, so the heading
    steps down rather than competing with it. */
 .ds-page-layout--alone .ds-page-heading {
   font-size: 1.5rem;
