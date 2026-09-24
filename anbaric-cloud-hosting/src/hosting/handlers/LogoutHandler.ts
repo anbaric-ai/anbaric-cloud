@@ -9,10 +9,10 @@ import {RequestHandler} from "../RequestHandler";
    redirect home just signs the person straight back in. */
 class LogoutHandler implements RequestHandler {
 
-    constructor(private authenticator? : Authenticator) {}
+    constructor(private authenticator? : Authenticator, private sessionSigner : SessionSigner = new SessionSigner()) {}
 
     async handle(request : Request) : Promise<void> {
-        SessionSigner.clear(request.rawResponse);
+        this.sessionSigner.clear(request.rawResponse);
         request.redirect(this.authenticator?.logoutUrl() ?? "/");
     }
 

@@ -58,6 +58,20 @@ describe("SessionSigner", () => {
         expect(cookie()).toContain("HttpOnly");
         expect(cookie()).toContain("Secure");
         expect(cookie()).toContain("SameSite=Lax");
+        expect(cookie()).not.toContain("Domain=");
+    });
+
+    it("scopes the cookie to the configured domain, when issuing and when clearing", () => {
+        const scoped = new SessionSigner("test-secret", 60, "staging.example");
+        const issued = cookieResponse();
+        const cleared = cookieResponse();
+
+        scoped.issue(issued.response, new User("ada"));
+        scoped.clear(cleared.response);
+
+        expect(issued.cookie()).toContain("; Domain=staging.example");
+        expect(cleared.cookie()).toContain("; Domain=staging.example");
+        expect(cleared.cookie()).toContain("Max-Age=0");
     });
 
     it("uses the configured ttl for the cookie lifetime", () => {

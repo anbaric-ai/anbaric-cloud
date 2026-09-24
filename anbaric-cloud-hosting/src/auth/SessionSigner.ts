@@ -26,11 +26,16 @@ const base64url = (input : Buffer | string) => Buffer.from(input).toString("base
    set the signer is inert and the platform falls back to the authenticator.
    Sessions slide: a valid one is re-issued with a fresh expiry on each request.
    The lifetime defaults to 30 days and can be tuned with
-   ANBARIC_SESSION_TTL_SECONDS. */
+   ANBARIC_SESSION_TTL_SECONDS.
+
+   Apps live on their own hostnames under the platform's, so the cookie is
+   scoped to the shared domain (ANBARIC_COOKIE_DOMAIN) when one is configured:
+   one login covers the console and every app. */
 class SessionSigner {
 
     constructor(private secret : string = process.env.ANBARIC_SESSION_SIGNING_SECRET ?? "",
-                private ttlSeconds : number = configuredTtlSeconds()) {}
+                private ttlSeconds : number = configuredTtlSeconds(),
+                private domain : string | undefined = process.env.ANBARIC_COOKIE_DOMAIN || undefined) {}
 
     get configured() : boolean {
         return this.secret.length > 0;
@@ -78,7 +83,7 @@ class SessionSigner {
 
     // Sets (or, for a still-valid session, refreshes) the session cookie.
     issue(response : ServerResponse, user : User, tenant? : Tenant) : void {
-        const cookie = `${SESSION_COOKIE}=${this.mint(user, tenant)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${this.ttlSeconds}`;
+        const cookie = `${SESSION_COOKIE}=${this.mint(user, tenant)}; ${this.attributes(this.ttlSeconds)}`;
         const existing = response.getHeader("Set-Cookie");
         if (existing === undefined) response.setHeader("Set-Cookie", cookie);
         else response.setHeader("Set-Cookie", Array.isArray(existing) ? [...existing, cookie] : [String(existing), cookie]);
@@ -86,9 +91,12 @@ class SessionSigner {
 
     // Expires the session cookie; the attributes must match issue() or the
     // browser keeps the original cookie alongside this one.
-    static clear(response : ServerResponse) : void {
-        response.setHeader("Set-Cookie",
-            `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
+    clear(response : ServerResponse) : void {
+        response.setHeader("Set-Cookie", `${SESSION_COOKIE}=; ${this.attributes(0)}`);
+    }
+
+    private attributes(maxAge : number) : string {
+        return `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}${this.domain ? `; Domain=${this.domain}` : ""}`;
     }
 
     private sign(payload : string) : string {
