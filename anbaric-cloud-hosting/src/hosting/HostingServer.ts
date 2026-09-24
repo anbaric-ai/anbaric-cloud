@@ -145,10 +145,12 @@ class HostingServer {
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
             new TenantRoutingMiddleware(tenant),
-            // Before routing: an app on its own hostname owns every path, so
-            // there is nothing for the platform's own routes to match against.
-            new AppHostMiddleware(appProxy),
             new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships),
+            /* After authentication and before routing: an app reached by its own
+               hostname owns every path on it, so nothing of the platform's would
+               match anyway - but a nicer address must not also be a way in
+               without a session. */
+            new AppHostMiddleware(appProxy),
         ]);
         this.internalServer = new Server(internalRouter);
     }
