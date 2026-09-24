@@ -108,4 +108,19 @@ describe("Server and Router", () => {
         expect((await fetch(`${baseUrl}/broken`)).status).toBe(500);
     });
 
+    it("keeps a not-found message but never sends an internal error's message to the client", async () => {
+        const router = new Router();
+        router.register("missing", { async handle() { throw new Error('No job found with id "x"'); } });
+        router.register("broken", { async handle() { throw new Error("User arn:aws:sts::1:assumed-role/x is not authorized"); } });
+        const baseUrl = await start(router);
+
+        const missing = await fetch(`${baseUrl}/missing`);
+        const broken = await fetch(`${baseUrl}/broken`);
+
+        expect(await missing.json()).toEqual({ error: 'No job found with id "x"' });
+        const problem = await broken.json();
+        expect(problem.error).not.toContain("arn:aws");
+        expect(problem.error).toContain(`reference ${broken.headers.get("x-anbaric-ray")}`);
+    });
+
 });

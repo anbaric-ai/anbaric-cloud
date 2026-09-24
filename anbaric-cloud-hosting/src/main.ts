@@ -81,13 +81,15 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
     : undefined;
 
 // Secrets are owned by an app: each app gets its own namespace. AWS-backed
-// stores fold the app into their name prefix (stateless, built per request);
-// the in-memory local store is cached per app so its data persists.
+// stores fold the tenant and the app into their name prefix - Secrets Manager
+// is account-wide, so the tenant is what keeps two customers' "crm" apart, and
+// the task role is scoped to that same prefix. They are stateless, built per
+// request; the in-memory local store is cached per app so its data persists.
 const secretsManagerClient = process.env.AWS_REGION ? new SecretsManagerClient({}) : undefined;
 const localSecretStores = new Map<string, InMemorySecretStore>();
 const secretStoreFor = (appId : string) : SecretStore =>
     secretsManagerClient
-        ? new SecretsManagerSecretStore(secretsManagerClient, `anbaric/${appId}/`)
+        ? new SecretsManagerSecretStore(secretsManagerClient, `anbaric/${process.env.ANBARIC_TENANT ?? "local"}/${appId}/`)
         : localSecretStores.get(appId) ?? localSecretStores.set(appId, new InMemorySecretStore()).get(appId)!;
 
 const authenticator = await loadAuthenticator(process.env.ANBARIC_AUTHENTICATOR);

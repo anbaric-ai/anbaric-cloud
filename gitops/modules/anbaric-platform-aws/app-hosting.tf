@@ -255,6 +255,20 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
         Resource = aws_s3_bucket.files.arn
       },
       {
+        # The app secret store: every secret this tenant's apps keep lives under
+        # anbaric/<tenant>/<app>/, and the role reaches nothing outside it.
+        Effect   = "Allow"
+        Action   = ["secretsmanager:CreateSecret", "secretsmanager:PutSecretValue", "secretsmanager:GetSecretValue", "secretsmanager:DeleteSecret"]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:anbaric/${var.tenant == "" ? "local" : var.tenant}/*"
+      },
+      {
+        # ListSecrets has no resource-level grant; the store filters to its own
+        # prefix and hands back names only.
+        Effect   = "Allow"
+        Action   = "secretsmanager:ListSecrets"
+        Resource = "*"
+      },
+      {
         Effect   = "Allow"
         Action   = ["codebuild:StartBuild", "codebuild:BatchGetBuilds"]
         Resource = aws_codebuild_project.app_build.arn

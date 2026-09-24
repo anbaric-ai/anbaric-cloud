@@ -15,13 +15,22 @@ class Server {
         this.server = createServer((incoming, response) => {
             this.handle(incoming, response).catch(error => {
                 const message = error instanceof Error ? error.message : "Internal error";
-                const status = /^No .+ found/.test(message) ? 404 : 500;
+                const notFound = /^No .+ found/.test(message);
+                if (! notFound) console.error(`[server] ${incoming.method} ${incoming.url} failed (ray ${response.getHeader("x-anbaric-ray") ?? "-"}):`, error);
                 if (!response.writableEnded) {
-                    response.writeHead(status, { "content-type": "application/json" });
-                    response.end(JSON.stringify({ error: message }));
+                    response.writeHead(notFound ? 404 : 500, { "content-type": "application/json" });
+                    response.end(JSON.stringify({ error: notFound ? message : Server.internalErrorMessage(response) }));
                 }
             });
         });
+    }
+
+    /* What a failure inside the platform looks like from outside: never the
+       underlying error, which names infrastructure and credentials, only a
+       reference the logs can be searched for. */
+    private static internalErrorMessage(response : ServerResponse) : string {
+        const ray = response.getHeader("x-anbaric-ray");
+        return `The platform could not complete that request${ray ? ` (reference ${ray})` : ""}`;
     }
 
     get listening() : boolean {
