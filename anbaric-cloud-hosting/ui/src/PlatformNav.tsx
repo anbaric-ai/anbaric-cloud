@@ -10,6 +10,11 @@ interface App {
   status: string
 }
 
+const appUrl = (appName: string, user: CurrentUser | undefined): string =>
+  user?.appHostSuffix && user.tenant
+    ? `https://${appName}--${user.tenant}.${user.appHostSuffix}`
+    : `/app/${appName}`
+
 interface CurrentUser {
   id: string
   roles: string[]
@@ -17,6 +22,10 @@ interface CurrentUser {
   picture?: string
   tenant?: string
   tenantRole?: string
+  // The domain under which each app has a hostname of its own. Sent by the
+  // platform rather than guessed from the browser's address, because only the
+  // platform knows whether wildcard DNS exists for it.
+  appHostSuffix?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -62,7 +71,10 @@ function PlatformNav({
           ...apps.map((app) => ({
             label: app.appName,
             value: `/app/${app.appName}`,
-            href: `/app/${app.appName}`,
+            // An app's own hostname serves it at the root, so links, assets and
+            // fetches inside it behave as they did on the machine it was built
+            // on. Fall back to the path form where there is no such domain.
+            href: appUrl(app.appName, user),
             external: true,
             icon: <Sym name="deployed_code" />,
             disabled: app.status !== 'running',
