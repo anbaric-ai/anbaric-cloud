@@ -2,6 +2,7 @@ export * from "./PushConsumer.js";
 export * from "./CloudJobPersistence.js";
 export * from "./CloudJsonStore.js";
 export * from "./CloudSecretStore.js";
+export * from "./CloudFileStorage.js";
 export * from "./CloudEntitlements.js";
 export * from "./CloudPromptManager.js";
 export * from "./CloudQueue.js";

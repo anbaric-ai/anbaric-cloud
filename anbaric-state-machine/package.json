@@ -1,6 +1,6 @@
 {
   "name": "anbaric-state-machine",
-  "version": "1.55.0",
+  "version": "1.56.0",
   "description": "This is the state machine library that one can use to add state management to an application. It will, by default, be locally runnable but can deployed to the Anbaric Cloud via the CLI",
   "license": "MIT",
   "author": "chris@anbaric.ai",
@@ -24,8 +24,8 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "anbaric-impl-cloud": "^1.55.0",
-    "anbaric-tsapi": "^1.55.0"
+    "anbaric-impl-cloud": "^1.56.0",
+    "anbaric-tsapi": "^1.56.0"
   },
   "files": [
     "dist"

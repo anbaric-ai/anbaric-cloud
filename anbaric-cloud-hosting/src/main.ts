@@ -1,6 +1,9 @@
 import {SecretsManagerClient} from "@aws-sdk/client-secrets-manager";
-import {SecretStore} from "anbaric-tsapi";
-import {InMemorySecretStore} from "anbaric-data-store";
+import {S3Client} from "@aws-sdk/client-s3";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {FileStorage, SecretStore} from "anbaric-tsapi";
+import {InMemorySecretStore, LocalFileSystemStorage} from "anbaric-data-store";
 import {Pool} from "pg";
 import {loadAuthenticator} from "./auth/AuthenticatorLoader";
 import {loadNotifier} from "./notifications/NotifierLoader";
@@ -11,6 +14,7 @@ import {PostgresAuditRecordStore} from "./data-store/PostgresAuditRecordStore";
 import {PostgresCliKeyStore} from "./data-store/PostgresCliKeyStore";
 import {ensureSchema} from "./data-store/Schema";
 import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore";
+import {S3FileStorage} from "./data-store/S3FileStorage";
 import {PostgresJobRunSchedulePersistence} from "./data-store/PostgresJobRunSchedulePersistence";
 import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
@@ -101,12 +105,22 @@ const memberships = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARI
     ? new HttpMembershipService(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
     : undefined;
 
+/* Files are owned by an app, like secrets: on the hosted platform each app
+   gets its own key prefix in the tenant's bucket, and locally its own folder
+   under the storage root. Both are stateless, so a store is built per call. */
+const filesBucket = process.env.ANBARIC_FILE_STORAGE_BUCKET;
+const s3 = filesBucket ? new S3Client({}) : undefined;
+const fileStorageFor = (appId : string) : FileStorage =>
+    s3 && filesBucket
+        ? new S3FileStorage(s3, filesBucket, `${appId}/`)
+        : new LocalFileSystemStorage(join(process.env.ANBARIC_FILE_STORAGE_PATH ?? join(tmpdir(), "anbaric", "files"), appId));
+
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
-    (appId) => new PostgresPromptManager(pool, appId));
+    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

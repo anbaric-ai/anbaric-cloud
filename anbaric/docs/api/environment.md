@@ -33,6 +33,7 @@ defaulting to a local implementation otherwise).
 | `ANBARIC_AUDITOR_TYPE` | the audit sink (`cloud` → platform) | console |
 | `ANBARIC_JSON_STORE_TYPE` | the JSON document store | in-memory |
 | `ANBARIC_SECRET_STORE_TYPE` | the secret store | in-memory (encrypted) |
+| `ANBARIC_FILE_STORAGE_TYPE` | the [file storage](../features/file-storage.md) | local disk |
 | `ANBARIC_SQL_STORE_TYPE` | the SQL store (`sqlite` / `cloud`\|`postgres`) | SQLite |
 | `ANBARIC_SESSION_RESOLVER_TYPE` | how `Human.fromSession` resolves sessions | in-memory |
 | `ANBARIC_ENTITLEMENTS_TYPE` | how `hasEntitlement` is answered (`cloud` → platform) | permissive (always `true`) |
@@ -47,6 +48,7 @@ Used by the store implementations the factories return:
 | `ANBARIC_SQL_FILE` | SQLite | file path to persist to (default `:memory:`) |
 | `ANBARIC_SQL_DATABASE_URL` | PostgreSQL | connection string |
 | `ANBARIC_SQL_SCHEMA` | PostgreSQL | schema name (default `anbaric_app_data`) |
+| `ANBARIC_FILE_STORAGE_PATH` | local file storage | directory to keep files in (default `<temp dir>/anbaric/files`) |
 
 ## Platform-injected variables
 

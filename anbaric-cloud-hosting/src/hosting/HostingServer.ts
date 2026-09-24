@@ -1,4 +1,4 @@
-import {JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, PromptManager, SecretStore} from "anbaric-tsapi";
+import {FileStorage, JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, PromptManager, SecretStore} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator} from "../auth/Authenticator";
@@ -33,6 +33,7 @@ import {PagesHandler} from "./handlers/PagesHandler";
 import {PingHandler} from "./handlers/PingHandler";
 import {QueueHandler} from "./handlers/QueueHandler";
 import {SecretsHandler} from "./handlers/SecretsHandler";
+import {FilesHandler} from "./handlers/FilesHandler";
 import {StateMachinesHandler} from "./handlers/StateMachinesHandler";
 import {PluginsHandler} from "./handlers/PluginsHandler";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
@@ -72,7 +73,8 @@ class HostingServer {
                 entitlements? : EntitlementStore,
                 userDirectory? : UserDirectory,
                 memberships? : MembershipService,
-                promptManagerFor? : (appId : string) => PromptManager) {
+                promptManagerFor? : (appId : string) => PromptManager,
+                fileStorageFor? : (appId : string) => FileStorage) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -81,6 +83,7 @@ class HostingServer {
         const stateMachines = new StateMachinesHandler(registry);
         const documents = documentStoreFor && new DocumentsHandler(documentStoreFor);
         const secrets = secretStoreFor && new SecretsHandler(secretStoreFor);
+        const files = fileStorageFor && new FilesHandler(fileStorageFor);
         const audits = auditRecords && new AuditsHandler(auditRecords);
         const sessions = new SessionsHandler();
 
@@ -98,6 +101,7 @@ class HostingServer {
         publicRouter.registerApi("state-machines", stateMachines);
         if (documents) publicRouter.registerApi("documents", documents);
         if (secrets) publicRouter.registerApi("secrets", secrets);
+        if (files) publicRouter.registerApi("files", files);
         if (audits) publicRouter.registerApi("audits", audits);
         if (jobRunSchedules) publicRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
@@ -128,6 +132,7 @@ class HostingServer {
         internalRouter.registerApi("state-machines", stateMachines);
         if (documents) internalRouter.registerApi("documents", documents);
         if (secrets) internalRouter.registerApi("secrets", secrets);
+        if (files) internalRouter.registerApi("files", files);
         if (audits) internalRouter.registerApi("audits", audits);
         if (jobRunSchedules) internalRouter.registerApi("job-run-schedules", new JobRunSchedulesHandler(jobRunSchedules));
         if (notifier) internalRouter.registerApi("notifications", new NotificationsHandler(notifier));

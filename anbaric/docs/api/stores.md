@@ -86,6 +86,37 @@ const key = await secrets.retrieve("stripe-key", actor);
 
 ---
 
+## `FileStorage`
+
+Bytes at a path, with a content type. `list` returns metadata only.
+
+```ts
+FileStorageFactory.instance() : FileStorage
+
+// methods:
+put(actor : Actor, path : string, contents : Uint8Array, contentType? : string) : Promise<void>
+get(path : string, actor : Actor) : Promise<StoredFile>
+delete(path : string, actor : Actor) : Promise<void>
+list(prefix : string, actor : Actor) : Promise<Array<StoredFileInfo>>
+
+// types:
+StoredFile     = { path, contents : Uint8Array, contentType, size, lastModified : Date }
+StoredFileInfo = StoredFile without contents
+```
+
+```ts
+const files = FileStorageFactory.instance();
+await files.put(actor, "reports/q3.csv", bytes, "text/csv");
+const report = await files.get("reports/q3.csv", actor);
+```
+
+- Paths are relative, `/`-separated, and may not contain `..`.
+- `get` of an unknown path throws `No file found at "..."`.
+- Env var: **`ANBARIC_FILE_STORAGE_TYPE`** (`cloud` deployed; local disk otherwise, under
+  `ANBARIC_FILE_STORAGE_PATH` or the temp directory).
+
+---
+
 ## `PromptManager`
 
 Versioned prompts - instructions plus an optional output schema - owned by the

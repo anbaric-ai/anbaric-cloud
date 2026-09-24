@@ -157,6 +157,7 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AWS_APPS_LOG_GROUP", value = aws_cloudwatch_log_group.apps.name },
       { name = "ANBARIC_AWS_APPS_LOG_GROUP_ARN", value = aws_cloudwatch_log_group.apps.arn },
       { name = "ANBARIC_SQL_SCHEMA", value = "anbaric_app_data" },
+      { name = "ANBARIC_FILE_STORAGE_BUCKET", value = aws_s3_bucket.files.bucket },
       { name = "ANBARIC_AWS_APP_SQL_URL_SECRET", value = data.aws_secretsmanager_secret.app_db_url.arn },
       ], [for name, value in var.extra_environment : { name = name, value = value }], var.tenant == "" ? [] : [
       { name = "ANBARIC_TENANT", value = var.tenant },

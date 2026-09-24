@@ -25,6 +25,7 @@ What the framework gives you, one capability at a time.
 - [AI agents](features/ai-agents.md) — letting a model drive a state
 - [Documents and secrets](features/documents-and-secrets.md) — the JSON and secret stores
 - [The SQL store](features/sql-store.md) — a relational database for structured data
+- [File storage](features/file-storage.md) — bytes at a path, local or in your tenant's storage
 - [Auditing](features/auditing.md) — the record of who changed what
 - [Entitlements](features/entitlements.md) — what a user has been granted, checked per request
 - [Prompts](features/prompts.md) — versioned model instructions and schemas, saved at startup
@@ -52,7 +53,7 @@ The surface you build against.
 - [TypeScript API](api/typescript.md) — the full app-facing library
   - [State machines](api/state-machine.md) — `StateMachine`, `State`, `Action`, `Await`, `Transition`, `Job`, `PropertyDefinition`
   - [Actors and agents](api/actors-and-agents.md) — `Code`, `Human`, `Agent`, AI actions
-  - [Stores](api/stores.md) — `JsonStore`, `SecretStore`, `SqlStore` and their factories
+  - [Stores](api/stores.md) — `JsonStore`, `SecretStore`, `SqlStore`, `FileStorage` and their factories
   - [Environment and factories](api/environment.md) — the `ANBARIC_*` variables
 - [Web APIs](api/web.md) — serving HTTP, the app proxy, and the platform endpoints you call
 - [CLI reference](api/cli.md) — the `anbaric` command

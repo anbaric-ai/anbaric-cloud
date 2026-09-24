@@ -66,6 +66,7 @@ You don't — the factories do, from the environment:
 | --- | --- | --- | --- | --- |
 | Documents | `JsonStoreFactory.instance(collection, schema?)` | `ANBARIC_JSON_STORE_TYPE` | in-memory | platform (`cloud`) |
 | Secrets | `SecretStoreFactory.instance()` | `ANBARIC_SECRET_STORE_TYPE` | in-memory (encrypted) | platform (`cloud`) |
+| Files | `FileStorageFactory.instance()` | `ANBARIC_FILE_STORAGE_TYPE` | local disk | platform (`cloud`) |
 
 The platform sets these variables when your app is deployed. Don't set them
 yourself. See [Environment and factories](../api/environment.md).
@@ -81,4 +82,5 @@ automatically.
 ## Next
 
 - [The SQL store](sql-store.md) — a relational database for structured data
+- [File storage](file-storage.md) — bytes at a path
 - [API: Stores](../api/stores.md)

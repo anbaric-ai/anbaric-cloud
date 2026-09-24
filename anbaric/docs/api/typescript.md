@@ -9,7 +9,7 @@ import {
     StateMachine, State, Terminal, Action, Await, Transition,
     Job, PropertyDefinition,
     Code, Human, SystemActor, Agent, OpenAIAgent, AnthropicAgent, GeminiAgent, RemoteLLMAgenticAction,
-    JsonStoreFactory, SecretStoreFactory, SqlStoreFactory, PromptManagerFactory,
+    JsonStoreFactory, SecretStoreFactory, SqlStoreFactory, FileStorageFactory, PromptManagerFactory,
     registerEntitlement, hasEntitlement,
 } from "anbaric";
 
@@ -27,7 +27,7 @@ An Anbaric app is a standard Node.js **ESM** program in TypeScript: set
   `Actor`.
 - **[Actors and agents](actors-and-agents.md)** — `Code`, `Human`,
   `SystemActor`, `Agent`, `RemoteLLMAgenticAction`, `OpenAIAgent`, `AnthropicAgent`, `GeminiAgent`.
-- **[Stores](stores.md)** — `JsonStore`, `SecretStore`, `SqlStore`,
+- **[Stores](stores.md)** — `JsonStore`, `SecretStore`, `SqlStore`, `FileStorage`,
   `PromptManager` and their factories, plus `JsonSchema`.
 - **[Entitlements](../features/entitlements.md)** — `registerEntitlement`,
   `hasEntitlement`.
@@ -60,7 +60,7 @@ smaller surface:
 
 | Package | Contents |
 | --- | --- |
-| [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi) | Interfaces and value classes: `Job`, `State`, `Action`, `Await`, `Transition`, `Actor`, `JsonStore`, `SecretStore`, `SqlStore`, `Auditor`. |
+| [`anbaric-tsapi`](https://npmjs.com/package/anbaric-tsapi) | Interfaces and value classes: `Job`, `State`, `Action`, `Await`, `Transition`, `Actor`, `JsonStore`, `SecretStore`, `SqlStore`, `FileStorage`, `Auditor`. |
 | [`anbaric-state-machine`](https://npmjs.com/package/anbaric-state-machine) | `StateMachine`, actors, agents, and in-memory implementations. |
 | [`anbaric-data-store`](https://npmjs.com/package/anbaric-data-store) | The document, secret and SQL stores. |
 | [`anbaric-impl-cloud`](https://npmjs.com/package/anbaric-impl-cloud) | The clients used when an app is deployed. |

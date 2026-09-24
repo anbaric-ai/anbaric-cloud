@@ -2,6 +2,8 @@ export * from "./InMemoryJsonStore.js";
 export * from "./InMemorySecretStore.js";
 export * from "./JsonStoreFactory.js";
 export * from "./SecretStoreFactory.js";
+export * from "./LocalFileSystemStorage.js";
+export * from "./FileStorageFactory.js";
 export * from "./InMemoryPromptManager.js";
 export * from "./PromptManagerFactory.js";
 export * from "./SqliteSqlStore.js";

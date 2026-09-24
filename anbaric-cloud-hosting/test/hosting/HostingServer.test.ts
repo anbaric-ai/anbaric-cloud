@@ -1,10 +1,13 @@
 import {generateKeyPairSync, sign} from "node:crypto";
+import {mkdtemp, rm} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
 import {get as httpGet} from "node:http";
 import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {Job, JsonStore, QueueMessage} from "anbaric-tsapi";
-import {CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-impl-cloud";
+import {CloudFileStorage, CloudJobPersistence, CloudJsonStore, CloudQueue, CloudSecretStore} from "anbaric-impl-cloud";
 import {Code, InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
-import {InMemoryJsonStore, InMemorySecretStore} from "anbaric-data-store";
+import {InMemoryJsonStore, InMemorySecretStore, LocalFileSystemStorage} from "anbaric-data-store";
 import {Authenticator} from "../../src/auth/Authenticator";
 import {CliAuthorizer} from "../../src/auth/CliAuthorizer";
 import {CliKey} from "../../src/auth/CliKey";
@@ -333,6 +336,83 @@ describe("HostingServer round-trip via the cloud clients", () => {
         const stateMachines = await (await fetch(`${baseUrl}/api/v2/state-machines`)).json();
 
         expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
+    });
+
+    describe("files", () => {
+
+        let filesRoot : string;
+        let filesServer : HostingServer;
+        let filesUrl : string;
+
+        beforeEach(async () => {
+            filesRoot = await mkdtemp(join(tmpdir(), "anbaric-files-"));
+            filesServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
+                undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+                undefined, undefined, undefined, undefined,
+                (appId) => new LocalFileSystemStorage(join(filesRoot, appId)));
+            filesUrl = `http://127.0.0.1:${await filesServer.listen(0)}`;
+        });
+
+        afterEach(async () => {
+            await filesServer.close();
+            await rm(filesRoot, { recursive: true, force: true });
+        });
+
+        const text = (value : string) => new TextEncoder().encode(value);
+
+        it("round-trips a file with its content type", async () => {
+            const files = new CloudFileStorage(filesUrl);
+
+            await files.put(actor, "reports/q3.csv", text("a,b"), "text/csv");
+            const file = await files.get("reports/q3.csv", actor);
+
+            expect(new TextDecoder().decode(file.contents)).toBe("a,b");
+            expect(file).toMatchObject({ path: "reports/q3.csv", contentType: "text/csv", size: 3 });
+            expect(file.lastModified).toBeInstanceOf(Date);
+        });
+
+        it("lists under a prefix", async () => {
+            const files = new CloudFileStorage(filesUrl);
+            await files.put(actor, "reports/a.csv", text("a"));
+            await files.put(actor, "reports/b.csv", text("b"));
+            await files.put(actor, "notes.txt", text("n"));
+
+            const listed = await files.list("reports", actor);
+
+            expect(listed.map((file : { path : string }) => file.path)).toEqual(["reports/a.csv", "reports/b.csv"]);
+        });
+
+        it("deletes files and reports unknown paths", async () => {
+            const files = new CloudFileStorage(filesUrl);
+            await files.put(actor, "notes.txt", text("n"));
+
+            await files.delete("notes.txt", actor);
+
+            await expect(files.get("notes.txt", actor)).rejects.toThrowError('No file found at "notes.txt"');
+        });
+
+        it("pages the collection for the console", async () => {
+            const files = new CloudFileStorage(filesUrl);
+            for (let index = 0; index < 25; index++) await files.put(actor, `file-${String(index).padStart(2, "0")}.txt`, text("x"));
+
+            const first = await (await fetch(`${filesUrl}/api/v2/files?page=0`)).json();
+            const second = await (await fetch(`${filesUrl}/api/v2/files?page=1`)).json();
+
+            expect(first).toMatchObject({ total: 25, pageSize: 20 });
+            expect(first.files).toHaveLength(20);
+            expect(second.files).toHaveLength(5);
+            expect(second.files[0].path).toBe("file-20.txt");
+        });
+
+        it("keeps each app's files to itself", async () => {
+            const crm = new CloudFileStorage(filesUrl);
+            await crm.put(actor, "shared-name.txt", text("crm"));
+
+            const response = await fetch(`${filesUrl}/api/v2/files/item?path=shared-name.txt`, { headers: { "x-anbaric-app": "billing" } });
+
+            expect(response.status).toBe(404);
+        });
+
     });
 
     describe("authentication", () => {

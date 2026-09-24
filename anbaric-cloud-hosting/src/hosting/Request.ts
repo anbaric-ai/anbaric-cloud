@@ -112,6 +112,11 @@ class Request {
         this.response.end(script);
     }
 
+    replyBytes(bytes : Buffer, contentType : string, headers : Record<string, string> = {}) : void {
+        this.response.writeHead(200, { "content-type": contentType, "content-length": String(bytes.length), ...headers });
+        this.response.end(bytes);
+    }
+
     replyImage(image : Buffer, contentType : string, cacheSeconds : number = 0) : void {
         this.response.writeHead(200, {
             "content-type": contentType,

@@ -105,6 +105,7 @@ class DockerBuildLayer extends BaseBuildLayer {
             "--env", "ANBARIC_QUEUE_TYPE=cloud",
             "--env", "ANBARIC_JSON_STORE_TYPE=cloud",
             "--env", "ANBARIC_SECRET_STORE_TYPE=cloud",
+            "--env", "ANBARIC_FILE_STORAGE_TYPE=cloud",
             "--env", "ANBARIC_AUDITOR_TYPE=cloud",
             "--env", "ANBARIC_SESSION_RESOLVER_TYPE=cloud",
             "--env", "ANBARIC_ENTITLEMENTS_TYPE=cloud",

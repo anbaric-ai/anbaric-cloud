@@ -14,6 +14,16 @@ resource "aws_s3_bucket" "app_builds" {
   force_destroy = true
 }
 
+/* Where an app's stored files live. One bucket per tenant, so a tenant's
+   files share nothing with another's beyond the region; apps within a tenant
+   are kept apart by a key prefix the platform applies, never by the app. No
+   lifecycle rule: unlike a build context, a stored file is kept until the app
+   deletes it. */
+resource "aws_s3_bucket" "files" {
+  bucket        = "anbaric-${var.environment}-files-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "app_builds" {
   bucket = aws_s3_bucket.app_builds.id
 
@@ -233,6 +243,16 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
         # regenerated from an app's stored source without redeploying.
         Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.app_builds.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.files.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.files.arn
       },
       {
         Effect   = "Allow"
