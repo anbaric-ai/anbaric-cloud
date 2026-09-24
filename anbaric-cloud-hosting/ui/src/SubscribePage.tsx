@@ -7,7 +7,7 @@ import { Card } from '@anbaric/design-system/components/Card'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
 
 import { PageShell } from './PageShell'
-import { signedOut, signInAgain } from './session'
+import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
 import { ProvisioningPage } from './ProvisioningPage'
 
 type Plan = 'solo' | 'team'
@@ -35,6 +35,12 @@ const POLL_MS = 3000
 // Only surface a load error if we never managed a first read - a blip mid-
 // provisioning must not replace the progress screen with an error.
 const INITIAL_FAIL_LIMIT = 5
+
+/* After this many failed polls in a row the screen is showing something that
+   stopped being true a while ago. Say so: a step that never advances looks
+   like a build that has hung, when usually the page has simply lost its
+   session and everything behind it finished long since. */
+const STALE_AFTER_FAILURES = 4
 
 const grid: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'stretch' }
 const tile: CSSProperties = { flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }
@@ -79,7 +85,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     const poll = async () => {
       if (redirectingRef.current) return
       try {
-        const response = await fetch('/subscribe/status')
+        const response = await fetch('/subscribe/status', FOLLOW_NOTHING)
         if (signedOut(response)) return signInAgain()
         if (!response.ok) throw new Error('status')
         const status: Status = await response.json()
@@ -91,6 +97,9 @@ function SubscribePage({ requestId }: { requestId?: string }) {
           if (timer) clearInterval(timer)
         }
       } catch {
+        // Not fatal on its own - a blip mid-provisioning is common - but a run
+        // of them means the screen is showing something that stopped being true
+        // a while ago, and saying so beats a step that never advances.
         if (live) setFailedLoads((n) => n + 1)
       }
     }
@@ -202,6 +211,14 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   if (data.status === 'subscribing' || data.status === 'provisioning') {
     return (
       <PageShell title="Setting things up">
+        {failedLoads >= STALE_AFTER_FAILURES ? (
+          <Alert variant="warning" title="We have lost touch with this page">
+            It cannot reach the platform, so what is shown below may be out of date — your
+            environment may well be ready.{' '}
+            <a href="" onClick={(event) => { event.preventDefault(); window.location.reload() }}>Reload</a>
+            {' '}to find out.
+          </Alert>
+        ) : null}
         <ProvisioningPage
           message="This usually takes a couple of minutes. You can keep this tab open — it updates itself."
           stages={data.stages}

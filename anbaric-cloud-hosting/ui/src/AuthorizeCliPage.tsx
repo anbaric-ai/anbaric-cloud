@@ -5,7 +5,7 @@ import { Form } from '@anbaric/design-system/components/Form'
 import { Alert } from '@anbaric/design-system/components/Alert'
 
 import { PageShell } from './PageShell'
-import { signedOut, signInAgain } from './session'
+import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
 import { SubscribePage } from './SubscribePage'
 
 const field: CSSProperties = {
@@ -22,7 +22,7 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
   const [gate, setGate] = useState<'loading' | 'authorize' | 'subscribe'>('loading')
 
   useEffect(() => {
-    fetch('/subscribe/status')
+    fetch('/subscribe/status', FOLLOW_NOTHING)
       .then((response) => {
         if (signedOut(response)) return signInAgain()
         return (response.ok ? response.json() : { status: 'active' })

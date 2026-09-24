@@ -1,12 +1,18 @@
-/* A session that has lapsed does not come back as an error. Central answers
-   with a redirect to the identity provider, fetch follows it, and the page gets
-   a perfectly good 200 full of somebody else's HTML. Parsing it throws, the
-   catch swallows it, and the screen sits on whatever it last knew - for ever.
+/* A session that has lapsed does not come back as an error, and it does not
+   come back as a readable response either. Central redirects to the identity
+   provider, and a fetch that follows a redirect off-origin cannot read what it
+   finds, so the call rejects: "Failed to fetch" in one browser, a CORS warning
+   in another. The catch swallows it and the screen sits on whatever it last
+   knew - for ever, if the session does not come back.
 
-   Being sent to another origin is the signal. Reloading hands the browser back
-   to the login flow, which returns here with a session, or shows the sign-in
-   page if there is no longer one to resume. */
+   Asking for the redirect rather than following it turns that into an ordinary
+   response we can recognise. Reloading then hands the browser to the login
+   flow, which returns here with a session. */
+const FOLLOW_NOTHING: RequestInit = { redirect: 'manual' }
+
 const signedOut = (response: Response): boolean => {
+  // What a redirect looks like when we declined to follow it.
+  if (response.type === 'opaqueredirect' || response.status === 0) return true
   if (!response.redirected) return false
 
   try {
@@ -18,4 +24,4 @@ const signedOut = (response: Response): boolean => {
 
 const signInAgain = () => window.location.reload()
 
-export { signedOut, signInAgain }
+export { signedOut, signInAgain, FOLLOW_NOTHING }
