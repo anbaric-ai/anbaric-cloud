@@ -22,9 +22,16 @@ describe("appInternalPath", () => {
         expect(appInternalPath("crm", "/apiary")).toBe("/app/crm/apiary");
     });
 
-    it("leaves a non-absolute path (relative or fully-qualified) untouched", () => {
-        expect(appInternalPath("crm", "orders")).toBeUndefined();
+    it("leaves a fully-qualified url untouched", () => {
         expect(appInternalPath("crm", "https://elsewhere.example/x")).toBeUndefined();
+        expect(appInternalPath("crm", "//elsewhere.example/x")).toBeUndefined();
+    });
+
+    // App authors are told to prefer relative links, so this is the shape the
+    // guidance actually produces. Refusing it sent the link to the console root.
+    it("treats a relative path as app-relative rather than refusing it", () => {
+        expect(appInternalPath("crm", "orders")).toBe("/app/crm/orders");
+        expect(appInternalPath("crm", "approve", "?job=1")).toBe("/app/crm/approve?job=1");
     });
 
     it("does nothing without an app name", () => {
@@ -100,10 +107,13 @@ describe("appInternalUrl", () => {
         expect(appInternalUrl("ci-bulletin", "/review/42")).toBe("/app/ci-bulletin/review/42");
     });
 
-    it("leaves an already-prefixed, external, or relative URL unchanged", () => {
+    it("leaves an already-prefixed or external URL unchanged", () => {
         expect(appInternalUrl("crm", "/app/crm/approve")).toBe("/app/crm/approve");
         expect(appInternalUrl("crm", "https://elsewhere.example/x")).toBe("https://elsewhere.example/x");
-        expect(appInternalUrl("crm", "approve?job=1")).toBe("approve?job=1");
+    });
+
+    it("places a relative URL on its app, query and all", () => {
+        expect(appInternalUrl("crm", "approve?job=1")).toBe("/app/crm/approve?job=1");
     });
 
     it("leaves the URL unchanged when there is no app", () => {

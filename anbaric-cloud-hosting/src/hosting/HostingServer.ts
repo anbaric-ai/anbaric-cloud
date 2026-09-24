@@ -38,6 +38,7 @@ import {PluginsHandler} from "./handlers/PluginsHandler";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
 import {TenantRoutingMiddleware} from "./middleware/TenantRoutingMiddleware";
+import {AppHostMiddleware} from "./middleware/AppHostMiddleware";
 import {LoadedPlugin} from "../plugins/Plugin";
 import {Request} from "./Request";
 import {Router} from "./Router";
@@ -109,9 +110,10 @@ class HostingServer {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
         }
-        if (buildLayer) {
-            publicRouter.registerApi("apps", new AppsHandler(buildLayer));
-            publicRouter.register("app", new AppProxyHandler(buildLayer));
+        const appProxy = buildLayer ? new AppProxyHandler(buildLayer) : undefined;
+        if (buildLayer && appProxy) {
+            publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant));
+            publicRouter.register("app", appProxy);
         }
         // An unrouted absolute path carrying an app Referer is an app-internal
         // link the proxy's prefix-stripping left bare; send it back to its app.
@@ -143,6 +145,9 @@ class HostingServer {
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
             new TenantRoutingMiddleware(tenant),
+            // Before routing: an app on its own hostname owns every path, so
+            // there is nothing for the platform's own routes to match against.
+            new AppHostMiddleware(appProxy),
             new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships),
         ]);
         this.internalServer = new Server(internalRouter);

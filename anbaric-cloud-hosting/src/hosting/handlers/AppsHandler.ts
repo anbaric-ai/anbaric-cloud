@@ -1,11 +1,12 @@
 import {BuildLayer} from "../../app-management/BuildLayer";
 import {deniesBuild} from "../../auth/TenantRole";
 import {Request} from "../Request";
+import {hostnameObjection} from "../../app-management/appHostname";
 import {RequestHandler} from "../RequestHandler";
 
 class AppsHandler implements RequestHandler {
 
-    constructor(private buildLayer : BuildLayer) {}
+    constructor(private buildLayer : BuildLayer, private tenant? : string) {}
 
     async handle(request : Request) : Promise<void> {
         // Changing what is deployed is a builder's job; a USER may look.
@@ -50,6 +51,13 @@ class AppsHandler implements RequestHandler {
     private async handleDeploy(request : Request, appName : string) : Promise<void> {
         switch (request.method) {
             case "POST": {
+                /* Refused here rather than at the edge: a name that cannot be
+                   part of a hostname would deploy happily and then simply not
+                   be reachable by its own address, which is a worse thing to
+                   discover later. */
+                const objection = hostnameObjection(appName, this.tenant ?? "");
+                if (objection) return request.reply(400, { error: objection });
+
                 const appPort = Number(request.query("port"));
                 if (!Number.isInteger(appPort) || appPort <= 0) {
                     return request.reply(400, { error: "Expected a numeric ?port query parameter - the app's internal port (\"internalPort\" in .anbaric/app-config.json)" });

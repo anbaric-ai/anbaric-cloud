@@ -15,15 +15,26 @@ const KNOWN_PREFIXES = ["/api", "/app"];
 const isKnownPrefix = (pathname : string) : boolean =>
     KNOWN_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
-/* Places an absolute path onto the named app at /app/<appName>/<path>, or
-   returns undefined (leave the path untouched) when there is no app, the path
-   is not absolute (a relative or fully-qualified URL), or it is already under a
-   known platform prefix (/api, /app - including an already-correct /app/... ). */
+const isAbsoluteUrl = (value : string) : boolean => /^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith("//");
+
+/* Places a path onto the named app at /app/<appName>/<path>, or returns
+   undefined (leave it untouched) when there is no app, the value is a
+   fully-qualified URL, or it is already under a known platform prefix
+   (/api, /app - including an already-correct /app/... ).
+
+   A path without a leading slash is treated as app-relative rather than
+   refused. App authors are told to prefer relative links, precisely because
+   the app is mounted on a sub-path, so refusing them sent every such Await
+   link to the console root - the one shape the guidance asks for was the one
+   shape this would not rewrite. */
 const appInternalPath = (appName : string | undefined, pathname : string, search : string = "") : string | undefined => {
     if (!appName) return undefined;
-    if (!pathname.startsWith("/")) return undefined;
-    if (isKnownPrefix(pathname)) return undefined;
-    return `/app/${appName}${pathname}${search}`;
+    if (isAbsoluteUrl(pathname)) return undefined;
+
+    const absolute = pathname.startsWith("/") ? pathname : `/${pathname}`;
+    if (isKnownPrefix(absolute)) return undefined;
+
+    return `/app/${appName}${absolute}${search}`;
 };
 
 /* The same rule for a whole URL string (path plus any query/hash), returning the

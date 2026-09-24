@@ -46,6 +46,26 @@ unrouted absolute path that arrives with a `Referer` from your app is redirected
 back to `/app/<name>/…` (a `307`, so form POSTs keep their body). So ordinary
 absolute links followed from a page of your app just work.
 
+## Your app's own hostname
+
+Every app also answers on a hostname of its own:
+
+```
+https://<app>--<tenant>.<platform domain>
+```
+
+There your app is at the root, exactly where it was when you ran it locally, so
+absolute paths, `fetch("/api/…")` and anything else that assumes the root work
+without being rewritten. This is the address to share and the one to prefer; the
+`/app/<name>` form below stays available and unchanged.
+
+The tenant is part of the name because two tenants may each have a `hello-world`.
+A double hyphen separates the two, so an app name may not contain one, and the
+app and tenant together must fit the 63 characters a hostname label allows. A
+deploy that would break either rule is refused with the reason.
+
+## Under /app/&lt;name&gt;
+
 The exception is when the browser sends no `Referer` (for example under a strict
 `Referrer-Policy: no-referrer`). For guaranteed correctness in that case, either:
 
