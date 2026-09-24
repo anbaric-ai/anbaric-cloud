@@ -15,17 +15,3 @@ resource "aws_vpc_peering_connection" "databases" {
 
   tags = { Name = "anbaric-${var.name}-databases" }
 }
-
-resource "aws_route" "to_databases" {
-  count                     = var.peer_vpc_id == "" ? 0 : 1
-  route_table_id            = aws_route_table.public.id
-  destination_cidr_block    = var.peer_cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.databases[0].id
-}
-
-resource "aws_route" "from_databases" {
-  count                     = var.peer_vpc_id == "" ? 0 : length(var.peer_route_table_ids)
-  route_table_id            = var.peer_route_table_ids[count.index]
-  destination_cidr_block    = var.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.databases[0].id
-}

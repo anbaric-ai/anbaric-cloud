@@ -31,9 +31,3 @@ variable "peer_cidr_block" {
   type        = string
   default     = ""
 }
-
-variable "peer_route_table_ids" {
-  description = "Route tables on the peer side that need a route back to this cell"
-  type        = list(string)
-  default     = []
-}

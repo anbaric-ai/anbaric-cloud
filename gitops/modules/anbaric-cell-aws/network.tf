@@ -34,12 +34,26 @@ resource "aws_subnet" "public" {
   tags = { Name = "anbaric-${var.name}-public-${count.index}" }
 }
 
+/* Every route this table will ever have is declared here. An inline route block
+   is authoritative: a route added separately as an aws_route is revoked the next
+   time this resource is reconciled, silently, which is how the databases became
+   unreachable twice. The same trap is documented for security group ingress
+   elsewhere in this estate. */
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.anbaric.id
 
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.anbaric.id
+  }
+
+  dynamic "route" {
+    for_each = var.peer_vpc_id == "" ? [] : [var.peer_cidr_block]
+
+    content {
+      cidr_block                = route.value
+      vpc_peering_connection_id = aws_vpc_peering_connection.databases[0].id
+    }
   }
 
   tags = { Name = "anbaric-${var.name}-public" }

@@ -26,3 +26,8 @@ output "load_balancer_listener_arn" {
 output "load_balancer_security_group_id" {
   value = aws_security_group.load_balancer.id
 }
+
+output "peering_connection_id" {
+  description = "The peer's own route table must carry the route back, inline, for the same reason this one does"
+  value       = var.peer_vpc_id == "" ? "" : aws_vpc_peering_connection.databases[0].id
+}
