@@ -107,12 +107,14 @@ const memberships = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARI
 
 /* Files are owned by an app, like secrets: on the hosted platform each app
    gets its own key prefix in the tenant's bucket, and locally its own folder
-   under the storage root. Both are stateless, so a store is built per call. */
+   under the storage root. A caller with no app - the console - gets the whole
+   tenant, with paths carrying the owning app's name. Both stores are
+   stateless, so one is built per call. */
 const filesBucket = process.env.ANBARIC_FILE_STORAGE_BUCKET;
 const s3 = filesBucket ? new S3Client({}) : undefined;
 const fileStorageFor = (appId : string) : FileStorage =>
     s3 && filesBucket
-        ? new S3FileStorage(s3, filesBucket, `${appId}/`)
+        ? new S3FileStorage(s3, filesBucket, appId ? `${appId}/` : "")
         : new LocalFileSystemStorage(join(process.env.ANBARIC_FILE_STORAGE_PATH ?? join(tmpdir(), "anbaric", "files"), appId));
 
 const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
