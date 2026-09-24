@@ -46,3 +46,46 @@
     font-size: 1.5rem;
   }
 }
+
+/* Standing on its own: no nav to offset against, so the column centres in the
+   window rather than hugging a gutter that leads nowhere. */
+.ds-page-layout--alone .ds-page-main {
+  margin-inline: auto;
+  min-height: 100dvh;
+  justify-content: center;
+  padding-block: var(--space-xl);
+}
+
+.ds-page-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ds-page-brand__mark {
+  height: 2rem;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.ds-page-brand__name {
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-bold);
+  font-size: 1.1rem;
+  line-height: 1;
+  text-transform: var(--title-transform);
+  color: var(--color-foreground);
+}
+
+/* The mark already names the product at the top of the page, so the heading
+   steps down rather than competing with it. */
+.ds-page-layout--alone .ds-page-heading {
+  font-size: 1.5rem;
+}
+
+@media (max-width: 40rem) {
+  .ds-page-layout--alone .ds-page-main {
+    min-height: auto;
+    padding-block: var(--space-lg);
+  }
+}
