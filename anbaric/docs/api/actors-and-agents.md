@@ -157,10 +157,12 @@ that fail throw `The OpenAI request failed with status <n>`.
 
 ### `AnthropicAgent`
 
-An `Agent` backed by the Anthropic Messages API. The API has no JSON-schema
-response format, so the output schema is offered as a single tool the model is
-forced to call; its arguments are the structured output. System messages are
-lifted out of the conversation into the API's own `system` field.
+An `Agent` backed by the Anthropic Messages API, asking for the output schema
+through the API's `json_schema` output format (every current Claude model
+supports it; the older forced-tool-call approach is rejected from Claude Opus
+5.5 on). Objects in the schema are closed and every property made required, as
+that format demands. System messages are lifted out of the conversation into
+the API's own `system` field.
 
 ```ts
 class AnthropicAgent extends Agent
@@ -175,9 +177,10 @@ type AnthropicConnection = {
 }
 ```
 
-Failures throw `The Anthropic request failed with status <n>`; a model that
-answers with prose instead of calling the tool throws `The Anthropic response
-carried no structured content`.
+Failures throw `The Anthropic request failed with status <n>`; a reply with no
+text throws `The Anthropic response carried no structured content`, and prose
+where JSON was asked for throws `The Anthropic response was not the JSON it was
+asked for`.
 
 ### `GeminiAgent`
 

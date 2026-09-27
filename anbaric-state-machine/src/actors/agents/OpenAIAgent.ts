@@ -1,4 +1,5 @@
 import {Agent, AgentRequest} from "anbaric-tsapi";
+import {strictSchema} from "./strictSchema.js";
 
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
@@ -7,22 +8,6 @@ type OpenAIConnection = {
     model : string,
     baseUrl? : string,
     organization? : string,
-};
-
-const strictSchema = (schema : any) : any => {
-    if (schema?.type === "object" && schema.properties) {
-        return {
-            ...schema,
-            required: Object.keys(schema.properties),
-            additionalProperties: false,
-            properties: Object.fromEntries(
-                Object.entries(schema.properties).map(([key, property]) => [key, strictSchema(property)])),
-        };
-    }
-    if (schema?.type === "array" && schema.items) {
-        return { ...schema, items: strictSchema(schema.items) };
-    }
-    return schema;
 };
 
 /* The functional half of an OpenAI agent: asks an OpenAI-compatible chat

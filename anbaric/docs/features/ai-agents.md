@@ -91,7 +91,7 @@ new OpenAIAgent("triager", "support", {
 
 new AnthropicAgent("triager", "support", {
     apiKey: process.env.ANTHROPIC_API_KEY!,
-    model: "claude-opus-5",
+    model: "claude-opus-5-5",
     maxTokens: 4096,                         // optional; the Messages API needs a budget
 });
 
@@ -102,9 +102,9 @@ new GeminiAgent("triager", "support", {
 ```
 
 Each asks its provider for structured output the way that provider supports it -
-OpenAI's JSON-schema response format, a forced tool call on Anthropic, Gemini's
-JSON response schema - so your action only ever sees properties matching the
-schema you gave it.
+OpenAI's JSON-schema response format, Anthropic's `json_schema` output format,
+Gemini's JSON response schema - so your action only ever sees properties
+matching the schema you gave it.
 
 For a provider none of them covers, implement an `Agent.Client` (a class with a
 `generate(request)` method) and pass it to a plain `Agent`. See the [API

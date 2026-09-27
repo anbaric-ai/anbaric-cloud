@@ -1,4 +1,5 @@
 import {Agent, AgentMessage, AgentRequest} from "anbaric-tsapi";
+import {strictSchema} from "./strictSchema.js";
 
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
@@ -10,15 +11,16 @@ type AnthropicConnection = {
     maxTokens? : number,
 };
 
-const TOOL_NAME = "properties";
 const DEFAULT_VERSION = "2023-06-01";
 const DEFAULT_MAX_TOKENS = 4096;
 
-/* The functional half of an Anthropic agent. Two things differ from the
-   OpenAI-compatible shape: the system prompt is its own field rather than a
-   message, and there is no JSON-schema response format - so the request's
-   schema is offered as a single tool the model is forced to call, and the
-   arguments it calls it with are the structured output. */
+/* The functional half of an Anthropic agent. It asks for the request's schema
+   through the Messages API's structured output (output_config.format), which
+   every current model supports; forcing a tool call, the older way to get
+   JSON out, is rejected by Claude Opus 5.5 and later. The system prompt is its
+   own field rather than a message, and the reply is read from the content
+   block typed "text" - thinking blocks come first on the newer models, so
+   position means nothing. */
 class AnthropicClient extends Agent.Client {
 
     private baseUrl : string;
@@ -45,12 +47,7 @@ class AnthropicClient extends Agent.Client {
                 max_tokens: this.connection.maxTokens ?? DEFAULT_MAX_TOKENS,
                 ...(system ? { system } : {}),
                 messages: this.conversation(request.messages),
-                tools: [{
-                    name: TOOL_NAME,
-                    description: "Return the properties to write to the job.",
-                    input_schema: request.outputSchema,
-                }],
-                tool_choice: { type: "tool", name: TOOL_NAME },
+                output_config: { format: { type: "json_schema", schema: strictSchema(request.outputSchema) } },
             }),
         });
 
@@ -59,12 +56,20 @@ class AnthropicClient extends Agent.Client {
             throw new Error(`The Anthropic request failed with status ${response.status}${problem.error?.message ? `: ${problem.error.message}` : ""}`);
         }
 
-        const body = await response.json() as { content? : Array<{ type? : string, name? : string, input? : any }> };
-        const called = body.content?.find(block => block.type === "tool_use" && block.name === TOOL_NAME);
-        if (!called || typeof called.input !== "object" || called.input === null) {
+        const body = await response.json() as { content? : Array<{ type? : string, text? : string }> };
+        const text = body.content?.find(block => block.type === "text" && typeof block.text === "string")?.text;
+        if (text === undefined) throw new Error("The Anthropic response carried no structured content");
+
+        let properties : unknown;
+        try {
+            properties = JSON.parse(text);
+        } catch {
+            throw new Error("The Anthropic response was not the JSON it was asked for");
+        }
+        if (typeof properties !== "object" || properties === null || Array.isArray(properties)) {
             throw new Error("The Anthropic response carried no structured content");
         }
-        return called.input;
+        return properties as Record<string, any>;
     }
 
     // The conversation Anthropic sees: system messages are lifted out, and the
