@@ -171,6 +171,18 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect((await persistence.list(actor, 2, 1)).map(job => job.id)).toEqual(["c"]);
         });
 
+        it("narrows and orders a listing from the query string", async () => {
+            await persistence.create(actor, new Job("a", new Map(), "open", "support"));
+            await persistence.create(actor, new Job("b", new Map(), "closed", "support"));
+            await persistence.create(actor, new Job("c", new Map(), "open", "billing"));
+
+            expect((await persistence.list(actor, 100, 0, { workflowId: "support" })).map(job => job.id)).toEqual(["a", "b"]);
+            expect((await persistence.list(actor, 100, 0, { state: "open", order: "newest" })).map(job => job.id)).toEqual(["c", "a"]);
+
+            const raw = await (await fetch(`${baseUrl}/api/v2/jobs?workflowId=support&state=open&order=newest`)).json();
+            expect(raw.map((job : { id : string }) => job.id)).toEqual(["a"]);
+        });
+
     });
 
     describe("killing and stats", () => {

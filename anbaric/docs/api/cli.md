@@ -46,7 +46,7 @@ anbaric app status link-media-brief     # a different app, from anywhere
 | --- | --- |
 | `anbaric state-machines` | List registered state machines. |
 | `anbaric jobs create <sm-id> <start-state> [k=v …]` | Create a job and queue it for processing. |
-| `anbaric jobs list [state-machine-id]` | List jobs, optionally filtered by workflow. |
+| `anbaric jobs list [state-machine-id]` | List jobs, newest first, a page at a time (100 by default — `--page 1` for the next). Narrow with `--state`, `--status`, `--app`; `--oldest` flips the order. Filters apply on the platform, across every job, before paging. |
 | `anbaric jobs stats` | Job counts per state and the queue size. |
 | `anbaric jobs watch <job-id>` | Follow a job's state and property changes live. |
 | `anbaric jobs set-state <job-id> <state>` | Move a job to a state and re-queue it. |
@@ -67,6 +67,9 @@ ask for, so the CLI runs unattended in scripts and CI.
 | `--name <name>` | `app configure`/`deploy`/`update` | App name; prompts if omitted (suggested from `package.json`). |
 | `--port <port>` | `app configure`/`deploy`/`update` | Internal port (1–65535); prompts if omitted. |
 | `--yes` | `app deploy`, `app tear-down`, `jobs kill-old` | Skip confirmation. (`app update` implies it.) |
+| `--state <state>`, `--status <status>`, `--app <app>` | `jobs list` | Only jobs in that state / with that status (`active`, `Awaiting input`, `Failed`) / belonging to that app. |
+| `--page <n>`, `--page-size <n>` | `jobs list` | Which page (from 0) and how many per page (default 100). |
+| `--oldest` | `jobs list` | Oldest first instead of newest. |
 | `--help`, `-h` | all | Print usage. |
 
 ## Configuration and storage

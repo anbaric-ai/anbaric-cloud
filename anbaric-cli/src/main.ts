@@ -41,7 +41,7 @@ ${bold("Usage")}
   anbaric app docs regenerate [name]            regenerate the app's user docs from its source, without redeploying
   anbaric state-machines                        list registered state machines
   anbaric jobs create <sm-id> <start-state> [k=v ...]  create a job and queue it for processing
-  anbaric jobs list [state-machine-id]          list jobs, optionally for one state machine
+  anbaric jobs list [state-machine-id]          list jobs, newest first, a page at a time (--state, --status, --app, --page, --page-size, --oldest)
   anbaric jobs stats                            job counts per state and the queue size
   anbaric jobs watch <job-id>                   follow a job's state live
   anbaric jobs set-state <job-id> <state>       move a job to a state and re-queue it
@@ -59,7 +59,13 @@ ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and 
   --environment <local|staging|production>      pick the platform without the interactive picker
   --yes                                         app deploy/tear-down: don't prompt before replacing or removing
   --name <name>                                 app configure: app name, skipping the prompt
-  --port <port>                                 app configure: internal port, skipping the prompt`);
+  --port <port>                                 app configure: internal port, skipping the prompt
+  --state <state>                               jobs list: only jobs in this state
+  --status <status>                             jobs list: only jobs with this status (active, "Awaiting input", Failed)
+  --app <app>                                   jobs list: only jobs belonging to this app
+  --page <n>                                    jobs list: which page, from 0
+  --page-size <n>                               jobs list: jobs per page (default 100)
+  --oldest                                      jobs list: oldest first instead of newest`);
 };
 
 const parse = () => {
@@ -74,6 +80,12 @@ const parse = () => {
                 "yes": { type: "boolean" },
                 "name": { type: "string" },
                 "port": { type: "string" },
+                "state": { type: "string" },
+                "status": { type: "string" },
+                "app": { type: "string" },
+                "page": { type: "string" },
+                "page-size": { type: "string" },
+                "oldest": { type: "boolean" },
             },
             allowPositionals: true,
         });
@@ -166,7 +178,14 @@ const runJobCommand = async (args : Array<string>) : Promise<number> => {
             if (!jobId || !rest[0]) return fail("usage: anbaric jobs create <state-machine-id> <start-state> [key=value ...]");
             return new JobCreateCommand(await clientFromConfig()).run(jobId, rest[0], rest.slice(1));
         case "list":
-            return new JobsCommand(await clientFromConfig()).run(jobId);
+            return new JobsCommand(await clientFromConfig()).run(jobId, {
+                state: values.state,
+                status: values.status,
+                app: values.app,
+                page: values.page === undefined ? undefined : Number(values.page),
+                pageSize: values["page-size"] === undefined ? undefined : Number(values["page-size"]),
+                oldest: values.oldest ?? false,
+            });
         case "stats":
             return new JobStatsCommand(await clientFromConfig()).run();
         case "watch":

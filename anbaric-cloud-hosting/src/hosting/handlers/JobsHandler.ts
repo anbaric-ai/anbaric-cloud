@@ -46,11 +46,27 @@ class JobsHandler implements RequestHandler {
             case "GET": {
                 const pageSize = Number(request.query("pageSize") ?? 100);
                 const page = Number(request.query("page") ?? 0);
-                const jobs = await this.persistence.list(SystemActor.actor, pageSize, page);
+                const jobs = await this.persistence.list(SystemActor.actor, pageSize, page, this.queryFrom(request));
                 return request.reply(200, jobs.map(serializeJob));
             }
         }
         request.notFound();
+    }
+
+    /* The listing's filters, straight off the query string: workflowId, appId,
+       state and status match exactly, killed is "true" or "false", and order
+       is "oldest" (the default) or "newest". Anything absent is not applied. */
+    private queryFrom(request : Request) : JobPersistence.Query {
+        const killed = request.query("killed");
+        const order = request.query("order");
+        return {
+            workflowId: request.query("workflowId") ?? undefined,
+            appId: request.query("appId") ?? undefined,
+            state: request.query("state") ?? undefined,
+            status: request.query("status") ?? undefined,
+            killed: killed === "true" ? true : killed === "false" ? false : undefined,
+            order: order === "newest" ? "newest" : order === "oldest" ? "oldest" : undefined,
+        };
     }
 
 }

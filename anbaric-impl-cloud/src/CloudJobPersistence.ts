@@ -27,8 +27,12 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         await this.client.request("DELETE", `/jobs/${encodeURIComponent(id)}`);
     }
 
-    protected async listInternal(pageSize : number = 100, page : number = 0) : Promise<Array<Job>> {
-        const serialized = await this.client.request("GET", `/jobs?pageSize=${pageSize}&page=${page}`) as Array<SerializedJob>;
+    protected async listInternal(pageSize : number = 100, page : number = 0, query : JobPersistence.Query = {}) : Promise<Array<Job>> {
+        const parameters = new URLSearchParams({ pageSize: String(pageSize), page: String(page) });
+        for (const [name, value] of Object.entries(query)) {
+            if (value !== undefined) parameters.set(name, String(value));
+        }
+        const serialized = await this.client.request("GET", `/jobs?${parameters}`) as Array<SerializedJob>;
         return serialized.map(deserializeJob);
     }
 

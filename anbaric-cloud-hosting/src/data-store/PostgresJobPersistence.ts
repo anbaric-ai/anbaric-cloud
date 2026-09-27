@@ -85,10 +85,25 @@ class PostgresJobPersistence extends JobPersistence {
         await this.pool.query("DELETE FROM jobs WHERE id = $1", [id]);
     }
 
-    protected async listInternal(pageSize : number = 100, page : number = 0) : Promise<Array<Job>> {
+    protected async listInternal(pageSize : number = 100, page : number = 0, query : JobPersistence.Query = {}) : Promise<Array<Job>> {
+        const conditions : Array<string> = [];
+        const values : Array<unknown> = [];
+        const narrow = (column : string, value : unknown) => {
+            if (value === undefined) return;
+            values.push(value);
+            conditions.push(`j.${column} = $${values.length}`);
+        };
+        narrow("workflow_id", query.workflowId);
+        narrow("app_id", query.appId);
+        narrow("state", query.state);
+        narrow("status", query.status);
+        narrow("killed", query.killed);
+
+        const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+        const direction = query.order === "newest" ? "DESC" : "ASC";
         const result = await this.pool.query(
-            `${JOB_SELECT} ORDER BY j.inserted_at LIMIT $1 OFFSET $2`,
-            [pageSize, page * pageSize],
+            `${JOB_SELECT}${where} ORDER BY j.inserted_at ${direction} LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+            [...values, pageSize, page * pageSize],
         );
 
         return result.rows.map(row => this.deserializeRow(row));

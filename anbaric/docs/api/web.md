@@ -94,10 +94,32 @@ GET /api/v2/whoami   →   { "id": "user-123", "roles": ["admin"] }
 
 Returns the authenticated user for the current request.
 
+### Jobs
+
+```
+GET /api/v2/jobs?page=0&pageSize=100&order=newest&workflowId=…&appId=…&state=…&status=…&killed=false
+```
+
+Every job on the tenant, across all apps and state machines, **paged**: the
+response is one page of at most `pageSize` jobs (default 100) at page `page`
+(from 0). The page size is not a cap — keep asking for the next page until one
+comes back shorter than `pageSize`, which is the last. `order` is by when the
+job was started: `oldest` (the default, for compatibility) or `newest`.
+
+The other parameters are filters, applied on the platform **before** paging, so
+a filter sees every job and page numbers count matching jobs only. All are
+optional and combine with AND: `workflowId` (the state machine), `appId`,
+`state`, `status` (`active`, `Awaiting input`, `Failed`) and `killed`
+(`true`/`false`).
+
+In code the same listing is `JobPersistenceFactory.instance().list(actor,
+pageSize, page, query)`; the CLI's `anbaric jobs list` and the MCP tool
+`anbaric_jobs_list` take the same filters.
+
 ### Other resources
 
 Also under `/api/v2`, reached through the cloud clients rather than raw HTTP:
-`jobs`, `state-machines`, `queue`, `consumers`, and (when enabled) `documents`,
+`state-machines`, `queue`, `consumers`, and (when enabled) `documents`,
 `secrets`, `audits`. Prefer the typed clients and factories over calling these by
 hand.
 

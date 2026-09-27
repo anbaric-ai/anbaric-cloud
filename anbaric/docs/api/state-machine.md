@@ -268,6 +268,30 @@ A job whose action threw is `FAILED`, with the reason in its audit trail. It
 stays in its state rather than transitioning, and an update that moves it on
 returns it to `ACTIVE` — so a failure is recoverable, not terminal.
 
+### Listing jobs
+
+```ts
+const persistence = JobPersistenceFactory.instance();
+
+persistence.list(actor) : Promise<Array<Job>>                                  // first 100, oldest first
+persistence.list(actor, pageSize, page, query?) : Promise<Array<Job>>
+
+type JobPersistence.Query = {
+    workflowId? : string,
+    appId? : string,
+    state? : string,
+    status? : string,            // "active", "Awaiting input", "Failed"
+    killed? : boolean,
+    order? : "oldest" | "newest" // by when the job was started; oldest by default
+}
+```
+
+A listing is a **page**, never a cap: `pageSize` jobs (default 100) at `page`
+(from 0), and every job the store holds is reachable by asking for the next
+page until one comes back short. The query narrows the set on the store before
+paging — a filter sees every job, and page numbers count matching jobs only.
+Deployed, the store holds every job on the tenant across all apps and machines.
+
 ---
 
 ## `PropertyDefinition`

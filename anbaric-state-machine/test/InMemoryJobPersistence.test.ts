@@ -117,6 +117,40 @@ describe("InMemoryJobPersistence", () => {
             expect(listed[99].id).toBe("job-99");
         });
 
+        it("reaches every job by paging, the size being a page and not a cap", async () => {
+            for (let i = 0; i < 150; i++) {
+                await persistence.create(actor, makeJob(`job-${i}`));
+            }
+
+            const second = await persistence.list(actor, 100, 1);
+
+            expect(second.length).toBe(50);
+            expect(second[0].id).toBe("job-100");
+            expect(second[49].id).toBe("job-149");
+        });
+
+        it("lists newest first when asked", async () => {
+            for (const id of ["a", "b", "c"]) await persistence.create(actor, makeJob(id));
+
+            expect((await persistence.list(actor, 2, 0, { order: "newest" })).map(job => job.id)).toEqual(["c", "b"]);
+        });
+
+        it("narrows by workflow, app, state, status and killed before paging", async () => {
+            await persistence.create(actor, new Job("a", new Map(), "open", "support", "crm"));
+            await persistence.create(actor, new Job("b", new Map(), "closed", "support", "crm"));
+            await persistence.create(actor, new Job("c", new Map(), "open", "billing", "crm"));
+            await persistence.create(actor, new Job("d", new Map(), "open", "support", "ops", "system", new Date(), new Date(), false, Job.Status.FAILED));
+            await persistence.kill("c", actor);
+
+            const ids = async (query : Parameters<typeof persistence.list>[3]) => (await persistence.list(actor, 100, 0, query)).map(job => job.id);
+
+            expect(await ids({ workflowId: "support" })).toEqual(["a", "b", "d"]);
+            expect(await ids({ appId: "crm", state: "open" })).toEqual(["a", "c"]);
+            expect(await ids({ status: Job.Status.FAILED })).toEqual(["d"]);
+            expect(await ids({ killed: true })).toEqual(["c"]);
+            expect(await ids({ killed: false, workflowId: "support" })).toEqual(["a", "b", "d"]);
+        });
+
     });
 
     describe("killing", () => {

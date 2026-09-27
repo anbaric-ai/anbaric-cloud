@@ -102,15 +102,20 @@ abstract class JobPersistence {
         await this.deleteInternal(id);
     }
 
-    async list(actor : Actor, pageSize? : number, page? : number) : Promise<Array<Job>> {
+    /* A page of jobs: `pageSize` of them (100 by default), page `page` (0 by
+       default), oldest first unless the query says otherwise. Every job the
+       store holds is reachable by paging - the size is a page, not a cap - and
+       a page shorter than `pageSize` is the last one. The query narrows the
+       set before paging, so page numbers count matching jobs only. */
+    async list(actor : Actor, pageSize? : number, page? : number, query? : JobPersistence.Query) : Promise<Array<Job>> {
         await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
-        return this.listInternal(pageSize, page);
+        return this.listInternal(pageSize, page, query);
     }
 
     protected abstract saveInternal(job : Job) : Promise<void>;
     protected abstract retrieveInternal(id : string) : Promise<Job>;
     protected abstract deleteInternal(id : string) : Promise<void>;
-    protected abstract listInternal(pageSize? : number, page? : number) : Promise<Array<Job>>;
+    protected abstract listInternal(pageSize? : number, page? : number, query? : JobPersistence.Query) : Promise<Array<Job>>;
     protected abstract killInternal(id : string) : Promise<void>;
     protected abstract killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number>;
     protected abstract countByStateInternal() : Promise<Array<JobPersistence.StateCount>>;
@@ -118,6 +123,17 @@ abstract class JobPersistence {
 }
 
 namespace JobPersistence {
+
+    /* What a listing is narrowed to. Every field is optional and they combine
+       with AND; `order` is by when the job was started. */
+    export type Query = {
+        workflowId? : string,
+        appId? : string,
+        state? : string,
+        status? : string,
+        killed? : boolean,
+        order? : "oldest" | "newest",
+    };
 
     export enum Interaction {
         CREATE = "CREATE",
