@@ -49,6 +49,7 @@ Used by the store implementations the factories return:
 | `ANBARIC_SQL_DATABASE_URL` | PostgreSQL | connection string |
 | `ANBARIC_SQL_SCHEMA` | PostgreSQL | schema name (default `anbaric_app_data`) |
 | `ANBARIC_FILE_STORAGE_PATH` | local file storage | directory to keep files in (default `<temp dir>/anbaric/files`) |
+| `ANBARIC_SCHEDULER_TICK_MS` | the job run scheduler | how often due runs are checked for, in milliseconds (default `10000`) |
 
 ## Platform-injected variables
 

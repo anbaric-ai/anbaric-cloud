@@ -69,6 +69,32 @@ describe("JobRunScheduler", () => {
         await scheduler.cleanUp();
     });
 
+    it("ticks on the configured interval, ten seconds by default", async () => {
+        vi.useFakeTimers();
+        try {
+            const persistence = new InMemoryJobRunSchedulePersistence();
+            const claims = vi.spyOn(persistence, "claimDue");
+            const scheduler = new JobRunScheduler(persistence);
+            scheduler.schedule(machine("nightly"), dailyAtNine(), 1000 * 60 * 60 * 24, exact);
+
+            await vi.advanceTimersByTimeAsync(9_999);
+            expect(claims).not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(1);
+            expect(claims).toHaveBeenCalledTimes(1);
+
+            const briskPersistence = new InMemoryJobRunSchedulePersistence();
+            const briskClaims = vi.spyOn(briskPersistence, "claimDue");
+            const brisk = new JobRunScheduler(briskPersistence, 500);
+            brisk.schedule(machine("hourly"), dailyAtNine(), 1000 * 60 * 60 * 24, exact);
+            await vi.advanceTimersByTimeAsync(1_000);
+            expect(briskClaims).toHaveBeenCalledTimes(2);
+            await scheduler.cleanUp();
+            await brisk.cleanUp();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("after a gap starts only the most recent missed run, not one job per missed tick", async () => {
         const target = machine("nightly");
         const persistence = new InMemoryJobRunSchedulePersistence();

@@ -73,6 +73,9 @@ processRun.run = async (job) => {
 
 ## Spreading the load
 
+The scheduler checks for due runs every ten seconds (`ANBARIC_SCHEDULER_TICK_MS`
+changes that), so a run starts within ten seconds of its planned time.
+
 Machines scheduled at the same time would otherwise all start on the same
 second. Each machine gets a small random offset — up to two minutes by default —
 applied **when the run is planned**, so the stored time is the time it really

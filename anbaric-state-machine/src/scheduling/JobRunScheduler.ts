@@ -3,8 +3,17 @@ import {StateMachine} from "../StateMachine.js";
 import {JobRunSchedulePersistenceFactory} from "./JobRunSchedulePersistenceFactory.js";
 import {Schedule} from "./Schedule.js";
 
-const TICK_INTERVAL_MS = 1000;
+const DEFAULT_TICK_INTERVAL_MS = 10_000;
 const DEFAULT_LOOKAHEAD_MS = 1000 * 60 * 60 * 24;
+
+/* Every tick asks the store for the high-water mark of each machine and for
+   whatever has come due - on the platform, that many requests. Ten seconds
+   keeps that cheap and starts a run well within the random offset it was
+   planned with; ANBARIC_SCHEDULER_TICK_MS overrides it. */
+const configuredTickIntervalMs = () => {
+    const ms = Number(process.env.ANBARIC_SCHEDULER_TICK_MS);
+    return Number.isFinite(ms) && ms > 0 ? ms : DEFAULT_TICK_INTERVAL_MS;
+};
 const DEFAULT_RUN_OFFSET_MS : [number, number] = [0, 1000 * 60 * 2];
 
 type ScheduledMachine = {
@@ -32,7 +41,8 @@ class JobRunScheduler {
     private ticker? : ReturnType<typeof setInterval>;
     private ticking = false;
 
-    constructor(private persistence : JobRunSchedulePersistence = JobRunSchedulePersistenceFactory.instance()) {}
+    constructor(private persistence : JobRunSchedulePersistence = JobRunSchedulePersistenceFactory.instance(),
+                private tickIntervalMs : number = configuredTickIntervalMs()) {}
 
     static instance() : JobRunScheduler {
         if (!JobRunScheduler.singleton) JobRunScheduler.singleton = new JobRunScheduler();
@@ -59,7 +69,7 @@ class JobRunScheduler {
 
     private start() : void {
         if (this.ticker) return;
-        this.ticker = setInterval(() => void this.tickOnce(), TICK_INTERVAL_MS);
+        this.ticker = setInterval(() => void this.tickOnce(), this.tickIntervalMs);
         // Scheduling alone should not hold a process open.
         this.ticker.unref?.();
     }
