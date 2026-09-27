@@ -53,10 +53,14 @@ runs as they come due. Two things follow from that, both deliberate:
 
 - **A restart doesn't lose the timetable.** The plan is already stored, so the
   scheduler picks up where it left off.
-- **Downtime doesn't silently skip runs.** A scheduler that was down for two
-  days starts the runs it missed as soon as it comes back, rather than
-  pretending they never existed. If you don't want that catch-up for a
-  particular machine, make its action check `scheduledFor` and return early.
+- **Downtime doesn't silently skip runs — and doesn't replay them either.** A
+  scheduler that was down for two days starts **one** catch-up run as soon as
+  it comes back: the most recent run it missed. The earlier missed runs are
+  recorded as superseded by it, so the timetable shows what was skipped and
+  why, but an hourly sync that missed a day never becomes twenty-four syncs
+  fired in the same second. The job's `scheduledFor` tells you which run it
+  is; if a machine must not catch up at all, make its action check that and
+  return early.
 
 Every scheduled job carries the run it belongs to:
 

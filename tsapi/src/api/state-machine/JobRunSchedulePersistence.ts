@@ -17,9 +17,12 @@ interface JobRunSchedulePersistence {
     plan(runs : Array<ScheduledRun>) : Promise<void>;
 
     // Runs due at or before `at`, marked as claimed so a second call does not
-    // return them again. Claiming is per-process today; a shared implementation
-    // will need to make the read-and-mark atomic before more than one scheduler
-    // runs against the same store.
+    // return them again - at most one per machine: when several of a
+    // machine's runs have come due together (a scheduler that was down, a
+    // deploy that took a while) only the most recent is claimed and the
+    // earlier ones are marked superseded by it, so a backlog never becomes a
+    // burst of jobs. A shared implementation makes the read-and-mark atomic,
+    // so several schedulers can run against one store.
     claimDue(at : Date) : Promise<Array<ScheduledRun>>;
 
 }

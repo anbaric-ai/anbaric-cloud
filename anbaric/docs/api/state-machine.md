@@ -348,6 +348,13 @@ Storage comes from `JobRunSchedulePersistenceFactory` — in memory locally, the
 platform database when deployed, where claiming a due run is atomic so several
 instances can schedule the same machines safely.
 
+Claiming coalesces: when more than one of a machine's runs has come due — the
+scheduler was down, a deploy took a while — only the most recent is claimed
+and started, and the earlier ones are recorded as **superseded** by it
+(`superseded_at` and `superseded_by` on the stored run). The consumer is sent
+one catch-up job, never one per missed tick. Runs of different machines, or
+of the same machine in different apps, are never coalesced with each other.
+
 ---
 
 ## `Actor`

@@ -204,6 +204,17 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         "CREATE INDEX IF NOT EXISTS audit_records_resource ON anbaric_system.audit_records (resource_type, resource_id)",
     ),
 
+    /* A machine's overdue runs are coalesced when claimed: the most recent
+       starts, the rest are marked superseded by it. The due index leaves both
+       the claimed and the superseded out. */
+    statements("002-superseded-scheduled-runs",
+        "ALTER TABLE job_run_schedule ADD COLUMN superseded_at TIMESTAMPTZ",
+        "ALTER TABLE job_run_schedule ADD COLUMN superseded_by BIGINT REFERENCES job_run_schedule (id)",
+        "DROP INDEX IF EXISTS job_run_schedule_due",
+        `CREATE INDEX job_run_schedule_due
+            ON job_run_schedule (run_at) WHERE claimed_at IS NULL AND superseded_at IS NULL`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

@@ -69,6 +69,21 @@ describe("JobRunScheduler", () => {
         await scheduler.cleanUp();
     });
 
+    it("after a gap starts only the most recent missed run, not one job per missed tick", async () => {
+        const target = machine("nightly");
+        const persistence = new InMemoryJobRunSchedulePersistence();
+        const scheduler = new JobRunScheduler(persistence);
+        scheduler.schedule(target, dailyAtNine(), 1000 * 60 * 60 * 24 * 4, exact);
+
+        await scheduler.tick(at("2026-03-01T08:00:00"));
+        await scheduler.tick(at("2026-03-04T10:00:00"));
+
+        expect(target.startJob).toHaveBeenCalledTimes(1);
+        expect(target.startJob.mock.calls[0][0].get("scheduledFor")).toBe(at("2026-03-04T09:00:00").toISOString());
+        expect(persistence.superseded().map(({ run }) => run.runAt)).toEqual([at("2026-03-01T09:00:00"), at("2026-03-02T09:00:00"), at("2026-03-03T09:00:00")]);
+        await scheduler.cleanUp();
+    });
+
     it("does not re-plan runs that are already recorded", async () => {
         const persistence = new InMemoryJobRunSchedulePersistence();
         const plan = vi.spyOn(persistence, "plan");
@@ -85,7 +100,7 @@ describe("JobRunScheduler", () => {
         await scheduler.cleanUp();
     });
 
-    it("catches up runs that fell due while it was not running", async () => {
+    it("catches up with one run when several fell due while it was not running", async () => {
         const target = machine("nightly");
         const scheduler = new JobRunScheduler(new InMemoryJobRunSchedulePersistence());
         scheduler.schedule(target, dailyAtNine(), 1000 * 60 * 60 * 72, exact);
@@ -93,8 +108,10 @@ describe("JobRunScheduler", () => {
         await scheduler.tick(at("2026-03-01T00:00:00"));
         await scheduler.tick(at("2026-03-03T12:00:00"));
 
-        // The 1st, 2nd and 3rd were all planned and are all now due.
-        expect(target.startJob).toHaveBeenCalledTimes(3);
+        // The 1st, 2nd and 3rd were all planned and are all now due; only the
+        // 3rd - the most recent - starts, so a gap never becomes a burst.
+        expect(target.startJob).toHaveBeenCalledTimes(1);
+        expect(target.startJob.mock.calls[0][0].get("scheduledFor")).toBe(at("2026-03-03T09:00:00").toISOString());
         await scheduler.cleanUp();
     });
 
