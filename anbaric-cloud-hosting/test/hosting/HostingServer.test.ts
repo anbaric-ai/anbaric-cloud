@@ -171,6 +171,19 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect((await persistence.list(actor, 2, 1)).map(job => job.id)).toEqual(["c"]);
         });
 
+        it("reads only the keys asked for and writes only the properties that changed", async () => {
+            await persistence.create(actor, new Job("a", new Map([["x", 1], ["y", 2], ["z", 3]]), "open", "support"));
+
+            const partial = await persistence.retrieve("a", actor, ["x"]);
+            expect([...partial.properties]).toEqual([["x", 1]]);
+
+            await persistence.save(actor, "Changed x", partial, new Map([["x", 10]]), "closed");
+
+            const whole = await persistence.retrieve("a", actor);
+            expect([...whole.properties]).toEqual([["x", 10], ["y", 2], ["z", 3]]);
+            expect(whole.state).toBe("closed");
+        });
+
         it("narrows and orders a listing from the query string", async () => {
             await persistence.create(actor, new Job("a", new Map(), "open", "support"));
             await persistence.create(actor, new Job("b", new Map(), "closed", "support"));

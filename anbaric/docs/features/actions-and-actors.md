@@ -32,6 +32,32 @@ Actions in a state run **in order** each time a job is processed. An action that
 returns an unchanged value doesn't churn the job — the machine only advances (or
 schedules a re-check) when something actually changes.
 
+### Declare what an action reads
+
+A job can hold a lot — hundreds of article summaries, say — while a given
+action needs one property of it. Declare that, and only that is loaded:
+
+```ts
+import {Reads} from "anbaric";
+
+chargeCard.reads = Reads.only("total", "paid");
+```
+
+`reads` is a function of the machine's property definitions, so a mapping can
+be written once and keep up as the schema grows: `Reads.everything` (the
+default — nothing changes until you declare), `Reads.nothing`,
+`Reads.only(...keys)`, or `Reads.where(definition => …)` to pick by name. A
+transition's guard takes a `reads` too, and an `Await`'s `resolveUrl` and
+`metadata` have one.
+
+Before a job is processed in a state, the machine loads the union of what that
+state's actions, awaits and transitions read; a property that wasn't declared
+is simply absent from `job.properties`, so declare honestly. Afterwards it
+writes back only the properties that changed — never the ones it read, and
+never the ones it didn't load. For an [agentic action](ai-agents.md) the
+declaration also decides what reaches the model: the prompt carries the loaded
+properties and nothing more.
+
 ## Actors: who does the work
 
 An actor is a small identity object — `type`, `id`, and `roles`. There are four

@@ -11,6 +11,7 @@ import {
     Notifier,
     PropertyDefinition,
     Queue,
+    Reads,
     State,
     SystemActor,
     WorkflowDefinition
@@ -87,7 +88,9 @@ class StateMachine implements AppAware {
 
     async updateJob(jobId : string, properties : Map<string, any>, actor : Actor) : Promise<void> {
 
-        const job = await this.persistence.retrieve(jobId, actor);
+        // Only the properties being changed are read: their old values are
+        // what the audit trail records the change against.
+        const job = await this.persistence.retrieve(jobId, actor, [...properties.keys()]);
 
         if (!this.authorizeActor(actor, job)) throw new Error("Unauthorized");
 
@@ -96,7 +99,7 @@ class StateMachine implements AppAware {
 
     async executeAction(jobId : string, action : Action) : Promise<void> {
 
-        const job = await this.persistence.retrieve(jobId, action.actor);
+        const job = await this.persistence.retrieve(jobId, action.actor, this.keysReadBy([action]));
 
         if (! action.predicate(job)) throw new Error("Action predicate unmet");
         if (! this.authorizeActor(action.actor, job)) throw new Error("Actor not authorized to execute action");
@@ -110,20 +113,47 @@ class StateMachine implements AppAware {
         }
     }
 
+    /* The properties a pass through a state needs: the union of what its
+       actions, awaits and transitions declare they read. Undefined - load
+       everything - as soon as any of them reads everything, since the store
+       cannot be asked for "all" by name. The state is looked up by id before
+       the job is read, so the read is as narrow as the state allows. */
+    private keysReadBy(steps : Array<{ reads : Reads }>) : Array<string> | undefined {
+        const definitions = [...this.dataSchema.values()];
+        const keys = new Set<string>();
+
+        for (const step of steps) {
+            if (step.reads === Reads.everything) return undefined;
+            const read = step.reads(definitions);
+            if (definitions.length > 0 && definitions.every(definition => read.includes(definition.id))) return undefined;
+            for (const key of read) keys.add(key);
+        }
+        return [...keys];
+    }
+
+    private keysReadIn(state : State | undefined) : Array<string> | undefined {
+        if (! state) return undefined;
+        return this.keysReadBy([...state.actions, ...state.transitions]);
+    }
+
     private async progressJob(jobId : string) : Promise<void> {
 
-        const job = await this.persistence.retrieve(jobId, this.machineActor);
-        if (job.killed) return;
+        const stateOf = await this.persistence.retrieve(jobId, this.machineActor, []);
+        if (stateOf.killed) return;
 
-        const currentState = this.states.get(job.state);
+        const currentState = this.states.get(stateOf.state);
         if (currentState?.isTerminal) return;
+
+        const job = await this.persistence.retrieve(jobId, this.machineActor, this.keysReadIn(currentState));
 
         // A job resuming from "Awaiting input" (re-enqueued by an update to its
         // properties) skips its actions entirely and only re-evaluates its
         // transitions - the input it was parked for drives it on.
         const wasAwaiting = job.status === Job.Status.AWAITING_INPUT;
         const involvedActors : Array<Actor> = [];
-        let propertiesChanged = false;
+        // Only what changed is written back, never the properties the pass
+        // happened to read - let alone the ones it never loaded.
+        const changed = new Map<string, any>();
 
         if (! wasAwaiting) {
             for (const item of currentState?.actions ?? []) {
@@ -132,7 +162,7 @@ class StateMachine implements AppAware {
                     job.awaitMetadata = item.waitForInput(job);
                     job.waitingFor = crypto.randomUUID();
                     await this.persistence.save(this.machineActor, `Job ${job.id} awaiting input`, job,
-                        propertiesChanged ? job.properties : undefined);
+                        changed.size > 0 ? changed : undefined);
                     await this.notifyWaitingOn(item, job);
                     return;
                 }
@@ -157,7 +187,7 @@ class StateMachine implements AppAware {
                     }
                     if (job.properties.has(key) && this.sameValue(job.properties.get(key), value)) continue;
                     job.properties.set(key, value);
-                    propertiesChanged = true;
+                    changed.set(key, value);
                     applied = true;
                 }
 
@@ -180,17 +210,17 @@ class StateMachine implements AppAware {
             job.awaitMetadata = undefined;
             job.waitingFor = undefined;
             await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
-                job, propertiesChanged ? job.properties : undefined, newState);
+                job, changed.size > 0 ? changed : undefined, newState);
             if (! this.states.get(newState)?.isTerminal) await this.queue.enqueue(job.id, this.getAppId(), this.workflowId);
             return;
         }
 
         // Parked (still awaiting) or nothing changed: leave the job be until the
         // next update. Otherwise re-check this state after the back-off delay.
-        if (wasAwaiting || ! propertiesChanged) return;
+        if (wasAwaiting || changed.size === 0) return;
 
         await this.persistence.save(involvedActors[0] ?? this.machineActor, `Job ${job.id} progressed automatically`,
-            job, job.properties);
+            job, changed);
         await this.queue.schedule(job.id, this.getAppId(), this.workflowId, new Date(Date.now() + this.NO_TRANSITION_REQUEUE_DELAY));
     }
 

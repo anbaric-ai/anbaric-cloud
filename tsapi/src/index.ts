@@ -2,6 +2,7 @@ export * from "./api/jobs/Job.js";
 export * from "./api/jobs/JobPersistence.js"
 export * from "./api/jobs/JobSerialization.js"
 export * from "./api/jobs/PropertyDefinition.js"
+export * from "./api/jobs/Reads.js"
 export * from "./api/states/State.js"
 export * from "./api/states/Terminal.js"
 export * from "./api/actions/Action.js"

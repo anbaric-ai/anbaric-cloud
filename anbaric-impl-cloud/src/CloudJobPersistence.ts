@@ -14,12 +14,16 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         return currentAppId();
     }
 
-    protected async saveInternal(job : Job) : Promise<void> {
-        await this.client.request("PUT", `/jobs/${encodeURIComponent(job.id)}`, serializeJob(job));
+    // The properties in the body are the ones to write: the platform upserts
+    // them and leaves the rest of the job's properties as they are.
+    protected async saveInternal(job : Job, properties? : Map<string, any>) : Promise<void> {
+        const serialized = { ...serializeJob(job), properties: Object.fromEntries(properties ?? []) };
+        await this.client.request("PUT", `/jobs/${encodeURIComponent(job.id)}`, serialized);
     }
 
-    protected async retrieveInternal(id : string) : Promise<Job> {
-        const serialized = await this.client.request("GET", `/jobs/${encodeURIComponent(id)}`) as SerializedJob;
+    protected async retrieveInternal(id : string, keys? : Array<string>) : Promise<Job> {
+        const query = keys ? `?keys=${encodeURIComponent(keys.join(","))}` : "";
+        const serialized = await this.client.request("GET", `/jobs/${encodeURIComponent(id)}${query}`) as SerializedJob;
         return deserializeJob(serialized);
     }
 

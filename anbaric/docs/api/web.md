@@ -116,6 +116,17 @@ In code the same listing is `JobPersistenceFactory.instance().list(actor,
 pageSize, page, query)`; the CLI's `anbaric jobs list` and the MCP tool
 `anbaric_jobs_list` take the same filters.
 
+```
+GET /api/v2/jobs/<id>                       every property
+GET /api/v2/jobs/<id>?keys=summary,score    only those
+PUT /api/v2/jobs/<id>                       body: a serialised job
+```
+
+A job's properties are stored one by one. A `GET` with `keys` returns only
+those; the properties in a `PUT` body are **upserted** — written if given,
+left alone if not — so a caller that read a few keys can write a few keys
+without disturbing the rest, and no `PUT` ever removes a property.
+
 ### Other resources
 
 Also under `/api/v2`, reached through the cloud clients rather than raw HTTP:

@@ -32,8 +32,11 @@ class JobsHandler implements RequestHandler {
             case "PUT":
                 await this.persistence.create(SystemActor.actor, deserializeJob(await request.body()));
                 return request.reply(204);
-            case "GET":
-                return request.reply(200, serializeJob(await this.persistence.retrieve(id, SystemActor.actor)));
+            case "GET": {
+                const keys = request.query("keys");
+                const wanted = keys === undefined ? undefined : keys.split(",").map(key => key.trim()).filter(key => key !== "");
+                return request.reply(200, serializeJob(await this.persistence.retrieve(id, SystemActor.actor, wanted)));
+            }
             case "DELETE":
                 await this.persistence.delete(id, SystemActor.actor);
                 return request.reply(204);

@@ -136,20 +136,46 @@ actor : Actor
 constructor(name : string, actor : Actor, description : string = "", id? : string)
 
 // Replaceable function fields — assign your own:
+reads : Reads                                  // default: Reads.everything
 predicate : (job : Job) => boolean            // default: () => true
 run : (job : Job) => Promise<Map<string, any>> // default: async () => new Map()
 ```
 
-You configure an action by assigning `predicate` and `run`:
+You configure an action by assigning `predicate` and `run`, and `reads` when
+the job holds more than the action needs:
 
 ```ts
 const sendWelcome = new Action("Send welcome email", new Code("welcome"));
+sendWelcome.reads = Reads.only("email", "name");
 sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
 ```
 
+- **`reads`** — which properties are loaded for the job before `predicate` and
+  `run` see it. Given the machine's property definitions, so it can be written
+  once and follow the schema. See [`Reads`](#reads).
 - **`predicate`** — return `false` to skip this action for a given job.
 - **`run`** — return a `Map` of the properties to change. Only properties in the
-  machine's schema are applied; others are ignored with a warning.
+  machine's schema are applied; others are ignored with a warning. Only the
+  properties that actually changed are written back.
+
+### `Reads`
+
+```ts
+type Reads = (definitions : Array<PropertyDefinition>) => Array<string>
+
+Reads.everything                       // every property (the default)
+Reads.nothing                          // none
+Reads.only("summary", "articles")      // a fixed few
+Reads.where(definition => definition.id.startsWith("article"))   // whatever matches
+```
+
+A job is loaded with the union of what the current state's actions, awaits and
+transitions read, and nothing else: a property that wasn't declared is simply
+absent from `job.properties`. A step that reads everything loads everything, so
+nothing changes until you declare. Declaring matters for jobs that carry a lot
+— a workflow holding hundreds of article summaries stops moving all of them
+for a step that scores one — and for [agentic actions](../features/ai-agents.md),
+whose prompt carries the loaded properties and nothing more.
 
 See [Actions and actors](../features/actions-and-actors.md).
 
@@ -172,6 +198,7 @@ waitingFor? : AwaitParty
 fields : Array<string> = []
 resolveUrl : string | ((job : Job) => string) = ""
 metadata : (job : Job) => Map<string, any>    // default: () => new Map()
+reads : Reads                                 // what resolveUrl and metadata read; default: Reads.everything
 
 constructor(name : string, waitingFor? : AwaitParty, description : string = "", id? : string)
 
@@ -218,18 +245,20 @@ transition whose predicate holds moves the job to `to`.
 ```ts
 to : string
 predicate : (job : Job) => boolean          // default: () => true
+reads : Reads                               // default: everything if guarded, nothing if not
 
-constructor(to : string, predicate? : (job : Job) => boolean)
+constructor(to : string, predicate? : (job : Job) => boolean, reads? : Reads)
 ```
 
 ```ts
-new Transition("active", (job) => job.properties.get("welcomeSent") === true)
+new Transition("active", (job) => job.properties.get("welcomeSent") === true, Reads.only("welcomeSent"))
 new Transition("scoring")   // unguarded: the actions run, then the job moves on
 ```
 
 The predicate is optional. Omit it when a state's actions simply run and the job
 should move on, rather than inventing a sentinel property for the transition to
-read. Guard a transition only when the move is conditional.
+read. Guard a transition only when the move is conditional, and say what the
+guard reads so the job is loaded with only that.
 
 ---
 
@@ -267,6 +296,21 @@ read what it's waiting for from `job.awaitMetadata`.
 A job whose action threw is `FAILED`, with the reason in its audit trail. It
 stays in its state rather than transitioning, and an update that moves it on
 returns it to `ACTIVE` — so a failure is recoverable, not terminal.
+
+### Reading a job
+
+```ts
+persistence.retrieve(id, actor) : Promise<Job>                  // every property
+persistence.retrieve(id, actor, ["summary", "score"]) : Promise<Job>   // only those
+```
+
+Properties are stored one by one, so a job can be read with only the keys
+wanted — that's what the machine does for every step, from what the step
+[declares it reads](#reads) — and a save writes only the properties that
+changed. A property absent from a partial read is never touched by a save of
+that job, and no save ever removes a property. Over HTTP the same read is
+`GET /api/v2/jobs/<id>?keys=summary,score`, and the properties in a `PUT` body
+are the ones written.
 
 ### Listing jobs
 

@@ -17,7 +17,7 @@ abstract class JobPersistence {
 
         await this.auditor.audit(job.appId, "job", job.id, actor, [JobPersistence.Interaction.CREATE], "Job created", job);
 
-        this.saveInternal(job);
+        await this.saveInternal(job, job.properties);
     }
 
     async save(actor : Actor,
@@ -56,7 +56,7 @@ abstract class JobPersistence {
             job.waitingFor
         )
 
-        this.saveInternal(updatedJob);
+        await this.saveInternal(updatedJob, properties);
     }
 
     async kill(id : string, actor : Actor) : Promise<void> {
@@ -92,9 +92,13 @@ abstract class JobPersistence {
         return updated;
     }
 
-    async retrieve(id : string, actor : Actor) : Promise<Job> {
+    /* The job, with either every property or only the `keys` asked for. A job
+       is read with the keys its next step declares it reads, so a job holding
+       a great deal of data costs a step only what that step needs. A property
+       that was not asked for is simply absent from the map. */
+    async retrieve(id : string, actor : Actor, keys? : Array<string>) : Promise<Job> {
         await this.auditor.audit(currentAppId(), "job", id, actor, [JobPersistence.Interaction.READ], "", null);
-        return this.retrieveInternal(id);
+        return this.retrieveInternal(id, keys);
     }
 
     async delete(id : string, actor : Actor) : Promise<void> {
@@ -112,8 +116,12 @@ abstract class JobPersistence {
         return this.listInternal(pageSize, page, query);
     }
 
-    protected abstract saveInternal(job : Job) : Promise<void>;
-    protected abstract retrieveInternal(id : string) : Promise<Job>;
+    /* Writes the job's own columns, and upserts exactly the `properties` given -
+       the ones that changed, or all of them on create. Properties the job was
+       not read with are never touched, and none is ever removed: a store holds
+       properties one by one, and a write is the changed ones. */
+    protected abstract saveInternal(job : Job, properties? : Map<string, any>) : Promise<void>;
+    protected abstract retrieveInternal(id : string, keys? : Array<string>) : Promise<Job>;
     protected abstract deleteInternal(id : string) : Promise<void>;
     protected abstract listInternal(pageSize? : number, page? : number, query? : JobPersistence.Query) : Promise<Array<Job>>;
     protected abstract killInternal(id : string) : Promise<void>;

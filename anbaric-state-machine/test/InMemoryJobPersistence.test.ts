@@ -20,7 +20,7 @@ describe("InMemoryJobPersistence", () => {
 
             await persistence.create(actor, job);
 
-            expect(await persistence.retrieve("job-1", actor)).toBe(job);
+            expect(await persistence.retrieve("job-1", actor)).toEqual(job);
         });
 
         it("overwrites an existing job with the same id", async () => {
@@ -30,7 +30,26 @@ describe("InMemoryJobPersistence", () => {
             await persistence.create(actor, original);
             await persistence.create(actor, replacement);
 
-            expect(await persistence.retrieve("job-1", actor)).toBe(replacement);
+            expect(await persistence.retrieve("job-1", actor)).toEqual(replacement);
+        });
+
+        it("retrieves only the keys asked for", async () => {
+            await persistence.create(actor, makeJob("job-1", new Map([["a", 1], ["b", 2], ["c", 3]])));
+
+            const partial = await persistence.retrieve("job-1", actor, ["a", "c"]);
+
+            expect([...partial.properties]).toEqual([["a", 1], ["c", 3]]);
+            expect([...(await persistence.retrieve("job-1", actor, [])).properties]).toEqual([]);
+            expect([...(await persistence.retrieve("job-1", actor)).properties]).toEqual([["a", 1], ["b", 2], ["c", 3]]);
+        });
+
+        it("writes only the changed properties, leaving the ones a partial read never loaded", async () => {
+            await persistence.create(actor, makeJob("job-1", new Map([["a", 1], ["b", 2], ["c", 3]])));
+            const partial = await persistence.retrieve("job-1", actor, ["a"]);
+
+            await persistence.save(actor, "Changed a", partial, new Map([["a", 10], ["d", 4]]));
+
+            expect([...(await persistence.retrieve("job-1", actor)).properties]).toEqual([["a", 10], ["b", 2], ["c", 3], ["d", 4]]);
         });
 
         it("rejects retrieval of an unknown id", async () => {

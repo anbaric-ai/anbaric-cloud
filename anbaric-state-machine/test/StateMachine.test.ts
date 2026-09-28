@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, State, Terminal, Transition} from "anbaric-tsapi";
+import {Action, Actor, Auditor, Consumer, Job, JobPersistence, PropertyDefinition, Queue, Reads, State, Terminal, Transition} from "anbaric-tsapi";
 import {StateMachine} from "../src/StateMachine.js";
 import {Code} from "../src/actors/Code.js";
 import {Human} from "../src/actors/Human.js";
@@ -12,7 +12,7 @@ const mockPersistence = () => ({
     create: vi.fn(async (_actor : Actor, _job : Job) => {}),
     save: vi.fn(async (_actor : Actor, _description : string, _job : Job,
                        _properties? : Map<string, any>, _state? : string) => {}),
-    retrieve: vi.fn(async (_id : string, _actor : Actor) : Promise<Job> => {
+    retrieve: vi.fn(async (_id : string, _actor : Actor, _keys? : Array<string>) : Promise<Job> => {
         throw new Error("retrieve not mocked");
     }),
     delete: vi.fn(async (_id : string, _actor : Actor) => {}),
@@ -77,6 +77,83 @@ describe("StateMachine", () => {
         const processJob = consumer.subscribe.mock.calls[0][2];
         await processJob(jobId);
     };
+
+    describe("reading only what a step declares", () => {
+
+        const plain = (id : string) => new PropertyDefinition(id);
+        const schema = () => [plain("summary"), plain("articles"), plain("score")];
+
+        // The first read is the job's own columns only, to find its state; the
+        // second is the properties that state's steps declare.
+        const keysRead = () => persistence.retrieve.mock.calls.map(call => call[2]);
+
+        it("loads only the properties the state's actions and transitions read", async () => {
+            const score = stampingAction("score", 9);
+            score.reads = Reads.only("summary");
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["summary", "s"]]), "start"));
+            machineWith([new State("start", [score], [new Transition("done", job => job.properties.has("score"), Reads.only("score"))]), new State("done")], schema());
+
+            await progressJob("job-1");
+
+            expect(keysRead()).toEqual([[], ["summary", "score"]]);
+        });
+
+        it("loads everything when any step reads everything", async () => {
+            const score = stampingAction("score", 9);
+            score.reads = Reads.only("summary");
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            machineWith([new State("start", [score, stampingAction("summary", "s")], [new Transition("done")]), new State("done")], schema());
+
+            await progressJob("job-1");
+
+            expect(keysRead()).toEqual([[], undefined]);
+        });
+
+        it("loads nothing for a state of unguarded transitions and actions that read nothing", async () => {
+            const stamp = stampingAction("score", 9);
+            stamp.reads = Reads.nothing;
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            machineWith([new State("start", [stamp], [new Transition("done")]), new State("done")], schema());
+
+            await progressJob("job-1");
+
+            expect(keysRead()).toEqual([[], []]);
+        });
+
+        it("reads against the definitions, so a mapping can follow the schema", async () => {
+            const summarise = stampingAction("summary", "s");
+            summarise.reads = Reads.where(definition => definition.id.startsWith("art"));
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            machineWith([new State("start", [summarise], [new Transition("done")]), new State("done")], [...schema(), plain("artwork")]);
+
+            await progressJob("job-1");
+
+            expect(keysRead()[1]).toEqual(["articles", "artwork"]);
+        });
+
+        it("saves only the properties that changed, never the ones it read", async () => {
+            const score = stampingAction("score", 9);
+            score.reads = Reads.only("summary");
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["summary", "s"]]), "start"));
+            machineWith([new State("start", [score], [new Transition("done")]), new State("done")], schema());
+
+            await progressJob("job-1");
+
+            expect([...savedProperties()!]).toEqual([["score", 9]]);
+            expect(savedState()).toBe("done");
+        });
+
+        it("reads just the properties an update changes, for the audit of their old values", async () => {
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["score", 1]]), "start"));
+            const machine = machineWith([new State("start", [], [new Transition("done")]), new State("done")], schema());
+
+            await machine.updateJob("job-1", new Map([["score", 2]]), new Code("tester"));
+
+            expect(keysRead()).toEqual([["score"]]);
+            expect([...savedProperties()!]).toEqual([["score", 2]]);
+        });
+
+    });
 
     describe("construction", () => {
 

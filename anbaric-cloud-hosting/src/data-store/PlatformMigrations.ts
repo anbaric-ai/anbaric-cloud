@@ -215,6 +215,21 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
             ON job_run_schedule (run_at) WHERE claimed_at IS NULL AND superseded_at IS NULL`,
     ),
 
+    /* A job's properties become rows of their own, so a step reads only the
+       properties it declares and a save writes only the ones that changed,
+       instead of the whole map coming and going on every action. */
+    statements("003-job-properties",
+        `CREATE TABLE job_properties (
+            job_id TEXT NOT NULL REFERENCES jobs (id) ON DELETE CASCADE,
+            key    TEXT NOT NULL,
+            value  JSONB,
+            PRIMARY KEY (job_id, key)
+        )`,
+        `INSERT INTO job_properties (job_id, key, value)
+            SELECT j.id, p.key, p.value FROM jobs j, jsonb_each(j.properties) p`,
+        "ALTER TABLE jobs DROP COLUMN properties",
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

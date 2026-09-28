@@ -24,7 +24,43 @@ describe("PostgresJobPersistence", () => {
 
         const insert = query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO jobs"));
         expect(insert).toBeDefined();
-        expect(insert![1]![8]).toBe(true);
+        expect(insert![1]![7]).toBe(true);
+    });
+
+    it("writes properties as rows of their own, only the ones given", async () => {
+        const { pool, query, released } = mockPool();
+        const persistence = new PostgresJobPersistence(pool);
+
+        await persistence.create(actor, new Job("job-1", new Map<string, any>([["a", 1], ["b", { nested: true }]]), "start", "wf"));
+        await released;
+
+        const upsert = query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO job_properties"));
+        expect(upsert).toBeDefined();
+        expect(upsert![1]).toEqual(["job-1", ["a", "b"], ["1", "{\"nested\":true}"]]);
+        expect(query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO jobs"))![0]).not.toContain("properties");
+    });
+
+    it("skips the property write when a save changed none", async () => {
+        const { pool, query, released } = mockPool();
+
+        await new PostgresJobPersistence(pool).save(actor, "State only", new Job("job-1", new Map([["a", 1]]), "start", "wf"), undefined, "next");
+        await released;
+
+        expect(query.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO job_properties"))).toBe(false);
+    });
+
+    it("reads only the keys asked for", async () => {
+        const { pool, query } = mockPool();
+        query.mockResolvedValueOnce({ rows: [{ id: "job-1", state: "start", started_at: new Date(), started_by: "system",
+            last_updated: new Date(), killed: false, status: "active" }], rowCount: 1 });
+        query.mockResolvedValueOnce({ rows: [{ job_id: "job-1", key: "a", value: 1 }], rowCount: 1 });
+
+        const job = await new PostgresJobPersistence(pool).retrieve("job-1", actor, ["a", "c"]);
+
+        expect([...job.properties]).toEqual([["a", 1]]);
+        const propertiesQuery = query.mock.calls.find(([sql]) => String(sql).includes("FROM job_properties"));
+        expect(propertiesQuery![0]).toContain("key = ANY($2)");
+        expect(propertiesQuery![1]).toEqual([["job-1"], ["a", "c"]]);
     });
 
     /* A save carries the job as it was when it was read. If the upsert wrote

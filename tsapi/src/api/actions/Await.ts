@@ -1,4 +1,5 @@
 import {Job} from "../jobs/Job.js";
+import {Reads} from "../jobs/Reads.js";
 import {AwaitParty, WaitForInput} from "./WaitForInput.js";
 
 /* A pause point in a state's action list. When a job reaches an Await it runs
@@ -24,6 +25,8 @@ class Await {
     resolveUrl : string | ((job : Job) => string) = "";
     metadata : (job : Job) => Map<string, any> = (_job : Job) => new Map();
     notify : Array<string> = [];
+    // What resolveUrl and metadata read from the job; everything by default.
+    reads : Reads = Reads.everything;
 
     constructor(name : string, waitingFor? : AwaitParty, description : string = "",
                 id : string = crypto.randomUUID(), notify : Array<string> = []) {
