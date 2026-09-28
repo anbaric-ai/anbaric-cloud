@@ -14,10 +14,10 @@ abstract class AgenticAction extends Action {
         super(name, agent, description, id);
         this.agent = agent;
         this.run = async (job : Job) =>
-            new Map(Object.entries(await this.agent.client.generate(this.requestFor(job))));
+            new Map(Object.entries(await this.agent.client.generate(await this.requestFor(job))));
     }
 
-    protected abstract requestFor(job : Job) : AgentRequest;
+    protected abstract requestFor(job : Job) : AgentRequest | Promise<AgentRequest>;
 
 }
 

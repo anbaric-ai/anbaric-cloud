@@ -34,7 +34,7 @@ const triage = new RemoteLLMAgenticAction(
 
 const support = new StateMachine("support", [
     new State("open", [triage], [
-        new Transition("prioritised", (job) => job.properties.has("priority")),
+        new Transition("prioritised", async (job) => await job.properties.has("priority")),
     ]),
     new State("prioritised"),
 ]);
@@ -44,12 +44,12 @@ When a job is processed in `open`, the agent is asked to produce a `priority`
 constrained to the schema; the result is applied to the job, and the transition
 advances it. The decision is recorded against `triager`.
 
-The job's current properties are appended to the prompt automatically, so the
-model sees the data it's reasoning about — the properties the action
-[declares it reads](actions-and-actors.md#declare-what-an-action-reads), which
-is all of them until you say otherwise. On a job that holds a lot, declare
-them: `triage.reads = Reads.only("subject")` keeps a ticket's attachments,
-history and everything else out of every call.
+The job's properties are appended to the prompt automatically, so the model
+sees the data it's reasoning about — the properties the job holds when the
+action runs, which is all of them until the state says otherwise. On a job
+that holds a lot, [prewarm](actions-and-actors.md#prewarm-what-a-state-needs)
+just what the model needs: `open.prewarm = Reads.only("subject")` keeps a
+ticket's attachments, history and everything else out of every call.
 
 ## The output schema
 

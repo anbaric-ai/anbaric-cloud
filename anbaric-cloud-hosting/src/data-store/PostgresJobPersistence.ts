@@ -1,4 +1,4 @@
-import {Auditor, Job, JobPersistence, NoOpAuditor, SerializedWaitForInput, deserializeJob, serializeWaitForInput} from "anbaric-tsapi";
+import {Auditor, Job, JobPersistence, JobProperties, NoOpAuditor, SerializedWaitForInput, deserializeJob, serializeWaitForInput} from "anbaric-tsapi";
 import {Pool, PoolClient} from "pg";
 
 type JobRow = {
@@ -90,12 +90,18 @@ class PostgresJobPersistence extends JobPersistence {
         );
     }
 
+    /* A job read with `keys` holds those and fetches any other property the
+       moment a step asks for it, straight from its rows; a job read whole
+       holds everything. */
     protected async retrieveInternal(id : string, keys? : Array<string>) : Promise<Job> {
         const result = await this.pool.query(`${JOB_SELECT} WHERE j.id = $1`, [id]);
         if (result.rowCount === 0) throw new Error(`No job found with id "${id}"`);
 
-        const properties = await this.propertiesOf([id], keys);
-        return this.deserializeRow(result.rows[0], properties.get(id) ?? new Map());
+        const loader = async (wanted? : Array<string>) => (await this.propertiesOf([id], wanted)).get(id) ?? new Map<string, any>();
+        const properties = keys
+            ? new JobProperties(await loader(keys), loader, false)
+            : new JobProperties(await loader());
+        return this.deserializeRow(result.rows[0], properties);
     }
 
     /* The properties of several jobs in one query, all of them or only `keys`,
@@ -144,7 +150,7 @@ class PostgresJobPersistence extends JobPersistence {
         );
 
         const properties = await this.propertiesOf(result.rows.map(row => row.id));
-        return result.rows.map(row => this.deserializeRow(row, properties.get(row.id) ?? new Map()));
+        return result.rows.map(row => this.deserializeRow(row, new JobProperties(properties.get(row.id) ?? new Map())));
     }
 
     protected async killInternal(id : string) : Promise<void> {
@@ -166,10 +172,10 @@ class PostgresJobPersistence extends JobPersistence {
         return result.rows.map(row => ({ state: row.state, killed: row.killed, count: row.count }));
     }
 
-    private deserializeRow(row : JobRow, properties : Map<string, any>) : Job {
-        return deserializeJob({
+    private deserializeRow(row : JobRow, properties : JobProperties) : Job {
+        const shape = deserializeJob({
             ...row,
-            properties: Object.fromEntries(properties),
+            properties: {},
             workflowId: row.workflow_id ?? undefined,
             appId: row.app_id ?? undefined,
             startedAt: row.started_at.toISOString(),
@@ -180,6 +186,8 @@ class PostgresJobPersistence extends JobPersistence {
             waitingFor: row.waiting_for ?? undefined,
             awaitMetadata: row.await_metadata ?? undefined,
         });
+        return new Job(shape.id, properties, shape.state, shape.workflowId, shape.appId, shape.startedBy, shape.startedAt,
+            shape.lastUpdated, shape.killed, shape.status, shape.awaitMetadata, shape.waitingFor);
     }
 
 }

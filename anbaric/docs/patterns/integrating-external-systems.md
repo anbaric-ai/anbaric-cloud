@@ -13,7 +13,7 @@ job park until the system reports back:
 ```ts
 const startSigning = new Action("Send for signature", new Code("esign"));
 startSigning.run = async (job) => {
-    const ref = await eSignProvider.createEnvelope(job.properties.get("documentUrl"));
+    const ref = await eSignProvider.createEnvelope(await job.properties.get("documentUrl"));
     return new Map([["envelopeRef", ref]]);
 };
 
@@ -21,7 +21,7 @@ const awaitSignature = new Await("Await signature", "EXTERNAL_SYSTEM");
 awaitSignature.fields = ["signed"];
 
 new State("signing", [startSigning, awaitSignature], [
-    new Transition("signed", (job) => job.properties.get("signed") === true),
+    new Transition("signed", async (job) => await job.properties.get("signed") === true),
 ]),
 ```
 
@@ -59,12 +59,12 @@ re-checks after a back-off until the status flips:
 ```ts
 const checkStatus = new Action("Poll payment status", new Code("payments"));
 checkStatus.run = async (job) => {
-    const status = await gateway.status(job.properties.get("paymentRef"));
+    const status = await gateway.status(await job.properties.get("paymentRef"));
     return status === "settled" ? new Map([["settled", true]]) : new Map();
 };
 
 new State("charging", [checkStatus], [
-    new Transition("settled", (job) => job.properties.get("settled") === true),
+    new Transition("settled", async (job) => await job.properties.get("settled") === true),
 ]),
 ```
 

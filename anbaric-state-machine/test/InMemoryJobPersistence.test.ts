@@ -38,9 +38,9 @@ describe("InMemoryJobPersistence", () => {
 
             const partial = await persistence.retrieve("job-1", actor, ["a", "c"]);
 
-            expect([...partial.properties]).toEqual([["a", 1], ["c", 3]]);
-            expect([...(await persistence.retrieve("job-1", actor, [])).properties]).toEqual([]);
-            expect([...(await persistence.retrieve("job-1", actor)).properties]).toEqual([["a", 1], ["b", 2], ["c", 3]]);
+            expect([...partial.properties.snapshot()]).toEqual([["a", 1], ["c", 3]]);
+            expect([...(await persistence.retrieve("job-1", actor, [])).properties.snapshot()]).toEqual([]);
+            expect([...(await persistence.retrieve("job-1", actor)).properties.snapshot()]).toEqual([["a", 1], ["b", 2], ["c", 3]]);
         });
 
         it("writes only the changed properties, leaving the ones a partial read never loaded", async () => {
@@ -49,7 +49,7 @@ describe("InMemoryJobPersistence", () => {
 
             await persistence.save(actor, "Changed a", partial, new Map([["a", 10], ["d", 4]]));
 
-            expect([...(await persistence.retrieve("job-1", actor)).properties]).toEqual([["a", 10], ["b", 2], ["c", 3], ["d", 4]]);
+            expect([...(await persistence.retrieve("job-1", actor)).properties.snapshot()]).toEqual([["a", 10], ["b", 2], ["c", 3], ["d", 4]]);
         });
 
         it("rejects retrieval of an unknown id", async () => {
@@ -67,8 +67,8 @@ describe("InMemoryJobPersistence", () => {
             await persistence.save(actor, "Painted", job, new Map([["size", "large"]]));
 
             const updated = await persistence.retrieve("job-1", actor);
-            expect(updated.properties.get("colour")).toBe("red");
-            expect(updated.properties.get("size")).toBe("large");
+            expect(await updated.properties.get("colour")).toBe("red");
+            expect(await updated.properties.get("size")).toBe("large");
         });
 
         it("moves the job to the given state", async () => {

@@ -18,8 +18,8 @@ approve.fields = ["approved", "note"];
 approve.resolveUrl = (job) => `/approve?job=${job.id}`;
 
 new State("review", [approve], [
-    new Transition("approved", (job) => job.properties.get("approved") === true),
-    new Transition("rejected", (job) => job.properties.get("approved") === false),
+    new Transition("approved", async (job) => await job.properties.get("approved") === true),
+    new Transition("rejected", async (job) => await job.properties.get("approved") === false),
 ]),
 ```
 
@@ -29,8 +29,8 @@ Because `resolveUrl` is a function of the job, you can encode everything the pag
 needs in the link — most importantly the **job id**:
 
 ```ts
-approve.resolveUrl = (job) =>
-    `/approve?job=${job.id}&amount=${job.properties.get("amount")}`;
+approve.resolveUrl = async (job) =>
+    `/approve?job=${job.id}&amount=${await job.properties.get("amount")}`;
 ```
 
 The admin console lists every job **awaiting a human** and turns this
@@ -57,9 +57,9 @@ matching `approved` fires. The decision is recorded against the user in the
 Use `metadata` to carry extra context with the wait (shown alongside the task):
 
 ```ts
-approve.metadata = (job) => new Map([
-    ["submittedBy", job.properties.get("submitter")],
-    ["amount", job.properties.get("amount")],
+approve.metadata = async (job) => new Map([
+    ["submittedBy", await job.properties.get("submitter")],
+    ["amount", await job.properties.get("amount")],
 ]);
 ```
 
@@ -72,10 +72,10 @@ Chain approvals by giving each its own state and `Await`. Because actions after 
 
 ```ts
 new State("manager-review", [managerApprove], [
-    new Transition("finance-review", (job) => job.properties.get("managerApproved") === true),
+    new Transition("finance-review", async (job) => await job.properties.get("managerApproved") === true),
 ]),
 new State("finance-review", [financeApprove], [
-    new Transition("approved", (job) => job.properties.get("financeApproved") === true),
+    new Transition("approved", async (job) => await job.properties.get("financeApproved") === true),
 ]),
 ```
 

@@ -13,9 +13,9 @@ import {Action, Code} from "anbaric";
 
 const chargeCard = new Action("Charge the card", new Code("billing"));
 
-chargeCard.predicate = (job) => job.properties.get("paid") !== true;   // skip if already paid
+chargeCard.predicate = async (job) => await job.properties.get("paid") !== true;   // skip if already paid
 chargeCard.run = async (job) => {
-    const amount = job.properties.get("total");
+    const amount = await job.properties.get("total");
     // ... call your payment provider ...
     return new Map([["paid", true], ["chargedAmount", amount]]);
 };
@@ -32,31 +32,35 @@ Actions in a state run **in order** each time a job is processed. An action that
 returns an unchanged value doesn't churn the job — the machine only advances (or
 schedules a re-check) when something actually changes.
 
-### Declare what an action reads
+### Reading properties is asynchronous
 
-A job can hold a lot — hundreds of article summaries, say — while a given
-action needs one property of it. Declare that, and only that is loaded:
+`job.properties` reads on demand — `await job.properties.get("total")` — so a
+job can hold a lot (hundreds of article summaries, say) while an action that
+needs one property pays for one. That's why `predicate` may be `async`, as in
+the example above, and why a transition's guard may be too. Afterwards the
+machine writes back only the properties that changed — never the ones the pass
+read, let alone the ones it never loaded.
+
+### Prewarm what a state needs
+
+Each property read that wasn't already held is a fetch. A state can name what
+to load up front, in one go:
 
 ```ts
 import {Reads} from "anbaric";
 
-chargeCard.reads = Reads.only("total", "paid");
+const scoring = new State("scoring", [score], [new Transition("grouped")]);
+scoring.prewarm = Reads.only("summary");
 ```
 
-`reads` is a function of the machine's property definitions, so a mapping can
-be written once and keep up as the schema grows: `Reads.everything` (the
-default — nothing changes until you declare), `Reads.nothing`,
-`Reads.only(...keys)`, or `Reads.where(definition => …)` to pick by name. A
-transition's guard takes a `reads` too, and an `Await`'s `resolveUrl` and
-`metadata` have one.
-
-Before a job is processed in a state, the machine loads the union of what that
-state's actions, awaits and transitions read; a property that wasn't declared
-is simply absent from `job.properties`, so declare honestly. Afterwards it
-writes back only the properties that changed — never the ones it read, and
-never the ones it didn't load. For an [agentic action](ai-agents.md) the
-declaration also decides what reaches the model: the prompt carries the loaded
-properties and nothing more.
+By default a state prewarms everything, so nothing changes until you narrow it;
+anything a step reads beyond the prewarm still loads on demand, so a narrow
+prewarm can never break a step, only cost it a fetch. `Reads` is a function of
+the machine's property definitions — `Reads.everything`, `Reads.nothing`,
+`Reads.only(...keys)`, `Reads.where(definition => …)` — so a mapping written
+once keeps up as the schema grows. For an [agentic action](ai-agents.md) the
+prewarm also decides what reaches the model: the prompt carries the properties
+the job holds when the action runs.
 
 ## Actors: who does the work
 

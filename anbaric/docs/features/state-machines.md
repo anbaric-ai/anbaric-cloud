@@ -13,7 +13,7 @@ import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from 
 
 const sendWelcome = new Action("Send welcome email", new Code("welcome"));
 sendWelcome.run = async (job) => {
-    const email = job.properties.get("email");
+    const email = await job.properties.get("email");
     console.log(`Sending welcome email to ${email}`);
     return new Map([["welcomeSent", true]]);   // properties to add to the job
 };
@@ -25,7 +25,7 @@ const onboarding = new StateMachine(
     "onboarding",
     [
         new State("new", [sendWelcome], [
-            new Transition("active", (job) => job.properties.get("welcomeSent") === true),
+            new Transition("active", async (job) => await job.properties.get("welcomeSent") === true),
         ]),
         new State("active"),
     ],
@@ -67,7 +67,7 @@ once on entry. That is deliberate — it lets a predicate be time-based
 work that must happen only once, guard it:
 
 ```ts
-fetchReport.predicate = (job) => !job.properties.has("report");
+fetchReport.predicate = async (job) => ! await job.properties.has("report");
 ```
 
 ## Failing a job
@@ -79,7 +79,7 @@ job cannot proceed":
 
 ```ts
 chargeCard.run = async (job) => {
-    const outcome = await payments.charge(job.properties.get("amount"));
+    const outcome = await payments.charge(await job.properties.get("amount"));
     if (!outcome.ok) throw new Error(`Card declined for job ${job.id}: ${outcome.reason}`);
     return new Map([["charged", true]]);
 };
@@ -97,7 +97,7 @@ Mark the end of a process with `Terminal`, which carries an outcome:
 import {Terminal, Transition} from "anbaric";
 
 new State("packing", [packItems], [
-    new Transition("shipped", (job) => job.properties.get("packed") === true),
+    new Transition("shipped", async (job) => await job.properties.get("packed") === true),
 ]),
 new Terminal("shipped", Terminal.Outcome.SUCCESS),
 new Terminal("cancelled", Terminal.Outcome.FAILURE),
@@ -127,8 +127,8 @@ specific conditions first.
 
 ```ts
 new State("placed", [], [
-    new Transition("cancelled", (job) => job.properties.get("cancelled") === true),
-    new Transition("packing",   (job) => job.properties.get("paid") === true),
+    new Transition("cancelled", async (job) => await job.properties.get("cancelled") === true),
+    new Transition("packing",   async (job) => await job.properties.get("paid") === true),
 ]),
 ```
 

@@ -45,17 +45,17 @@ review.resolveUrl = (job) => `/review?job=${job.id}`;
 // An automated payment step.
 const payOut = new Action("Pay the expense", new Code("payments"));
 payOut.run = async (job) => {
-    // ... call your payment provider with job.properties.get("amount") ...
+    // ... call your payment provider with await job.properties.get("amount") ...
     return new Map([["paid", true]]);
 };
 
 const expenses = new StateMachine("expenses", [
     new State("submitted", [review], [
-        new Transition("approved", (job) => job.properties.get("approved") === true),
-        new Transition("rejected", (job) => job.properties.get("approved") === false),
+        new Transition("approved", async (job) => await job.properties.get("approved") === true),
+        new Transition("rejected", async (job) => await job.properties.get("approved") === false),
     ]),
     new State("approved", [payOut], [
-        new Transition("paid", (job) => job.properties.get("paid") === true),
+        new Transition("paid", async (job) => await job.properties.get("paid") === true),
     ]),
     new Terminal("paid", Terminal.Outcome.SUCCESS),
     new Terminal("rejected", Terminal.Outcome.FAILURE),

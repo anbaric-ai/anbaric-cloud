@@ -1,5 +1,9 @@
 import {WaitForInput} from "../actions/WaitForInput.js";
+import {JobProperties} from "./JobProperties.js";
 
+/* One instance moving through a machine. Its properties are read on demand -
+   `await job.properties.get(key)` - so a job may hold a great deal without a
+   step paying for all of it; a Map given to the constructor is held whole. */
 class Job {
 
     // A workflow is identified by the composite (appId, workflowId): the app the
@@ -10,7 +14,7 @@ class Job {
 
     readonly id : string;
     readonly state: string;
-    readonly properties : Map<string, any>;
+    readonly properties : JobProperties;
     
     readonly startedAt : Date;
     readonly startedBy : string;
@@ -26,14 +30,14 @@ class Job {
     waitingFor? : string;
     awaitMetadata? : WaitForInput;
 
-    constructor(id : string, properties : Map<string, any> = new Map(), state: string, workflowId? : string,
+    constructor(id : string, properties : Map<string, any> | JobProperties = new Map(), state: string, workflowId? : string,
                 appId? : string, startedBy : string = "system", startedAt : Date = new Date(),
                 lastUpdated : Date = startedAt, killed : boolean = false,
                 status : string = Job.Status.ACTIVE, awaitMetadata? : WaitForInput,
                 waitingFor? : string) {
 
         this.id = id;
-        this.properties = properties;
+        this.properties = properties instanceof JobProperties ? properties : new JobProperties(properties);
         this.state = state;
         this.workflowId = workflowId;
         this.appId = appId;

@@ -23,7 +23,7 @@ const machineNamed = (workflowId : string, marker : string,
     new StateMachine(
         workflowId,
         [
-            new State("start", [stamping(marker)], [new Transition("done", (job) => job.properties.get(marker) === true)]),
+            new State("start", [stamping(marker)], [new Transition("done", async (job) => await job.properties.get(marker) === true)]),
             new State("done"),
         ],
         "start",
@@ -84,8 +84,8 @@ describe("more than one state machine in a single app", () => {
         await vi.advanceTimersByTimeAsync(1100);
 
         const stored = await persistence.retrieve(order.id, new Code("test"));
-        expect(stored.properties.get("ordered")).toBe(true);
-        expect(stored.properties.has("invoiced")).toBe(false);
+        expect(await stored.properties.get("ordered")).toBe(true);
+        expect(await stored.properties.has("invoiced")).toBe(false);
     });
 
 });

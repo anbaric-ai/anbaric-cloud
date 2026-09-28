@@ -57,7 +57,7 @@ describe("PostgresJobPersistence", () => {
 
         const job = await new PostgresJobPersistence(pool).retrieve("job-1", actor, ["a", "c"]);
 
-        expect([...job.properties]).toEqual([["a", 1]]);
+        expect([...job.properties.snapshot()]).toEqual([["a", 1]]);
         const propertiesQuery = query.mock.calls.find(([sql]) => String(sql).includes("FROM job_properties"));
         expect(propertiesQuery![0]).toContain("key = ANY($2)");
         expect(propertiesQuery![1]).toEqual([["job-1"], ["a", "c"]]);

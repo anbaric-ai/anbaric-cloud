@@ -1,5 +1,4 @@
 import {Job} from "../jobs/Job.js";
-import {Reads} from "../jobs/Reads.js";
 import {AwaitParty, WaitForInput} from "./WaitForInput.js";
 
 /* A pause point in a state's action list. When a job reaches an Await it runs
@@ -22,11 +21,9 @@ class Await {
     description : string;
     waitingFor? : AwaitParty;
     fields : Array<string> = [];
-    resolveUrl : string | ((job : Job) => string) = "";
-    metadata : (job : Job) => Map<string, any> = (_job : Job) => new Map();
+    resolveUrl : string | ((job : Job) => string | Promise<string>) = "";
+    metadata : (job : Job) => Map<string, any> | Promise<Map<string, any>> = (_job : Job) => new Map();
     notify : Array<string> = [];
-    // What resolveUrl and metadata read from the job; everything by default.
-    reads : Reads = Reads.everything;
 
     constructor(name : string, waitingFor? : AwaitParty, description : string = "",
                 id : string = crypto.randomUUID(), notify : Array<string> = []) {
@@ -37,9 +34,9 @@ class Await {
         this.notify = notify;
     }
 
-    waitForInput(job : Job) : WaitForInput {
-        const resolveUrl = typeof this.resolveUrl === "function" ? this.resolveUrl(job) : this.resolveUrl;
-        return new WaitForInput(this.fields, resolveUrl, this.metadata(job), this.waitingFor);
+    async waitForInput(job : Job) : Promise<WaitForInput> {
+        const resolveUrl = typeof this.resolveUrl === "function" ? await this.resolveUrl(job) : this.resolveUrl;
+        return new WaitForInput(this.fields, resolveUrl, await this.metadata(job), this.waitingFor);
     }
 
 }

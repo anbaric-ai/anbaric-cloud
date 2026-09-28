@@ -35,7 +35,7 @@ describe("WorkflowDefinition.describe", () => {
 
     // So the console can show what a transition tests, not just where it goes.
     it("records a transition's predicate as its own source", () => {
-        const state = new State("open", [], [new Transition("closed", (job) => job.properties.get("done") === true)]);
+        const state = new State("open", [], [new Transition("closed", async (job) => await job.properties.get("done") === true)]);
 
         const definition = WorkflowDefinition.describe(undefined, "wf", "open", [state], []);
 

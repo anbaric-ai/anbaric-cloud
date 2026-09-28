@@ -56,7 +56,7 @@ describe("notifications round-trip through the cloud client", () => {
         await notifier.notify(["a@example.com"], job(), waiting());
 
         expect(received[0].job.id).toBe("job-1");
-        expect(received[0].job.properties.get("title")).toBe("Acme");
+        expect(await received[0].job.properties.get("title")).toBe("Acme");
         expect(received[0].waitingFor.resolveUrl).toBe("/runs/job-1");
         expect(received[0].waitingFor.fields).toEqual(["decision"]);
     });

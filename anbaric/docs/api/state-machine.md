@@ -84,6 +84,7 @@ readonly id : string
 actions : Array<Action | Await>
 transitions : Array<Transition>
 readonly isTerminal : boolean
+prewarm : Reads                              // default: Reads.everything
 
 constructor(
     id : string,
@@ -97,6 +98,29 @@ subscribe(action : Action | Await) : void   // append an action after constructi
 
 A state's `actions` may mix `Action`s and `Await`s; they are considered in order
 when a job is processed.
+
+### `prewarm` and `Reads`
+
+```ts
+type Reads = (definitions : Array<PropertyDefinition>) => Array<string>
+
+Reads.everything                       // every property (the default)
+Reads.nothing                          // none
+Reads.only("summary", "articles")      // a fixed few
+Reads.where(definition => definition.id.startsWith("article"))   // whatever matches
+
+scoring.prewarm = Reads.only("summary");
+```
+
+Before a job is processed in a state, the properties the state `prewarm`s are
+loaded in one fetch. Anything a step reads that wasn't prewarmed still loads,
+on demand, the moment it's asked for — so `prewarm` is never something a step
+depends on for correctness, only what keeps a pass to one round trip. Given the
+machine's definitions, so a mapping written once follows the schema. Narrow it
+for a state that needs a little of a job that holds a lot: a workflow carrying
+hundreds of article summaries stops moving all of them for a step that scores
+one, and an [agentic action](../features/ai-agents.md) in that state sends the
+model only what was loaded.
 
 ---
 
@@ -136,46 +160,23 @@ actor : Actor
 constructor(name : string, actor : Actor, description : string = "", id? : string)
 
 // Replaceable function fields — assign your own:
-reads : Reads                                  // default: Reads.everything
-predicate : (job : Job) => boolean            // default: () => true
-run : (job : Job) => Promise<Map<string, any>> // default: async () => new Map()
+predicate : (job : Job) => boolean | Promise<boolean>   // default: () => true
+run : (job : Job) => Promise<Map<string, any>>          // default: async () => new Map()
 ```
 
-You configure an action by assigning `predicate` and `run`, and `reads` when
-the job holds more than the action needs:
+You configure an action by assigning `predicate` and `run`:
 
 ```ts
 const sendWelcome = new Action("Send welcome email", new Code("welcome"));
-sendWelcome.reads = Reads.only("email", "name");
+sendWelcome.predicate = async (job) => ! await job.properties.has("welcomeSent");
 sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
 ```
 
-- **`reads`** — which properties are loaded for the job before `predicate` and
-  `run` see it. Given the machine's property definitions, so it can be written
-  once and follow the schema. See [`Reads`](#reads).
-- **`predicate`** — return `false` to skip this action for a given job.
+- **`predicate`** — return `false` to skip this action for a given job. May be
+  `async`, since [reading a property](#jobproperties) is.
 - **`run`** — return a `Map` of the properties to change. Only properties in the
   machine's schema are applied; others are ignored with a warning. Only the
   properties that actually changed are written back.
-
-### `Reads`
-
-```ts
-type Reads = (definitions : Array<PropertyDefinition>) => Array<string>
-
-Reads.everything                       // every property (the default)
-Reads.nothing                          // none
-Reads.only("summary", "articles")      // a fixed few
-Reads.where(definition => definition.id.startsWith("article"))   // whatever matches
-```
-
-A job is loaded with the union of what the current state's actions, awaits and
-transitions read, and nothing else: a property that wasn't declared is simply
-absent from `job.properties`. A step that reads everything loads everything, so
-nothing changes until you declare. Declaring matters for jobs that carry a lot
-— a workflow holding hundreds of article summaries stops moving all of them
-for a step that scores one — and for [agentic actions](../features/ai-agents.md),
-whose prompt carries the loaded properties and nothing more.
 
 See [Actions and actors](../features/actions-and-actors.md).
 
@@ -196,13 +197,12 @@ name : string
 description : string
 waitingFor? : AwaitParty
 fields : Array<string> = []
-resolveUrl : string | ((job : Job) => string) = ""
-metadata : (job : Job) => Map<string, any>    // default: () => new Map()
-reads : Reads                                 // what resolveUrl and metadata read; default: Reads.everything
+resolveUrl : string | ((job : Job) => string | Promise<string>) = ""
+metadata : (job : Job) => Map<string, any> | Promise<Map<string, any>>    // default: () => new Map()
 
 constructor(name : string, waitingFor? : AwaitParty, description : string = "", id? : string)
 
-waitForInput(job : Job) : WaitForInput
+waitForInput(job : Job) : Promise<WaitForInput>
 ```
 
 - **`fields`** — the input you expect back (property names).
@@ -244,21 +244,20 @@ transition whose predicate holds moves the job to `to`.
 
 ```ts
 to : string
-predicate : (job : Job) => boolean          // default: () => true
-reads : Reads                               // default: everything if guarded, nothing if not
+predicate : (job : Job) => boolean | Promise<boolean>   // default: () => true
 
-constructor(to : string, predicate? : (job : Job) => boolean, reads? : Reads)
+constructor(to : string, predicate? : (job : Job) => boolean | Promise<boolean>)
 ```
 
 ```ts
-new Transition("active", (job) => job.properties.get("welcomeSent") === true, Reads.only("welcomeSent"))
+new Transition("active", async (job) => await job.properties.get("welcomeSent") === true)
 new Transition("scoring")   // unguarded: the actions run, then the job moves on
 ```
 
 The predicate is optional. Omit it when a state's actions simply run and the job
 should move on, rather than inventing a sentinel property for the transition to
-read. Guard a transition only when the move is conditional, and say what the
-guard reads so the job is loaded with only that.
+read. Guard a transition only when the move is conditional. A guard may be
+`async`, since reading a property is.
 
 ---
 
@@ -297,18 +296,34 @@ A job whose action threw is `FAILED`, with the reason in its audit trail. It
 stays in its state rather than transitioning, and an update that moves it on
 returns it to `ACTIVE` — so a failure is recoverable, not terminal.
 
+### `JobProperties`
+
+`job.properties` is not a `Map`: it reads on demand, so a job may hold a great
+deal while a step pays only for what it asks for.
+
+```ts
+await job.properties.get(key) : Promise<any>
+await job.properties.has(key) : Promise<boolean>
+await job.properties.getMany(keys) : Promise<Map<string, any>>
+await job.properties.prewarm(keys?) : Promise<void>     // fetch these (or everything) in one go
+await job.properties.toMap() : Promise<Map<string, any>> // everything, loading what isn't held
+job.properties.snapshot() : Map<string, any>            // what is held right now, loading nothing
+```
+
+The first read of a property not yet held fetches it; the state's
+[`prewarm`](#prewarm-and-reads) fetches a set up front. Reads are cached for
+the pass. `snapshot()` is what serialisation and an agentic prompt use.
+
 ### Reading a job
 
 ```ts
-persistence.retrieve(id, actor) : Promise<Job>                  // every property
-persistence.retrieve(id, actor, ["summary", "score"]) : Promise<Job>   // only those
+persistence.retrieve(id, actor) : Promise<Job>                  // holding every property
+persistence.retrieve(id, actor, ["summary", "score"]) : Promise<Job>   // holding those; the rest on demand
 ```
 
-Properties are stored one by one, so a job can be read with only the keys
-wanted — that's what the machine does for every step, from what the step
-[declares it reads](#reads) — and a save writes only the properties that
-changed. A property absent from a partial read is never touched by a save of
-that job, and no save ever removes a property. Over HTTP the same read is
+Properties are stored one by one, and a save writes only the properties that
+changed — never the ones a pass read, let alone the ones it never loaded — and
+no save ever removes a property. Over HTTP the same read is
 `GET /api/v2/jobs/<id>?keys=summary,score`, and the properties in a `PUT` body
 are the ones written.
 

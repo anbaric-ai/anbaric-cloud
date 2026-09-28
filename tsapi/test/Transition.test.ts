@@ -11,7 +11,7 @@ describe("Transition", () => {
     });
 
     it("stores the predicate", () => {
-        const onlyApproved = (job : Job) => job.properties.has("approved");
+        const onlyApproved = async (job : Job) => await job.properties.has("approved");
         const transition = new Transition("done", onlyApproved);
 
         expect(transition.predicate).toBe(onlyApproved);

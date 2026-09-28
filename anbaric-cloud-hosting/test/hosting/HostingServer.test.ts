@@ -136,7 +136,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
             expect(retrieved.id).toBe("job-1");
             expect(retrieved.state).toBe("start");
-            expect(retrieved.properties.get("colour")).toBe("red");
+            expect(await retrieved.properties.get("colour")).toBe("red");
         });
 
         it("rejects retrieval of an unknown job", async () => {
@@ -150,8 +150,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await persistence.save(actor, "resized", job, new Map([["size", "large"]]));
 
             const updated = await persistence.retrieve("job-1", actor);
-            expect(updated.properties.get("colour")).toBe("red");
-            expect(updated.properties.get("size")).toBe("large");
+            expect(await updated.properties.get("colour")).toBe("red");
+            expect(await updated.properties.get("size")).toBe("large");
         });
 
         it("deletes a job", async () => {
@@ -175,12 +175,12 @@ describe("HostingServer round-trip via the cloud clients", () => {
             await persistence.create(actor, new Job("a", new Map([["x", 1], ["y", 2], ["z", 3]]), "open", "support"));
 
             const partial = await persistence.retrieve("a", actor, ["x"]);
-            expect([...partial.properties]).toEqual([["x", 1]]);
+            expect([...partial.properties.snapshot()]).toEqual([["x", 1]]);
 
             await persistence.save(actor, "Changed x", partial, new Map([["x", 10]]), "closed");
 
             const whole = await persistence.retrieve("a", actor);
-            expect([...whole.properties]).toEqual([["x", 10], ["y", 2], ["z", 3]]);
+            expect([...whole.properties.snapshot()]).toEqual([["x", 10], ["y", 2], ["z", 3]]);
             expect(whole.state).toBe("closed");
         });
 

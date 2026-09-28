@@ -18,7 +18,7 @@ const sendWelcome = () => {
     const action = new Action("Send welcome email", new Code("send-welcome-email"),
         "Emails a welcome message to a newly registered customer");
     action.run = async (job) => {
-        console.log(`sending welcome email to ${job.properties.get("email")}`);
+        console.log(`sending welcome email to ${await job.properties.get("email")}`);
         return new Map([["welcomeSent", true]]);
     };
     return action;
@@ -27,7 +27,7 @@ const sendWelcome = () => {
 const customerWorkflow = (persistence : JobPersistence, queue : Queue) => new StateMachine(
     "customer-onboarding",
     [
-        new State("new", [sendWelcome()], [new Transition("active", (job) => job.properties.get("welcomeSent") === true)]),
+        new State("new", [sendWelcome()], [new Transition("active", async (job) => await job.properties.get("welcomeSent") === true)]),
         new State("active"),
     ],
     "new",

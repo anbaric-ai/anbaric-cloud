@@ -78,64 +78,60 @@ describe("StateMachine", () => {
         await processJob(jobId);
     };
 
-    describe("reading only what a step declares", () => {
+    describe("loading what a state prewarms", () => {
 
         const plain = (id : string) => new PropertyDefinition(id);
         const schema = () => [plain("summary"), plain("articles"), plain("score")];
 
         // The first read is the job's own columns only, to find its state; the
-        // second is the properties that state's steps declare.
+        // second is what that state prewarms.
         const keysRead = () => persistence.retrieve.mock.calls.map(call => call[2]);
 
-        it("loads only the properties the state's actions and transitions read", async () => {
-            const score = stampingAction("score", 9);
-            score.reads = Reads.only("summary");
-            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["summary", "s"]]), "start"));
-            machineWith([new State("start", [score], [new Transition("done", job => job.properties.has("score"), Reads.only("score"))]), new State("done")], schema());
-
-            await progressJob("job-1");
-
-            expect(keysRead()).toEqual([[], ["summary", "score"]]);
-        });
-
-        it("loads everything when any step reads everything", async () => {
-            const score = stampingAction("score", 9);
-            score.reads = Reads.only("summary");
+        it("loads everything by default", async () => {
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
-            machineWith([new State("start", [score, stampingAction("summary", "s")], [new Transition("done")]), new State("done")], schema());
+            machineWith([new State("start", [stampingAction("score", 9)], [new Transition("done")]), new State("done")], schema());
 
             await progressJob("job-1");
 
             expect(keysRead()).toEqual([[], undefined]);
         });
 
-        it("loads nothing for a state of unguarded transitions and actions that read nothing", async () => {
-            const stamp = stampingAction("score", 9);
-            stamp.reads = Reads.nothing;
-            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
-            machineWith([new State("start", [stamp], [new Transition("done")]), new State("done")], schema());
+        it("loads only what the state prewarms", async () => {
+            const start = new State("start", [stampingAction("score", 9)], [new Transition("done")]);
+            start.prewarm = Reads.only("summary");
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["summary", "s"]]), "start"));
+            machineWith([start, new State("done")], schema());
 
             await progressJob("job-1");
 
-            expect(keysRead()).toEqual([[], []]);
+            expect(keysRead()).toEqual([[], ["summary"]]);
         });
 
-        it("reads against the definitions, so a mapping can follow the schema", async () => {
-            const summarise = stampingAction("summary", "s");
-            summarise.reads = Reads.where(definition => definition.id.startsWith("art"));
+        it("prewarms against the definitions, so a mapping can follow the schema", async () => {
+            const start = new State("start", [stampingAction("summary", "s")], [new Transition("done")]);
+            start.prewarm = Reads.where(definition => definition.id.startsWith("art"));
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
-            machineWith([new State("start", [summarise], [new Transition("done")]), new State("done")], [...schema(), plain("artwork")]);
+            machineWith([start, new State("done")], [...schema(), plain("artwork")]);
 
             await progressJob("job-1");
 
             expect(keysRead()[1]).toEqual(["articles", "artwork"]);
         });
 
+        it("treats a prewarm naming every definition as everything", async () => {
+            const start = new State("start", [stampingAction("score", 9)], [new Transition("done")]);
+            start.prewarm = Reads.only("summary", "articles", "score");
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            machineWith([start, new State("done")], schema());
+
+            await progressJob("job-1");
+
+            expect(keysRead()).toEqual([[], undefined]);
+        });
+
         it("saves only the properties that changed, never the ones it read", async () => {
-            const score = stampingAction("score", 9);
-            score.reads = Reads.only("summary");
             persistence.retrieve.mockResolvedValue(new Job("job-1", new Map([["summary", "s"]]), "start"));
-            machineWith([new State("start", [score], [new Transition("done")]), new State("done")], schema());
+            machineWith([new State("start", [stampingAction("score", 9)], [new Transition("done")]), new State("done")], schema());
 
             await progressJob("job-1");
 
@@ -290,7 +286,7 @@ describe("StateMachine", () => {
 
             const job = await machine.startJob(new Map([["colour", "red"]]));
 
-            expect(job.properties.get("colour")).toBe("red");
+            expect(await job.properties.get("colour")).toBe("red");
         });
 
         it("rejects a property that is not in the schema", async () => {
@@ -319,7 +315,7 @@ describe("StateMachine", () => {
 
             const job = await machine.startJob(new Map([["age", 42]]));
 
-            expect(job.properties.get("age")).toBe(42);
+            expect(await job.properties.get("age")).toBe(42);
             expect(persistence.create).toHaveBeenCalledOnce();
             expect(createdJob()).toBe(job);
         });
@@ -564,7 +560,7 @@ describe("StateMachine", () => {
                 persistence.retrieve.mockResolvedValue(job);
                 machineWith([
                     new State("start", [stampingAction("approved", true)], [
-                        new Transition("done", (candidate) => candidate.properties.get("approved") === true),
+                        new Transition("done", async (candidate) => await candidate.properties.get("approved") === true),
                     ]),
                     new State("done"),
                 ], [new PropertyDefinition("approved")]);

@@ -16,10 +16,12 @@ type SerializedJob = {
     awaitMetadata? : SerializedWaitForInput,
 };
 
+// Carries the properties the job holds right now - all of them for a job read
+// whole, the loaded ones for a job read on demand.
 const serializeJob = (job : Job) : SerializedJob => ({
     id: job.id,
     state: job.state,
-    properties: Object.fromEntries(job.properties),
+    properties: Object.fromEntries(job.properties.snapshot()),
     workflowId: job.workflowId,
     appId: job.appId,
     startedAt: job.startedAt.toISOString(),

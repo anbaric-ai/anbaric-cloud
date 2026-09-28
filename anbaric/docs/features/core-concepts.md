@@ -43,11 +43,12 @@ against your schema before applying them. Every property a job holds must have a
 `PropertyDefinition`, or the change is rejected. This is what keeps a job's data
 trustworthy no matter who or what wrote it.
 
-Properties are stored one by one, and a step is given only the ones it
-[declares it reads](actions-and-actors.md#declare-what-an-action-reads) — by
-default all of them. So a job can carry a great deal of data without every
-step paying for all of it: a step that scores one summary loads one summary,
-and writes back only what it changed.
+Properties are stored one by one and read on demand — `await
+job.properties.get("name")` — so a job can carry a great deal of data without
+every step paying for all of it. A state can
+[prewarm](actions-and-actors.md#prewarm-what-a-state-needs) what it needs in
+one fetch; a step that scores one summary loads one summary, and writes back
+only what it changed.
 
 ## Nothing is hard-wired
 

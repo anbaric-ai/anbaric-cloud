@@ -30,7 +30,7 @@ type WorkflowDefinition = {
    worth showing, so it is left out. */
 const ALWAYS = ["() => true", "()=>true", "function () { return true; }"];
 
-const sourceOf = (predicate : (job : Job) => boolean) : string | undefined => {
+const sourceOf = (predicate : (job : Job) => boolean | Promise<boolean>) : string | undefined => {
     let source : string;
     try {
         source = predicate.toString().trim();

@@ -66,7 +66,7 @@ Every scheduled job carries the run it belongs to:
 
 ```ts
 processRun.run = async (job) => {
-    const scheduledFor = new Date(job.properties.get("scheduledFor"));
+    const scheduledFor = new Date(await job.properties.get("scheduledFor"));
     // …reconcile everything up to scheduledFor
 };
 ```

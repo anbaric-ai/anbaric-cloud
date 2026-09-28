@@ -22,7 +22,7 @@ approve.resolveUrl = (job) => `/approve?job=${job.id}`;   // where a person prov
 
 const fulfilment = new StateMachine("fulfilment", [
     new State("review", [approve], [
-        new Transition("approved", (job) => job.properties.get("approved") === true),
+        new Transition("approved", async (job) => await job.properties.get("approved") === true),
     ]),
     new State("approved"),
 ]);
@@ -52,7 +52,7 @@ of the job** so you can build a per-job link — for example putting the job id 
 the query string so your form knows which job it's resolving:
 
 ```ts
-approve.resolveUrl = (job) => `/approve?job=${job.id}&total=${job.properties.get("total")}`;
+approve.resolveUrl = async (job) => `/approve?job=${job.id}&total=${await job.properties.get("total")}`;
 ```
 
 Write it **app-relative** (an absolute path like `/approve`, as above) — it's a

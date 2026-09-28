@@ -63,13 +63,13 @@ describe("job serialization", () => {
 
         expect(roundTripped.id).toBe("job-1");
         expect(roundTripped.state).toBe("review");
-        expect(roundTripped.properties).toEqual(new Map([["colour", "red"]]));
+        expect(roundTripped.properties.snapshot()).toEqual(new Map([["colour", "red"]]));
     });
 
     it("round-trips a job with no properties", () => {
         const roundTripped = deserializeJob(serializeJob(new Job("job-1", new Map(), "start")));
 
-        expect(roundTripped.properties.size).toBe(0);
+        expect(roundTripped.properties.snapshot().size).toBe(0);
     });
 
     it("round-trips the workflow id", () => {

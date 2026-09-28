@@ -1,4 +1,4 @@
-import {AppAware, Auditor, currentAppId, Job, JobPersistence, NoOpAuditor, SerializedJob, deserializeJob, serializeJob} from "anbaric-tsapi";
+import {AppAware, Auditor, currentAppId, Job, JobPersistence, JobProperties, NoOpAuditor, SerializedJob, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient.js";
 
 class CloudJobPersistence extends JobPersistence implements AppAware {
@@ -21,10 +21,25 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         await this.client.request("PUT", `/jobs/${encodeURIComponent(job.id)}`, serialized);
     }
 
+    /* A job read with `keys` holds those and fetches any other property the
+       moment a step asks for it; a job read whole holds everything. */
     protected async retrieveInternal(id : string, keys? : Array<string>) : Promise<Job> {
+        const serialized = await this.client.request("GET", this.jobPath(id, keys)) as SerializedJob;
+        const whole = deserializeJob(serialized);
+        if (! keys) return whole;
+
+        const loader = async (wanted? : Array<string>) => {
+            const more = await this.client.request("GET", this.jobPath(id, wanted)) as SerializedJob;
+            return new Map(Object.entries(more.properties));
+        };
+        return new Job(whole.id, new JobProperties(whole.properties.snapshot(), loader, false), whole.state,
+            whole.workflowId, whole.appId, whole.startedBy, whole.startedAt, whole.lastUpdated, whole.killed,
+            whole.status, whole.awaitMetadata, whole.waitingFor);
+    }
+
+    private jobPath(id : string, keys? : Array<string>) : string {
         const query = keys ? `?keys=${encodeURIComponent(keys.join(","))}` : "";
-        const serialized = await this.client.request("GET", `/jobs/${encodeURIComponent(id)}${query}`) as SerializedJob;
-        return deserializeJob(serialized);
+        return `/jobs/${encodeURIComponent(id)}${query}`;
     }
 
     protected async deleteInternal(id : string) : Promise<void> {

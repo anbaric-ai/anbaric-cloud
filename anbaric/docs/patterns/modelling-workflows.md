@@ -28,7 +28,7 @@ transition reacts. This keeps each piece testable and the flow visible.
 
 ```ts
 new State("packing", [packItems], [
-    new Transition("shipped", (job) => job.properties.get("packed") === true),
+    new Transition("shipped", async (job) => await job.properties.get("packed") === true),
 ]),
 ```
 
@@ -39,8 +39,8 @@ transition wins. Put more specific transitions first:
 
 ```ts
 new State("placed", [], [
-    new Transition("cancelled", (job) => job.properties.get("cancelled") === true),
-    new Transition("packing",   (job) => job.properties.get("paid") === true),
+    new Transition("cancelled", async (job) => await job.properties.get("cancelled") === true),
+    new Transition("packing",   async (job) => await job.properties.get("paid") === true),
 ]),
 ```
 
@@ -51,10 +51,10 @@ routes work without extra states:
 
 ```ts
 const autoTriage = new Action("Auto triage", new Code("triage-bot"));
-autoTriage.predicate = (job) => job.properties.get("priority") === "low";
+autoTriage.predicate = async (job) => await job.properties.get("priority") === "low";
 
 const escalate = new Action("Escalate", new Code("rules"));
-escalate.predicate = (job) => job.properties.get("priority") === "high";
+escalate.predicate = async (job) => await job.properties.get("priority") === "high";
 
 new State("open", [autoTriage, escalate], [/* transitions */]);
 ```
@@ -67,7 +67,7 @@ parks cleanly and resumes when the input arrives:
 
 ```ts
 new State("review", [new Await("Approve", "HUMAN")], [
-    new Transition("approved", (job) => job.properties.get("approved") === true),
+    new Transition("approved", async (job) => await job.properties.get("approved") === true),
 ]),
 ```
 
@@ -81,7 +81,7 @@ after a back-off — so a state can gently poll without a busy loop.
 ```ts
 const poll = new Action("Check delivery status", new Code("carrier"));
 poll.run = async (job) => {
-    const status = await fetchStatus(job.properties.get("tracking"));
+    const status = await fetchStatus(await job.properties.get("tracking"));
     return status === "delivered" ? new Map([["delivered", true]]) : new Map();
 };
 ```
@@ -109,7 +109,7 @@ const companies = new PropertyDefinition("companies");
 companies.example = [{ slug: "acme", companyName: "Acme Corp" }];
 
 // in an action
-const companies = job.properties.get("companies") ?? [];
+const companies = await job.properties.get("companies") ?? [];
 ```
 
 ## See also

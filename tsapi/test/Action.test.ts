@@ -25,18 +25,18 @@ describe("Action", () => {
         expect(action.actor).toBe(human);
     });
 
-    it("accepts any job by default", () => {
+    it("accepts any job by default", async () => {
         const action = new Action("Approve", human);
 
-        expect(action.predicate(new Job("job-1", new Map(), "start"))).toBe(true);
+        expect(await action.predicate(new Job("job-1", new Map(), "start"))).toBe(true);
     });
 
-    it("supports a custom predicate", () => {
+    it("supports a custom predicate", async () => {
         const action = new Action("Approve", human);
-        action.predicate = (job) => job.properties.has("approved");
+        action.predicate = async (job) => await job.properties.has("approved");
 
-        expect(action.predicate(new Job("job-1", new Map(), "start"))).toBe(false);
-        expect(action.predicate(new Job("job-2", new Map([["approved", true]]), "start"))).toBe(true);
+        expect(await action.predicate(new Job("job-1", new Map(), "start"))).toBe(false);
+        expect(await action.predicate(new Job("job-2", new Map([["approved", true]]), "start"))).toBe(true);
     });
 
     it("returns no properties by default", async () => {

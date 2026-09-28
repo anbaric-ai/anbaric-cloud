@@ -17,7 +17,8 @@ abstract class JobPersistence {
 
         await this.auditor.audit(job.appId, "job", job.id, actor, [JobPersistence.Interaction.CREATE], "Job created", job);
 
-        await this.saveInternal(job, job.properties);
+        await this.saveInternal(job, job.properties.snapshot());
+        job.properties.commit();
     }
 
     async save(actor : Actor,
@@ -26,8 +27,10 @@ abstract class JobPersistence {
                properties? : Map<string, any>,
                state? : string) : Promise<void> {
 
+        // The old values are whatever the job holds: the audit sees the change
+        // against what the step read, without loading anything more.
         const change : { properties? : any, state? : any, metadata? : Record<string, any> } = {
-            properties: properties ? this.generatePropertiesDiff(job.properties, properties) : undefined,
+            properties: properties ? this.generatePropertiesDiff(job.properties.snapshot(), properties) : undefined,
             state: state ? {from : job.state, to : state} : undefined
         }
 
@@ -41,9 +44,11 @@ abstract class JobPersistence {
 
         await this.auditor.audit(job.appId, "job", job.id, actor, interaction, changeDescription, change);
 
+        for (const [key, value] of properties ?? []) job.properties.set(key, value);
+
         const updatedJob = new Job(
             job.id,
-            properties ? this.updateProperties(job.properties, properties) : job.properties,
+            job.properties,
             state ? state : job.state,
             job.workflowId,
             job.appId,
@@ -56,7 +61,9 @@ abstract class JobPersistence {
             job.waitingFor
         )
 
-        await this.saveInternal(updatedJob, properties);
+        const changed = job.properties.changed();
+        await this.saveInternal(updatedJob, changed.size > 0 ? changed : undefined);
+        job.properties.commit();
     }
 
     async kill(id : string, actor : Actor) : Promise<void> {

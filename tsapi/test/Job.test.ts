@@ -13,7 +13,7 @@ describe("Job", () => {
         const properties = new Map<string, any>([["colour", "red"]]);
         const job = new Job("job-1", properties, "start");
 
-        expect(job.properties).toBe(properties);
+        expect(job.properties.snapshot()).toEqual(properties);
     });
 
     it("starts in the given initial state", () => {

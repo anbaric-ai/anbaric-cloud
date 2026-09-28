@@ -93,8 +93,8 @@ describe("StateMachine with in-memory collaborators", () => {
         await progress(job.id);
 
         const saved = await persistence.retrieve(job.id, actor);
-        expect(saved.properties.get("progressed")).toBe(true);
-        expect(saved.properties.has("mystery")).toBe(false);
+        expect(await saved.properties.get("progressed")).toBe(true);
+        expect(await saved.properties.has("mystery")).toBe(false);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("mystery"));
     });
 
@@ -267,7 +267,7 @@ describe("StateMachine with in-memory collaborators", () => {
 
     it("backs off with a scheduled re-enqueue when a job changes but stays in the same state", async () => {
         const tick = new Action("tick", new Code("ticker"));
-        tick.run = async (job) => new Map([["attempts", (job.properties.get("attempts") ?? 0) + 1]]);
+        tick.run = async (job) => new Map([["attempts", ((await job.properties.get("attempts")) ?? 0) + 1]]);
 
         const poller = new StateMachine(
             "poller",
@@ -288,14 +288,14 @@ describe("StateMachine with in-memory collaborators", () => {
         expect(enqueue).not.toHaveBeenCalled();
         expect(schedule).toHaveBeenCalledTimes(1);
         expect((schedule.mock.calls[0][3] as Date).getTime()).toBeGreaterThan(Date.now());
-        expect((await persistence.retrieve(job.id, actor)).properties.get("attempts")).toBe(1);
+        expect(await (await persistence.retrieve(job.id, actor)).properties.get("attempts")).toBe(1);
     });
 
     it("stops at a terminal state without re-enqueuing", async () => {
         const finisher = new StateMachine(
             "finisher",
             [
-                new State("working", [stampingAction("done", true)], [new Transition("finished", (job) => job.properties.get("done") === true)]),
+                new State("working", [stampingAction("done", true)], [new Transition("finished", async (job) => await job.properties.get("done") === true)]),
                 new Terminal("finished", Terminal.Outcome.SUCCESS),
             ],
             "working",
@@ -321,11 +321,11 @@ describe("StateMachine with in-memory collaborators", () => {
             "order-fulfilment",
             [
                 new State("placed", [], [
-                    new Transition("cancelled", (job) => job.properties.get("cancelled") === true),
-                    new Transition("packing", (job) => job.properties.get("paid") === true),
+                    new Transition("cancelled", async (job) => await job.properties.get("cancelled") === true),
+                    new Transition("packing", async (job) => await job.properties.get("paid") === true),
                 ]),
                 new State("packing", [stampingAction("packed", true)],
-                    [new Transition("shipped", (job) => job.properties.get("packed") === true)]),
+                    [new Transition("shipped", async (job) => await job.properties.get("packed") === true)]),
                 new State("cancelled"),
                 new State("shipped"),
             ],
@@ -344,19 +344,19 @@ describe("StateMachine with in-memory collaborators", () => {
 
     it("routes tickets through different paths as action predicates select who acts", async () => {
         const autoTriage = new Action("Auto triage", new Code("triage-bot"));
-        autoTriage.predicate = (job) => job.properties.get("priority") === "low";
+        autoTriage.predicate = async (job) => await job.properties.get("priority") === "low";
         autoTriage.run = async () => new Map([["assignee", "triage-bot"]]);
 
         const escalate = new Action("Escalate", new Code("escalation-rule"));
-        escalate.predicate = (job) => job.properties.get("priority") === "high";
+        escalate.predicate = async (job) => await job.properties.get("priority") === "high";
         escalate.run = async () => new Map([["escalated", true]]);
 
         const support = new StateMachine(
             "support-triage",
             [
                 new State("open", [autoTriage, escalate], [
-                    new Transition("escalated", (job) => job.properties.get("escalated") === true),
-                    new Transition("triaged", (job) => job.properties.get("assignee") !== undefined),
+                    new Transition("escalated", async (job) => await job.properties.get("escalated") === true),
+                    new Transition("triaged", async (job) => await job.properties.get("assignee") !== undefined),
                 ]),
                 new State("escalated"),
                 new State("triaged"),
@@ -371,14 +371,14 @@ describe("StateMachine with in-memory collaborators", () => {
         await progress(routineTicket.id);
         const triaged = await persistence.retrieve(routineTicket.id, actor);
         expect(triaged.state).toBe("triaged");
-        expect(triaged.properties.get("assignee")).toBe("triage-bot");
-        expect(triaged.properties.has("escalated")).toBe(false);
+        expect(await triaged.properties.get("assignee")).toBe("triage-bot");
+        expect(await triaged.properties.has("escalated")).toBe(false);
 
         const urgentTicket = await support.startJob(new Map([["priority", "high"]]));
         await progress(urgentTicket.id);
         const escalated = await persistence.retrieve(urgentTicket.id, actor);
         expect(escalated.state).toBe("escalated");
-        expect(escalated.properties.has("assignee")).toBe(false);
+        expect(await escalated.properties.has("assignee")).toBe(false);
     });
 
     const approvalMachine = () => {
@@ -390,7 +390,7 @@ describe("StateMachine with in-memory collaborators", () => {
         return new StateMachine(
             "approvals",
             [
-                new State("review", [approval], [new Transition("approved", (job) => job.properties.get("approved") === true)]),
+                new State("review", [approval], [new Transition("approved", async (job) => await job.properties.get("approved") === true)]),
                 new State("approved"),
             ],
             "review",
@@ -445,7 +445,7 @@ describe("StateMachine with in-memory collaborators", () => {
             "await-then-act",
             [
                 new State("review", [new Await("Wait", "HUMAN"), afterAwait],
-                    [new Transition("done", (job) => job.properties.get("approved") === true)]),
+                    [new Transition("done", async (job) => await job.properties.get("approved") === true)]),
                 new State("done"),
             ],
             "review",
@@ -476,7 +476,7 @@ describe("StateMachine with in-memory collaborators", () => {
 
         await expect(machine.updateJob(job.id, new Map([["age", "old"]]), new Human("chris", "admin"))).rejects.toThrowError();
 
-        expect((await persistence.retrieve(job.id, actor)).properties.get("age")).toBe(42);
+        expect(await (await persistence.retrieve(job.id, actor)).properties.get("age")).toBe(42);
         expect(await queue.dequeueSome()).toEqual([]);
     });
 

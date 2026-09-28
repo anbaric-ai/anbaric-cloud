@@ -121,7 +121,7 @@ describe("platform end to end", () => {
 
         await vi.waitFor(async () => {
             const progressed = await persistence.retrieve(job.id, new Code("e2e"));
-            expect(progressed.properties.get("progressed")).toBe(true);
+            expect(await progressed.properties.get("progressed")).toBe(true);
             expect(progressed.state).toBe("done");
         }, { timeout: 2000 });
 
@@ -143,8 +143,8 @@ describe("platform end to end", () => {
         const pipeline = new StateMachine(
             "workflow-multihop",
             [
-                new State("a", [stampingAction("stampedA")], [new Transition("b", (job) => job.properties.get("stampedA") === true)]),
-                new State("b", [stampingAction("stampedB")], [new Transition("c", (job) => job.properties.get("stampedB") === true)]),
+                new State("a", [stampingAction("stampedA")], [new Transition("b", async (job) => await job.properties.get("stampedA") === true)]),
+                new State("b", [stampingAction("stampedB")], [new Transition("c", async (job) => await job.properties.get("stampedB") === true)]),
                 new State("c"),
             ],
             "a",
@@ -159,8 +159,8 @@ describe("platform end to end", () => {
             await vi.waitFor(async () => {
                 const progressed = await persistence.retrieve(job.id, new Code("e2e"));
                 expect(progressed.state).toBe("c");
-                expect(progressed.properties.get("stampedA")).toBe(true);
-                expect(progressed.properties.get("stampedB")).toBe(true);
+                expect(await progressed.properties.get("stampedA")).toBe(true);
+                expect(await progressed.properties.get("stampedB")).toBe(true);
             }, { timeout: 3000 });
         } finally {
             await pipeline.cleanUp();

@@ -1,10 +1,10 @@
 import {PropertyDefinition} from "./PropertyDefinition.js";
 
-/* What an action, await or transition reads from a job, expressed against the
-   machine's property definitions rather than as a fixed list, so a mapping
-   written once keeps up as the schema grows: "everything", "only these", or
-   "whatever matches". Only the properties named are loaded for the job before
-   the step runs, and only they reach a model's prompt. */
+/* Which of a job's properties to load ahead of a state's pass, expressed
+   against the machine's property definitions rather than as a fixed list, so
+   a mapping written once keeps up as the schema grows: "everything", "only
+   these", or "whatever matches". Anything a step reads that was not loaded
+   ahead still loads on demand; this only decides what comes in one fetch. */
 type Reads = (definitions : Array<PropertyDefinition>) => Array<string>;
 
 namespace Reads {
