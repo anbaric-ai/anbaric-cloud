@@ -129,9 +129,15 @@ export function Form({
           updateField(index, event.currentTarget as Control, true)
           props.onBlur?.(event)
         },
-        onInput: (event: any) => {
+        // onChange, not onInput: React's onChange is the input event for text
+        // controls but the change event for a select, which the browser fires
+        // after input. A validity update on input re-rendered the form before
+        // the select's own handler ran, and React restored the controlled
+        // select to its old value in between - the choice showed for a moment
+        // and snapped back.
+        onChange: (event: any) => {
           updateField(index, event.currentTarget as Control, false)
-          props.onInput?.(event)
+          props.onChange?.(event)
         },
       })
 
