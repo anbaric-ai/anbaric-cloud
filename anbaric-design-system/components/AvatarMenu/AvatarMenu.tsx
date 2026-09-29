@@ -62,29 +62,36 @@ export function AvatarMenu({ name, subtitle, src, items, action, className }: Av
   const menuRef = useRef<HTMLDivElement>(null)
   const menuId = `ds-avatar-${useId().replace(/:/g, '')}`
 
-  const place = (event: ToggleEvent<HTMLDivElement>) => {
-    if (event.newState !== 'open') return
+  // Drop the panel's own foot-avatar exactly over the trigger (same size, same
+  // place) so it reads as the same avatar; the panel grows up and to the right.
+  // Measured once the panel is rendered - before it is shown a popover is
+  // display:none and has no box to measure (Safari answers "auto" for its
+  // width, and a NaN offset leaves the panel wherever the flow put it, which
+  // on a nav rail is below the fold) - and placed by its top edge, which is
+  // stable across browsers whose fixed-position bottom and innerHeight
+  // disagree about toolbars.
+  const place = () => {
     const trigger = triggerRef.current
     const menu = menuRef.current
     if (!trigger || !menu) return
     const t = trigger.getBoundingClientRect()
     const cs = getComputedStyle(menu)
-    const width = parseFloat(cs.width)
-    const padLeft = parseFloat(cs.paddingLeft)
-    const padBottom = parseFloat(cs.paddingBottom)
-    // Drop the panel's own foot-avatar exactly over the trigger (same size, same
-    // place) so it reads as the same avatar; the panel grows up and to the right.
-    const left = t.left - padLeft
-    menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`
-    menu.style.right = 'auto'
-    menu.style.top = 'auto'
-    menu.style.bottom = `${window.innerHeight - t.bottom - padBottom}px`
+    const padLeft = parseFloat(cs.paddingLeft) || 0
+    const padBottom = parseFloat(cs.paddingBottom) || 0
+    const width = menu.offsetWidth
+    const height = menu.offsetHeight
+    const left = Math.max(8, Math.min(t.left - padLeft, window.innerWidth - width - 8))
+    const top = Math.max(8, t.bottom + padBottom - height)
+    menu.style.inset = 'auto'
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
   }
 
   const handleToggle = (event: ToggleEvent<HTMLDivElement>) => {
     const isOpen = event.newState === 'open'
     setOpen(isOpen)
     if (isOpen) {
+      place()
       menuRef.current
         ?.querySelector<HTMLButtonElement>('.ds-avatar-menu__item:not(:disabled)')
         ?.focus()
@@ -115,7 +122,6 @@ export function AvatarMenu({ name, subtitle, src, items, action, className }: Av
         id={menuId}
         popover="auto"
         className="ds-avatar-menu__menu"
-        onBeforeToggle={place}
         onToggle={handleToggle}
       >
         <ul className="ds-avatar-menu__list" role="menu">
