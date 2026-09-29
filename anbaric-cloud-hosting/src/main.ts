@@ -33,6 +33,7 @@ import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
 import {PluginLoader} from "./plugins/PluginLoader";
+import {UsageReporter} from "./usage/UsageReporter";
 
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);
@@ -132,6 +133,19 @@ const internal = await server.listenInternal(internalPort);
 
 const dispatcher = new Dispatcher(queue, registry, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));
 dispatcher.start();
+
+/* Tells the control plane how many apps this tenant runs, which is what it is
+   billed for. Only a deployed tenant has anywhere to report to; a platform run
+   locally simply does not. Apps that are running or draining count - one being
+   built has not run yet, and one that is stopped or failed is not running. */
+if (buildLayer && process.env.ANBARIC_TENANT && process.env.ANBARIC_CLI_KEY_LOOKUP_URL) {
+    new UsageReporter(
+        process.env.ANBARIC_CLI_KEY_LOOKUP_URL,
+        process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "",
+        process.env.ANBARIC_TENANT,
+        () => buildLayer.list().filter(app => app.status === "running" || app.status === "draining").length,
+    ).start();
+}
 
 // Jobs whose long-running step stopped saying it was alive are marked, not touched.
 new StallSweep(jobs).start();
