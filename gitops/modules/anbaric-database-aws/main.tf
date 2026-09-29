@@ -56,6 +56,7 @@ resource "aws_db_instance" "anbaric" {
   publicly_accessible     = false
   backup_retention_period = var.backup_retention_days
   skip_final_snapshot     = var.skip_final_snapshot
+  deletion_protection     = var.deletion_protection
 
   /* Every tenant platform holds its own pool against this one cluster, so the
      connection ceiling is tenants times pool size rather than the single-tenant

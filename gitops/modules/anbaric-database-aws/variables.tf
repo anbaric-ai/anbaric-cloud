@@ -80,3 +80,9 @@ variable "skip_final_snapshot" {
   type        = bool
   default     = false
 }
+
+variable "deletion_protection" {
+  description = "Refuse to destroy the instance until this is turned off. Off by default so a disposable environment stays disposable; on for anything holding real customers' data"
+  type        = bool
+  default     = false
+}
