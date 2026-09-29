@@ -75,7 +75,7 @@ ask for, so the CLI runs unattended in scripts and CI.
 | `--name <name>` | `app configure`/`deploy`/`update` | App name; prompts if omitted (suggested from `package.json`). |
 | `--port <port>` | `app configure`/`deploy`/`update` | Internal port (1–65535); prompts if omitted. |
 | `--yes` | `app deploy`, `app tear-down`, `jobs kill-old` | Skip confirmation. (`app update` implies it.) |
-| `--state <state>`, `--status <status>`, `--app <app>` | `jobs list` | Only jobs in that state / with that status (`active`, `Awaiting input`, `Failed`) / belonging to that app. |
+| `--state <state>`, `--status <status>`, `--app <app>` | `jobs list` | Only jobs in that state / with that status (`active`, `Awaiting input`, `Failed`, `Stalled`) / belonging to that app. |
 | `--page <n>`, `--page-size <n>` | `jobs list` | Which page (from 0) and how many per page (default 100). |
 | `--oldest` | `jobs list` | Oldest first instead of newest. |
 | `--help`, `-h` | all | Print usage. |

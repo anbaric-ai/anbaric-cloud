@@ -156,6 +156,7 @@ readonly id : string
 name : string
 description : string
 actor : Actor
+longRunning : boolean = false
 
 constructor(name : string, actor : Actor, description : string = "", id? : string)
 
@@ -177,6 +178,10 @@ sendWelcome.run = async (job) => new Map([["welcomeSent", true]]);
 - **`run`** — return a `Map` of the properties to change. Only properties in the
   machine's schema are applied; others are ignored with a warning. Only the
   properties that actually changed are written back.
+- **`longRunning`** — set it on a step that takes minutes rather than seconds.
+  Nothing constrains how long a step may take either way; what this changes is
+  that the job is [heartbeated](#stalled-jobs) while the step runs, so a step
+  that dies is visible rather than silent.
 
 See [Actions and actors](../features/actions-and-actors.md).
 
@@ -269,22 +274,24 @@ One instance moving through a machine. You mostly **read** jobs (returned by
 ```ts
 readonly id : string
 readonly state : string
-readonly properties : Map<string, any>
+readonly properties : JobProperties   // read on demand; see below
 readonly workflowId? : string     // the machine's id …
 readonly appId? : string          // … and the app it runs in (its composite identity)
 readonly startedAt : Date
 readonly startedBy : string
 readonly lastUpdated : Date
 readonly killed : boolean
-status : string                  // "active", "Awaiting input" or "Failed"
+status : string                  // "active", "Awaiting input", "Failed" or "Stalled"
 waitingFor? : string
 awaitMetadata? : WaitForInput     // present while parked on an Await
+heartbeatAt? : Date               // when a long-running step last said it was going
 
 namespace Job {
     const Status = {
         ACTIVE: "active",
         AWAITING_INPUT: "Awaiting input",
         FAILED: "Failed",
+        STALLED: "Stalled",
     } as const
 }
 ```
@@ -295,6 +302,23 @@ read what it's waiting for from `job.awaitMetadata`.
 A job whose action threw is `FAILED`, with the reason in its audit trail. It
 stays in its state rather than transitioning, and an update that moves it on
 returns it to `ACTIVE` — so a failure is recoverable, not terminal.
+
+### Stalled jobs
+
+While an action marked [`longRunning`](#action) runs, the machine heartbeats
+its job once a minute. If those heartbeats stop for five minutes — the process
+running the step died, in a crash or a restart — the job is marked `STALLED`.
+
+That is all that happens. The platform does not re-run the step and does not
+requeue the job: only the app knows what a half-finished long step already did,
+so replaying it is not the platform's call. A stalled job is a job somebody
+should look at — list them with `anbaric jobs list --status Stalled` — and
+resume, by updating it or setting its state, if that is the right thing to do.
+A heartbeat arriving from a job already marked stalled returns it to `ACTIVE`,
+so a step that was merely slower than the sweep corrects itself.
+
+Ordinary actions are not heartbeated: they are expected to be short, and the
+[drain](cli.md#apps) on deploy is what protects them.
 
 ### `JobProperties`
 
@@ -339,7 +363,7 @@ type JobPersistence.Query = {
     workflowId? : string,
     appId? : string,
     state? : string,
-    status? : string,            // "active", "Awaiting input", "Failed"
+    status? : string,            // "active", "Awaiting input", "Failed", "Stalled"
     killed? : boolean,
     order? : "oldest" | "newest" // by when the job was started; oldest by default
 }

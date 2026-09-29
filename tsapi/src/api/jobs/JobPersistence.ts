@@ -77,6 +77,13 @@ abstract class JobPersistence {
         return this.killOlderThanInternal(lastUpdatedBefore);
     }
 
+    /* A long-running step saying it is still going - or, with `running`
+       false, that it has finished. Not audited: it says nothing about the
+       job, only that the process running it is alive. */
+    async heartbeat(id : string, running : boolean = true) : Promise<void> {
+        await this.heartbeatInternal(id, running);
+    }
+
     async countByState(actor : Actor) : Promise<Array<JobPersistence.StateCount>> {
         await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.LIST], "", null);
         return this.countByStateInternal();
@@ -131,6 +138,7 @@ abstract class JobPersistence {
     protected abstract retrieveInternal(id : string, keys? : Array<string>) : Promise<Job>;
     protected abstract deleteInternal(id : string) : Promise<void>;
     protected abstract listInternal(pageSize? : number, page? : number, query? : JobPersistence.Query) : Promise<Array<Job>>;
+    protected abstract heartbeatInternal(id : string, running : boolean) : Promise<void>;
     protected abstract killInternal(id : string) : Promise<void>;
     protected abstract killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number>;
     protected abstract countByStateInternal() : Promise<Array<JobPersistence.StateCount>>;

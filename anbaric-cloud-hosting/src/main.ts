@@ -17,6 +17,7 @@ import {SecretsManagerSecretStore} from "./data-store/SecretsManagerSecretStore"
 import {S3FileStorage} from "./data-store/S3FileStorage";
 import {PostgresJobRunSchedulePersistence} from "./data-store/PostgresJobRunSchedulePersistence";
 import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
+import {StallSweep} from "./data-store/StallSweep";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
 import {DockerBuildLayer} from "./app-management/DockerBuildLayer";
@@ -119,7 +120,8 @@ const fileStorageFor = (appId : string) : FileStorage =>
         ? new S3FileStorage(s3, filesBucket, appId ? `${appId}/` : "")
         : new LocalFileSystemStorage(join(process.env.ANBARIC_FILE_STORAGE_PATH ?? join(tmpdir(), "anbaric", "files"), appId));
 
-const server = new HostingServer(new PostgresJobPersistence(pool), queue, registry, buildLayer,
+const jobs = new PostgresJobPersistence(pool);
+const server = new HostingServer(jobs, queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
@@ -130,5 +132,8 @@ const internal = await server.listenInternal(internalPort);
 
 const dispatcher = new Dispatcher(queue, registry, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));
 dispatcher.start();
+
+// Jobs whose long-running step stopped saying it was alive are marked, not touched.
+new StallSweep(jobs).start();
 
 console.log(`anbaric-cloud-hosting listening on port ${port}, internal entry point on ${internal}`);

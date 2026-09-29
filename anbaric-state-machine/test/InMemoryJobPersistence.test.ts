@@ -172,6 +172,64 @@ describe("InMemoryJobPersistence", () => {
 
     });
 
+    describe("heartbeats", () => {
+
+        it("records a heartbeat and clears it when the step ends", async () => {
+            await persistence.create(actor, makeJob("job-1"));
+
+            await persistence.heartbeat("job-1");
+            expect((await persistence.retrieve("job-1", actor)).heartbeatAt).toBeInstanceOf(Date);
+
+            await persistence.heartbeat("job-1", false);
+            expect((await persistence.retrieve("job-1", actor)).heartbeatAt).toBeUndefined();
+        });
+
+        it("reads as stalled once a heartbeat has gone quiet for long enough", async () => {
+            vi.useFakeTimers();
+            try {
+                await persistence.create(actor, makeJob("job-1"));
+                await persistence.heartbeat("job-1");
+
+                vi.advanceTimersByTime(Job.STALL_AFTER_MS - 1);
+                expect((await persistence.retrieve("job-1", actor)).status).toBe(Job.Status.ACTIVE);
+
+                vi.advanceTimersByTime(2);
+                expect((await persistence.retrieve("job-1", actor)).status).toBe(Job.Status.STALLED);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("comes back to active when the step heartbeats again", async () => {
+            vi.useFakeTimers();
+            try {
+                await persistence.create(actor, makeJob("job-1"));
+                await persistence.heartbeat("job-1");
+                vi.advanceTimersByTime(Job.STALL_AFTER_MS + 1);
+                expect((await persistence.retrieve("job-1", actor)).status).toBe(Job.Status.STALLED);
+
+                await persistence.heartbeat("job-1");
+
+                expect((await persistence.retrieve("job-1", actor)).status).toBe(Job.Status.ACTIVE);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("leaves a job with no long-running step alone", async () => {
+            vi.useFakeTimers();
+            try {
+                await persistence.create(actor, makeJob("job-1"));
+                vi.advanceTimersByTime(Job.STALL_AFTER_MS * 10);
+
+                expect((await persistence.retrieve("job-1", actor)).status).toBe(Job.Status.ACTIVE);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+    });
+
     describe("killing", () => {
 
         it("marks a job killed", async () => {

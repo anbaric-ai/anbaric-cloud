@@ -162,7 +162,7 @@ class StateMachine implements AppAware {
                 let newProperties : Map<string, any>;
 
                 try {
-                    newProperties = await item.run(job);
+                    newProperties = await this.runAction(item, job);
                 } catch (error) {
                     return this.failJob(job, item, error);
                 }
@@ -219,6 +219,27 @@ class StateMachine implements AppAware {
     private changedIn(job : Job) : Map<string, any> | undefined {
         const changed = job.properties.changed();
         return changed.size > 0 ? changed : undefined;
+    }
+
+    /* Runs an action, and for one declared long-running says so on the job's
+       behalf every minute until it returns. A step that stops heartbeating -
+       because the process running it died - leaves the job Stalled, which is
+       a status and nothing more: the platform does not retry it, since what a
+       half-finished long step has already done is the app's to know. */
+    private async runAction(action : Action, job : Job) : Promise<Map<string, any>> {
+        if (! action.longRunning) return action.run(job);
+
+        await this.persistence.heartbeat(job.id).catch(() => {});
+        const beating = setInterval(() => void this.persistence.heartbeat(job.id).catch(() => {}),
+            Job.HEARTBEAT_INTERVAL_MS);
+        beating.unref?.();
+
+        try {
+            return await action.run(job);
+        } finally {
+            clearInterval(beating);
+            await this.persistence.heartbeat(job.id, false).catch(() => {});
+        }
     }
 
     /* Told after the job is parked, so the people notified can act on it the

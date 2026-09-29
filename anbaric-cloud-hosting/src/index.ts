@@ -2,6 +2,7 @@ export * from "./app-management/BuildLayer";
 export * from "./auditing/AuditRecordStore";
 export * from "./auditing/InMemoryAuditRecordStore";
 export * from "./data-store/PostgresAuditRecordStore";
+export * from "./data-store/StallSweep";
 export * from "./auth/Authenticator";
 export * from "./auth/CliAuthorizer";
 export * from "./auth/CliKey";

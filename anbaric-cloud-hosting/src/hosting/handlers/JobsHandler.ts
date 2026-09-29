@@ -22,6 +22,12 @@ class JobsHandler implements RequestHandler {
             await this.persistence.kill(request.id, SystemActor.actor);
             return request.reply(204);
         }
+        if (request.id && request.subresource === "heartbeat") {
+            if (request.method !== "POST") return request.notFound();
+            const body = await request.body().catch(() => ({}));
+            await this.persistence.heartbeat(request.id, body?.running !== false);
+            return request.reply(204);
+        }
         if (request.subresource) return request.notFound();
         if (request.id) return this.handleJob(request, request.id);
         return this.handleCollection(request);

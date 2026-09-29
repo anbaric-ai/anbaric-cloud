@@ -109,7 +109,7 @@ job was started: `oldest` (the default, for compatibility) or `newest`.
 The other parameters are filters, applied on the platform **before** paging, so
 a filter sees every job and page numbers count matching jobs only. All are
 optional and combine with AND: `workflowId` (the state machine), `appId`,
-`state`, `status` (`active`, `Awaiting input`, `Failed`) and `killed`
+`state`, `status` (`active`, `Awaiting input`, `Failed`, `Stalled`) and `killed`
 (`true`/`false`).
 
 In code the same listing is `JobPersistenceFactory.instance().list(actor,

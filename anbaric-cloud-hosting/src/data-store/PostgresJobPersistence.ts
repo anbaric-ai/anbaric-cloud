@@ -13,6 +13,7 @@ type JobRow = {
     status : string,
     waiting_for? : string,
     await_metadata? : SerializedWaitForInput,
+    heartbeat_at? : Date,
 };
 
 /* The await a job is parked on is normalised into the awaits table: jobs
@@ -20,7 +21,7 @@ type JobRow = {
    job's awaitMetadata is rejoined on read. */
 const JOB_SELECT =
     `SELECT j.id, j.state, j.workflow_id, j.app_id, j.started_at, j.started_by, j.last_updated,
-            j.killed, j.status, j.waiting_for, a.metadata AS await_metadata
+            j.killed, j.status, j.waiting_for, j.heartbeat_at, a.metadata AS await_metadata
      FROM jobs j LEFT JOIN awaits a ON a.id = j.waiting_for`;
 
 /* Properties live one row each in job_properties, so a read fetches only the
@@ -153,6 +154,31 @@ class PostgresJobPersistence extends JobPersistence {
         return result.rows.map(row => this.deserializeRow(row, new JobProperties(properties.get(row.id) ?? new Map())));
     }
 
+    protected async heartbeatInternal(id : string, running : boolean) : Promise<void> {
+        // A heartbeat is proof the step is running, so one from a job marked
+        // Stalled - a process that came back, or a step slower than the
+        // sweep - returns it to active.
+        await this.pool.query(running
+            ? `UPDATE jobs SET heartbeat_at = now(),
+                   status = CASE WHEN status = $2 THEN $3 ELSE status END
+               WHERE id = $1`
+            : "UPDATE jobs SET heartbeat_at = NULL WHERE id = $1",
+            running ? [id, Job.Status.STALLED, Job.Status.ACTIVE] : [id]);
+    }
+
+    /* Marks Stalled every active job whose long-running step has not
+       heartbeated for `staleMs`. The heartbeat is left as it was, so the
+       record shows when the step was last heard from; a save that moves the
+       job on sets its status again. Returns how many were marked. */
+    async markStalled(staleMs : number = Job.STALL_AFTER_MS) : Promise<number> {
+        const result = await this.pool.query(
+            `UPDATE jobs SET status = $1, last_updated = now()
+             WHERE status = $2 AND killed = false AND heartbeat_at IS NOT NULL AND heartbeat_at < now() - ($3::text || ' milliseconds')::interval`,
+            [Job.Status.STALLED, Job.Status.ACTIVE, String(staleMs)],
+        );
+        return result.rowCount ?? 0;
+    }
+
     protected async killInternal(id : string) : Promise<void> {
         await this.pool.query("UPDATE jobs SET killed = true, last_updated = now() WHERE id = $1", [id]);
     }
@@ -185,9 +211,10 @@ class PostgresJobPersistence extends JobPersistence {
             status: row.status,
             waitingFor: row.waiting_for ?? undefined,
             awaitMetadata: row.await_metadata ?? undefined,
+            heartbeatAt: row.heartbeat_at?.toISOString(),
         });
         return new Job(shape.id, properties, shape.state, shape.workflowId, shape.appId, shape.startedBy, shape.startedAt,
-            shape.lastUpdated, shape.killed, shape.status, shape.awaitMetadata, shape.waitingFor);
+            shape.lastUpdated, shape.killed, shape.status, shape.awaitMetadata, shape.waitingFor, shape.heartbeatAt);
     }
 
 }

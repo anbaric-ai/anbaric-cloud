@@ -14,6 +14,7 @@ type SerializedJob = {
     status? : string,
     waitingFor? : string,
     awaitMetadata? : SerializedWaitForInput,
+    heartbeatAt? : string,
 };
 
 // Carries the properties the job holds right now - all of them for a job read
@@ -31,6 +32,7 @@ const serializeJob = (job : Job) : SerializedJob => ({
     status: job.status,
     waitingFor: job.waitingFor,
     awaitMetadata: job.awaitMetadata ? serializeWaitForInput(job.awaitMetadata) : undefined,
+    heartbeatAt: job.heartbeatAt?.toISOString(),
 });
 
 const deserializeJob = (serialized : SerializedJob) : Job => {
@@ -40,7 +42,7 @@ const deserializeJob = (serialized : SerializedJob) : Job => {
         serialized.lastUpdated ? new Date(serialized.lastUpdated) : startedAt, serialized.killed ?? false,
         serialized.status ?? Job.Status.ACTIVE,
         serialized.awaitMetadata ? deserializeWaitForInput(serialized.awaitMetadata) : undefined,
-        serialized.waitingFor);
+        serialized.waitingFor, serialized.heartbeatAt ? new Date(serialized.heartbeatAt) : undefined);
 };
 
 export { serializeJob, deserializeJob };

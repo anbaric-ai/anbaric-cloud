@@ -17,6 +17,7 @@ const mockPersistence = () => ({
     }),
     delete: vi.fn(async (_id : string, _actor : Actor) => {}),
     list: vi.fn(async (_actor : Actor) => [] as Array<Job>),
+    heartbeat: vi.fn(async (_id : string, _running? : boolean) => {}),
 });
 
 const mockQueue = () => ({
@@ -147,6 +148,74 @@ describe("StateMachine", () => {
 
             expect(keysRead()).toEqual([["score"]]);
             expect([...savedProperties()!]).toEqual([["score", 2]]);
+        });
+
+    });
+
+    describe("long-running actions", () => {
+
+        const slowAction = (key : string, finish : Promise<void>, longRunning : boolean) => {
+            const action = new Action(key, new Code(key));
+            action.longRunning = longRunning;
+            action.run = async () => { await finish; return new Map([[key, true]]); };
+            return action;
+        };
+
+        it("says the job is still going while a long-running step runs, and stops when it ends", async () => {
+            vi.useFakeTimers();
+            try {
+                let finish : () => void = () => {};
+                const waiting = new Promise<void>(resolve => { finish = resolve; });
+                persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+                machineWith([new State("start", [slowAction("done", waiting, true)], [new Transition("finished")]), new State("finished")],
+                    [new PropertyDefinition("done")]);
+
+                const pass = progressJob("job-1");
+                await vi.advanceTimersByTimeAsync(0);
+                expect(persistence.heartbeat).toHaveBeenCalledWith("job-1");
+
+                await vi.advanceTimersByTimeAsync(Job.HEARTBEAT_INTERVAL_MS * 2);
+                expect(persistence.heartbeat.mock.calls.filter(call => call[1] === undefined)).toHaveLength(3);
+
+                finish();
+                await pass;
+                expect(persistence.heartbeat).toHaveBeenLastCalledWith("job-1", false);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("says nothing for an ordinary action, however long it takes", async () => {
+            vi.useFakeTimers();
+            try {
+                let finish : () => void = () => {};
+                const waiting = new Promise<void>(resolve => { finish = resolve; });
+                persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+                machineWith([new State("start", [slowAction("done", waiting, false)], [new Transition("finished")]), new State("finished")],
+                    [new PropertyDefinition("done")]);
+
+                const pass = progressJob("job-1");
+                await vi.advanceTimersByTimeAsync(Job.HEARTBEAT_INTERVAL_MS * 3);
+                finish();
+                await pass;
+
+                expect(persistence.heartbeat).not.toHaveBeenCalled();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("stops saying so when a long-running step throws", async () => {
+            const failing = new Action("boom", new Code("boom"));
+            failing.longRunning = true;
+            failing.run = async () => { throw new Error("nope"); };
+            persistence.retrieve.mockResolvedValue(new Job("job-1", new Map(), "start"));
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            machineWith([new State("start", [failing], [new Transition("finished")]), new State("finished")]);
+
+            await progressJob("job-1");
+
+            expect(persistence.heartbeat).toHaveBeenLastCalledWith("job-1", false);
         });
 
     });

@@ -41,6 +41,28 @@ the example above, and why a transition's guard may be too. Afterwards the
 machine writes back only the properties that changed — never the ones the pass
 read, let alone the ones it never loaded.
 
+### Say when a step is long-running
+
+Nothing limits how long an action may take — a mailbox import that runs for
+twenty minutes is a perfectly ordinary action. But a step that long is worth
+declaring:
+
+```ts
+importMailbox.longRunning = true;
+```
+
+While it runs, the machine tells the platform once a minute that the job is
+still going. If that stops for five minutes — the process died, in a crash or
+a restart — the job is marked **`Stalled`**. Nothing else happens: the platform
+never re-runs a long step on its own, because only your app knows what a
+half-finished one already did. A stalled job is one for a person to look at
+(`anbaric jobs list --status Stalled`) and resume if it should be. A heartbeat
+from a stalled job puts it back to `active`, so a step slower than the check
+corrects itself.
+
+Leave it off for ordinary steps: they are short, and a
+[drain](../api/cli.md#apps) on deploy is what keeps those from being cut off.
+
 ### Prewarm what a state needs
 
 Each property read that wasn't already held is a fetch. A state can name what

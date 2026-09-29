@@ -5,13 +5,19 @@ type CodePredicate = (job : Job) => boolean | Promise<boolean>;
 type CodeRun = (job : Job) => Promise<Map<string, any>>;
 
 /* A unit of work in a state. The predicate may be asynchronous, since reading
-   a job's properties is. */
+   a job's properties is.
+
+   An action that takes minutes rather than seconds says so with
+   `longRunning`: while it runs, the machine heartbeats the job once a minute,
+   and a job whose heartbeats stop is marked Stalled - a status, nothing more,
+   so someone can see that a step died rather than wonder. */
 class Action {
 
     readonly id : string;
     name : string;
     description : string;
     actor : Actor;
+    longRunning : boolean = false;
 
     constructor(name : string, actor : Actor, description : string = "", id : string = crypto.randomUUID()) {
         this.name = name;

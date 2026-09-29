@@ -79,6 +79,39 @@ describe("PostgresJobPersistence", () => {
         expect(onConflict).not.toContain("killed = EXCLUDED.killed");
     });
 
+    it("stamps a heartbeat, and brings a stalled job back to active with it", async () => {
+        const { pool, query } = mockPool();
+
+        await new PostgresJobPersistence(pool).heartbeat("job-1");
+
+        const [sql, params] = query.mock.calls[0];
+        expect(sql).toContain("heartbeat_at = now()");
+        expect(sql).toContain("status = CASE WHEN status = $2 THEN $3 ELSE status END");
+        expect(params).toEqual(["job-1", Job.Status.STALLED, Job.Status.ACTIVE]);
+    });
+
+    it("clears the heartbeat when the step ends", async () => {
+        const { pool, query } = mockPool();
+
+        await new PostgresJobPersistence(pool).heartbeat("job-1", false);
+
+        expect(query.mock.calls[0][0]).toContain("heartbeat_at = NULL");
+        expect(query.mock.calls[0][1]).toEqual(["job-1"]);
+    });
+
+    it("marks active jobs whose heartbeat has gone quiet, and counts them", async () => {
+        const { pool, query } = mockPool();
+        query.mockResolvedValueOnce({ rows: [], rowCount: 3 });
+
+        const marked = await new PostgresJobPersistence(pool).markStalled(90_000);
+
+        expect(marked).toBe(3);
+        const [sql, params] = query.mock.calls[0];
+        expect(sql).toContain("heartbeat_at IS NOT NULL");
+        expect(sql).toContain("killed = false");
+        expect(params).toEqual([Job.Status.STALLED, Job.Status.ACTIVE, "90000"]);
+    });
+
     it("kills a job by id", async () => {
         const { pool, query } = mockPool();
 

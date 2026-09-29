@@ -230,6 +230,13 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         "ALTER TABLE jobs DROP COLUMN properties",
     ),
 
+    /* A long-running step heartbeats its job; a job whose heartbeat has gone
+       quiet is marked Stalled. The index is what the stall sweep reads. */
+    statements("004-job-heartbeat",
+        "ALTER TABLE jobs ADD COLUMN heartbeat_at TIMESTAMPTZ",
+        "CREATE INDEX jobs_heartbeat ON jobs (heartbeat_at) WHERE heartbeat_at IS NOT NULL",
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

@@ -34,7 +34,7 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         };
         return new Job(whole.id, new JobProperties(whole.properties.snapshot(), loader, false), whole.state,
             whole.workflowId, whole.appId, whole.startedBy, whole.startedAt, whole.lastUpdated, whole.killed,
-            whole.status, whole.awaitMetadata, whole.waitingFor);
+            whole.status, whole.awaitMetadata, whole.waitingFor, whole.heartbeatAt);
     }
 
     private jobPath(id : string, keys? : Array<string>) : string {
@@ -53,6 +53,10 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         }
         const serialized = await this.client.request("GET", `/jobs?${parameters}`) as Array<SerializedJob>;
         return serialized.map(deserializeJob);
+    }
+
+    protected async heartbeatInternal(id : string, running : boolean) : Promise<void> {
+        await this.client.request("POST", `/jobs/${encodeURIComponent(id)}/heartbeat`, { running });
     }
 
     protected async killInternal(id : string) : Promise<void> {
