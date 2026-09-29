@@ -11,7 +11,9 @@
      panel exactly. The blur must live on the dialog itself — inside the top
      layer, a child's backdrop-filter cannot see the page behind the dialog. */
   height: calc(100vh - 2 * var(--space-md));
+  height: calc(100dvh - 2 * var(--space-md));
   max-height: calc(100vh - 2 * var(--space-md));
+  max-height: calc(100dvh - 2 * var(--space-md));
   margin: var(--space-md) var(--space-md) var(--space-md) auto; /* dock right */
   padding: 0;
   border: none;

@@ -10,7 +10,11 @@
   top: var(--space-lg);
   left: var(--space-lg);
   z-index: 10;
+  /* The dynamic viewport, so the rail's foot - and the avatar on it - stays
+     above a mobile browser's URL bar; 100vh is the tallest the viewport ever
+     gets, which on an iPad puts the foot below the visible edge. */
   height: calc(100vh - 2 * var(--space-lg));
+  height: calc(100dvh - 2 * var(--space-lg));
   /* Concentric with the foot-avatar: the rail's padding (--space-md) plus the
      avatar's radius (half of its 2rem). Larger than the default container
      radius because the avatar is larger than the nav's items. */
