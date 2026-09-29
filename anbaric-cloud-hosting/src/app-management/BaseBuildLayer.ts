@@ -15,6 +15,7 @@ type Deployment = {
     log : Array<string>,
     process? : ChildProcess,
     replaces? : Deployment,
+    draining? : { inFlight : number, since : number },
 };
 
 type Probe = (host : string, port : number) => Promise<boolean>;
@@ -23,6 +24,11 @@ const LOG_LIMIT = 200;
 const LIVENESS_TIMEOUT_MS = 30_000;
 const LIVENESS_PROBE_INTERVAL_MS = 250;
 const APP_ADMIN_PORT = 8791;
+/* How long a running app is given to finish the steps it has in hand before
+   it is replaced or removed regardless. Long enough for real work, short
+   enough that a step that will never finish cannot hold a deploy hostage. */
+const DRAIN_TIMEOUT_MS = 5 * 60_000;
+const DRAIN_POLL_INTERVAL_MS = 2_000;
 
 /* Liveness is the built-in admin server answering `ping` on the admin port, so
    an app that serves no HTTP still passes. */
@@ -32,12 +38,15 @@ abstract class BaseBuildLayer implements BuildLayer {
 
     protected deployments = new Map<string, Deployment>();
     protected docGenerator? : DocGenerator;
+    consumerUrlsFor : (appName : string) => Array<string> = () => [];
     private nextAppIndex = 0;
     private hydration? : Promise<void>;
 
     constructor(protected appsDir : string, private consumerPortBase : number = 8800,
                 private probe : Probe = adminProbe,
-                private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS) {}
+                private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS,
+                private drainTimeoutMs : number = DRAIN_TIMEOUT_MS,
+                private drainPollIntervalMs : number = DRAIN_POLL_INTERVAL_MS) {}
 
     /* The deployments map is rebuilt from the durable backend the first time the
        app registry is read, so apps survive a platform restart. A failed
@@ -95,16 +104,72 @@ abstract class BaseBuildLayer implements BuildLayer {
         yield* this.streamLogs(deployment, signal);
     }
 
-    async teardown(appName : string) : Promise<boolean> {
+    async teardown(appName : string) : Promise<DeploymentSummary | undefined> {
         const deployment = this.deployments.get(appName);
-        if (!deployment) return false;
+        if (!deployment) return undefined;
 
-        // stop() runs while the deployment is still the mapped one, so the
-        // Fargate guard lets it delete the service; then drop it from the map.
-        deployment.status = "stopped";
-        await this.stop(deployment);
-        this.deployments.delete(appName);
-        return true;
+        // An app with consumers to drain is drained in the background and the
+        // caller polls; one with nothing to drain is gone by the time this
+        // returns. Either way stop() runs while the deployment is still the
+        // mapped one, so the Fargate guard lets it delete the service.
+        const finish = async () => {
+            deployment.status = "stopped";
+            await this.stop(deployment);
+            if (this.deployments.get(appName) === deployment) this.deployments.delete(appName);
+        };
+
+        if (deployment.status === "running" && this.consumerUrlsFor(appName).length > 0) {
+            void this.drain(deployment, deployment).then(finish);
+            return this.summarize(deployment);
+        }
+
+        await finish();
+        return this.summarize(deployment);
+    }
+
+    /* Asks the running app to finish what it has in hand before it goes. The
+       app's consumers are told to stop accepting (the platform's pushes are
+       refused unconfirmed, so nothing is lost - it waits for the replacement)
+       and polled until nothing is in flight or the drain timeout passes;
+       `shown` is the deployment whose status the caller is watching. */
+    protected async drain(shown : Deployment, running : Deployment) : Promise<void> {
+        const urls = [...new Set(this.consumerUrlsFor(running.appName))];
+        if (urls.length === 0) return;
+
+        const previous = shown.status;
+        shown.status = "draining";
+        shown.draining = { inFlight: 0, since: Date.now() };
+        this.log(shown, `draining ${running.appName}: asking it to finish what it has in hand`);
+
+        await Promise.all(urls.map(url => fetch(`${url}/drain`, { method: "POST" }).catch(() => undefined)));
+
+        const deadline = Date.now() + this.drainTimeoutMs;
+        let inFlight = await this.inFlightAt(urls);
+        while (inFlight > 0 && Date.now() < deadline) {
+            shown.draining.inFlight = inFlight;
+            await new Promise(resolve => setTimeout(resolve, this.drainPollIntervalMs));
+            inFlight = await this.inFlightAt(urls);
+        }
+
+        this.log(shown, inFlight === 0
+            ? "drained: nothing in flight"
+            : `drain timed out after ${this.drainTimeoutMs / 1000}s with ${inFlight} step(s) in flight; going ahead`);
+        shown.draining = undefined;
+        if (shown.status === "draining") shown.status = previous;
+    }
+
+    // The steps in flight across the app's consumers; one that cannot be
+    // reached counts as idle, since nothing can be waited for there.
+    private async inFlightAt(urls : Array<string>) : Promise<number> {
+        const counts = await Promise.all(urls.map(async url => {
+            try {
+                const health = await (await fetch(`${url}/health`)).json() as { inFlight? : number };
+                return Number(health.inFlight ?? 0);
+            } catch {
+                return 0;
+            }
+        }));
+        return counts.reduce((total, count) => total + count, 0);
     }
 
     async cleanUp() : Promise<void> {
@@ -157,7 +222,13 @@ abstract class BaseBuildLayer implements BuildLayer {
         const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
         await this.linkWorkspacePackages(appDir, manifest);
 
-        if (deployment.replaces) await this.stop(deployment.replaces);
+        // The version being replaced finishes its work first; the build above
+        // ran while it carried on, so the drain is the only pause it sees.
+        if (deployment.replaces) {
+            if (deployment.replaces.status === "running") await this.drain(deployment, deployment.replaces);
+            if (!this.isCurrent(deployment)) return;
+            await this.stop(deployment.replaces);
+        }
 
         if (!this.isCurrent(deployment)) return;
         await this.start(deployment, appDir, manifest.main);
@@ -245,6 +316,9 @@ abstract class BaseBuildLayer implements BuildLayer {
             status: deployment.status,
             appPort: deployment.appPort,
             appHost: deployment.appHost,
+            ...(deployment.draining
+                ? { draining: { inFlight: deployment.draining.inFlight, since: new Date(deployment.draining.since).toISOString() } }
+                : {}),
         };
     }
 

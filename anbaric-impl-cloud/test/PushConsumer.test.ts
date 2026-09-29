@@ -64,6 +64,57 @@ describe("PushConsumer", () => {
         });
     };
 
+    const health = async () => (await fetch(`${await listenerUrl()}/health`)).json() as Promise<{ draining : boolean, inFlight : number }>;
+
+    describe("draining", () => {
+
+        it("reports what it has in flight", async () => {
+            let finish : () => void = () => {};
+            consumer.subscribe(undefined, "workflow-1", () => new Promise<void>(resolve => { finish = resolve; }));
+
+            expect(await health()).toEqual({ draining: false, inFlight: 0 });
+            await push([message("job-1")]);
+            await vi.waitFor(async () => expect((await health()).inFlight).toBe(1));
+
+            finish();
+            await vi.waitFor(async () => expect((await health()).inFlight).toBe(0));
+        });
+
+        it("once told to drain, refuses new pushes unconfirmed and finishes what it has", async () => {
+            let finish : () => void = () => {};
+            const processed : Array<string> = [];
+            consumer.subscribe(undefined, "workflow-1", jobId => new Promise<void>(resolve => {
+                processed.push(jobId);
+                finish = resolve;
+            }));
+            await push([message("job-1")]);
+            await vi.waitFor(async () => expect((await health()).inFlight).toBe(1));
+
+            const told = await fetch(`${await listenerUrl()}/drain`, { method: "POST" });
+            const refused = await push([message("job-2")]);
+
+            expect(await told.json()).toEqual({ draining: true, inFlight: 1 });
+            expect(refused.status).toBe(503);
+            expect(confirms.map(confirmed => confirmed.jobId)).toEqual(["job-1"]);
+            expect(processed).toEqual(["job-1"]);
+
+            finish();
+            expect(await consumer.drained(5_000)).toBe(true);
+            expect(await health()).toEqual({ draining: true, inFlight: 0 });
+        });
+
+        it("gives up waiting at the deadline and says so", async () => {
+            consumer.subscribe(undefined, "workflow-1", () => new Promise<void>(() => {}));
+            await push([message("job-1")]);
+            await vi.waitFor(async () => expect((await health()).inFlight).toBe(1));
+
+            consumer.drain();
+
+            expect(await consumer.drained(300)).toBe(false);
+        });
+
+    });
+
     it("registers each subscription with the platform", async () => {
         consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {}));
 

@@ -116,6 +116,10 @@ class HostingServer {
         }
         const appProxy = buildLayer ? new AppProxyHandler(buildLayer) : undefined;
         if (buildLayer && appProxy) {
+            // So a deploy can ask the running version to drain: its consumers
+            // are wherever they registered themselves.
+            buildLayer.consumerUrlsFor = appName =>
+                [...new Set(registry.list().filter(consumer => consumer.appId === appName).map(consumer => consumer.url))];
             publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant));
             publicRouter.register("app", appProxy);
         }

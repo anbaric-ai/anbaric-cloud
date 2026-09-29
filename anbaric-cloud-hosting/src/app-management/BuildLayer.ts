@@ -1,10 +1,19 @@
-type DeploymentStatus = "building" | "running" | "failed" | "stopped";
+/* building: the new version is being built; draining: the running version has
+   been told to stop taking on work and is finishing what it has in hand
+   before being replaced or removed; then running, failed or stopped. */
+type DeploymentStatus = "building" | "draining" | "running" | "failed" | "stopped";
+
+type Draining = {
+    inFlight : number,
+    since : string,
+};
 
 type DeploymentSummary = {
     appName : string,
     status : DeploymentStatus,
     appPort : number,
     appHost : string,
+    draining? : Draining,
 };
 
 interface BuildLayer {
@@ -15,12 +24,19 @@ interface BuildLayer {
     list() : Array<DeploymentSummary>;
     ping(appName : string) : Promise<boolean>;
     logs(appName : string, signal : AbortSignal) : AsyncIterable<string>;
-    teardown(appName : string) : Promise<boolean>;
+    /* Removes the app. One that is running its jobs is first drained, and the
+       call returns as soon as that has begun - the summary says "draining" -
+       so poll status until the app is gone. Returns undefined for an unknown
+       app. */
+    teardown(appName : string) : Promise<DeploymentSummary | undefined>;
     // Re-runs documentation generation for an already-deployed app from its
     // uploaded source, without redeploying it. Returns the number of docs written.
     regenerateDocs(appName : string) : Promise<number>;
     cleanUp() : Promise<void>;
+    // Where a running app's queue consumers can be reached, so it can be asked
+    // to drain; the hosting server supplies it from its consumer registry.
+    consumerUrlsFor : (appName : string) => Array<string>;
 
 }
 
-export type { BuildLayer, DeploymentStatus, DeploymentSummary };
+export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining };

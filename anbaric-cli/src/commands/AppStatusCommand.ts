@@ -4,6 +4,7 @@ import {bold, dim, green, red, yellow} from "../ui/Ansi";
 const colourForStatus : Record<string, (text : string) => string> = {
     running: green,
     building: yellow,
+    draining: yellow,
     failed: red,
     stopped: dim,
 };

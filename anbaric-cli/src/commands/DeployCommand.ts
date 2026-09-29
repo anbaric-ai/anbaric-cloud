@@ -89,8 +89,14 @@ class DeployCommand {
 
         while (Date.now() < deadline) {
             const status = await this.client.get(`/apps/${encodeURIComponent(appName)}`);
-            if (status.status !== "building") return status;
-            spinner.update(`building ${dim(`(${status.log?.at(-1) ?? "…"})`)}`);
+            if (status.status === "draining") {
+                const inFlight = status.draining?.inFlight ?? 0;
+                spinner.update(`draining ${dim(`(the running version is finishing ${inFlight} step${inFlight === 1 ? "" : "s"} in flight)`)}`);
+            } else if (status.status === "building") {
+                spinner.update(`building ${dim(`(${status.log?.at(-1) ?? "…"})`)}`);
+            } else {
+                return status;
+            }
             await new Promise(resolvePoll => setTimeout(resolvePoll, POLL_INTERVAL_MS));
         }
 

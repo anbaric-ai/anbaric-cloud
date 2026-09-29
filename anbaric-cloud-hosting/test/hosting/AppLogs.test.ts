@@ -36,7 +36,8 @@ const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({
             yield line;
         }
     },
-    teardown: async () => true,
+    teardown: async () => undefined,
+    consumerUrlsFor: () => [],
     regenerateDocs: async () => 0,
     cleanUp: async () => {},
 });

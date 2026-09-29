@@ -23,11 +23,19 @@ project — they walk up to the nearest `package.json`.
 | --- | --- |
 | `anbaric apps` | List deployed apps (name, status, port). |
 | `anbaric app configure` | Create or update `.anbaric/app-config.json` (`name`, `internalPort`). |
-| `anbaric app deploy` | Deploy the app and wait until it is live (prompts before replacing a running one). |
+| `anbaric app deploy` | Deploy the app and wait until it is live (prompts before replacing a running one). A running version is drained first — see below. |
 | `anbaric app update` | Deploy, replacing a running app **without** prompting. |
-| `anbaric app status [name]` | Show deploy state, liveness, and recent logs. |
+| `anbaric app status [name]` | Show deploy state (`building`, `draining`, `running`, `failed`, `stopped`), liveness, and recent logs. |
 | `anbaric app tail [name]` | Stream the app's runtime logs. |
-| `anbaric app tear-down [name]` | Stop and remove the app (prompts unless `--yes`). |
+| `anbaric app tear-down [name]` | Stop and remove the app (prompts unless `--yes`). A running app is drained first. |
+
+**Draining.** Replacing or removing an app never cuts a job off mid-step. The
+running version is told to stop taking on new work — messages the platform
+offers it are refused and wait for the new version — and given up to **five
+minutes** to finish the steps it has in hand; `app deploy`, `app update` and
+`app tear-down` show `draining (finishing n steps in flight)` while it does.
+Only then is it stopped. A step still running at the deadline is stopped
+regardless: once an app has taken a job on, what becomes of it is the app's.
 
 The name is optional, because an `app` command is normally about the app you
 are standing in: the CLI walks up from the working directory to the nearest

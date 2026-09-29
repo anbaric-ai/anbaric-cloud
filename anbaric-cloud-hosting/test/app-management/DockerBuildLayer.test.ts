@@ -195,13 +195,13 @@ CMD ["/anbaric/node_modules/.bin/tsx", "/anbaric/node_modules/anbaric-cloud-host
 
         const removed = await buildLayer.teardown("fixture-app");
 
-        expect(removed).toBe(true);
+        expect(removed?.status).toBe("stopped");
         expect(commandsNamed("rm").length).toBeGreaterThan(0);
         expect(buildLayer.status("fixture-app")).toBeUndefined();
     });
 
-    it("teardown reports false for an unknown app", async () => {
-        expect(await buildLayer.teardown("ghost")).toBe(false);
+    it("teardown reports nothing for an unknown app", async () => {
+        expect(await buildLayer.teardown("ghost")).toBeUndefined();
     });
 
     it("force-removes the old container before starting a replacement", async () => {

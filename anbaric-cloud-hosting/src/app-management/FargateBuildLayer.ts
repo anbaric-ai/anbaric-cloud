@@ -181,6 +181,9 @@ class FargateBuildLayer extends BaseBuildLayer {
                 name: deployment.appName,
                 image: imageUri,
                 essential: true,
+                // The most Fargate allows between SIGTERM and SIGKILL, so an
+                // app signalled with steps still in hand gets to finish them.
+                stopTimeout: 120,
                 portMappings: [
                     { containerPort: deployment.appPort, protocol: "tcp" },
                     { containerPort: deployment.adminPort, protocol: "tcp" },

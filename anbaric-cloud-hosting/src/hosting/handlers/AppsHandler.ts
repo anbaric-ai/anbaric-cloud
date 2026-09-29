@@ -79,9 +79,9 @@ class AppsHandler implements RequestHandler {
                 return request.reply(200, { ...status, live });
             }
             case "DELETE": {
-                const torn = await this.buildLayer.teardown(appName);
-                if (!torn) return request.reply(404, { error: `No app named "${appName}"` });
-                return request.reply(200, { appName, status: "stopped" });
+                const outcome = await this.buildLayer.teardown(appName);
+                if (!outcome) return request.reply(404, { error: `No app named "${appName}"` });
+                return request.reply(200, outcome);
             }
         }
         request.notFound();

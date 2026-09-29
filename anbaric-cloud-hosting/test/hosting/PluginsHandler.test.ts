@@ -52,7 +52,8 @@ const runningApp = (appName : string) : BuildLayer => ({
     list: () => [{ appName, status: "running", appPort: 1, appHost: "localhost" }],
     ping: async () => true,
     logs: async function* () {},
-    teardown: async () => true,
+    teardown: async () => undefined,
+    consumerUrlsFor: () => [],
     regenerateDocs: async () => 0,
     cleanUp: async () => {},
 });
