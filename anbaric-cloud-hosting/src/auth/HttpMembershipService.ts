@@ -31,8 +31,8 @@ class HttpMembershipService implements MembershipService {
         return found;
     }
 
-    async invite(email : string, role : TenantRole, invitedBy : Inviter) : Promise<PendingInvitation> {
-        const response = await this.call("POST", "/invitations", { email, role, invitedBy });
+    async invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation> {
+        const response = await this.call("POST", "/invitations", { email, role, invitedBy, landingApp });
         return await response.json() as PendingInvitation;
     }
 

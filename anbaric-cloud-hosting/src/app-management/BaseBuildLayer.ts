@@ -39,6 +39,8 @@ abstract class BaseBuildLayer implements BuildLayer {
     protected deployments = new Map<string, Deployment>();
     protected docGenerator? : DocGenerator;
     consumerUrlsFor : (appName : string) => Array<string> = () => [];
+
+    appRemoved : (appName : string) => void = () => {};
     private nextAppIndex = 0;
     private hydration? : Promise<void>;
 
@@ -116,6 +118,7 @@ abstract class BaseBuildLayer implements BuildLayer {
             deployment.status = "stopped";
             await this.stop(deployment);
             if (this.deployments.get(appName) === deployment) this.deployments.delete(appName);
+            this.appRemoved(appName);
         };
 
         if (deployment.status === "running" && this.consumerUrlsFor(appName).length > 0) {

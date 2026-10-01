@@ -1,6 +1,6 @@
 import {randomUUID} from "node:crypto";
 import {Pool} from "pg";
-import {EntitlementDefinition, EntitlementGrant, EntitlementStore} from "./EntitlementStore";
+import {EntitlementDefinition, EntitlementGrant, EntitlementOffer, EntitlementStore} from "./EntitlementStore";
 
 class PostgresEntitlementStore implements EntitlementStore {
 
@@ -62,6 +62,45 @@ class PostgresEntitlementStore implements EntitlementStore {
             grantedAt: this.iso(row.granted_at),
             grantedBy: row.granted_by,
         }));
+    }
+
+    /* Held against an email address until whoever holds it signs in, because
+       an invitation names an email and a grant names a user id. */
+    async offer(offers : Array<EntitlementOffer>, offeredBy : string) : Promise<void> {
+        for (const offer of offers) {
+            await this.pool.query(
+                `INSERT INTO entitlement_invites (email, app_id, entitlement_id, notes, offered_by)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT (email, COALESCE(app_id, ''), entitlement_id)
+                     DO UPDATE SET notes = EXCLUDED.notes, offered_by = EXCLUDED.offered_by`,
+                [offer.email, offer.appId, offer.entitlementId, offer.notes, offeredBy]);
+        }
+    }
+
+    async offersFor(email : string) : Promise<Array<EntitlementOffer>> {
+        const result = await this.pool.query(
+            `SELECT email, app_id, entitlement_id, notes FROM entitlement_invites
+             WHERE lower(email) = lower($1) ORDER BY app_id NULLS FIRST, entitlement_id`,
+            [email]);
+        return result.rows.map(row => ({
+            email: row.email, appId: row.app_id, entitlementId: row.entitlement_id, notes: row.notes,
+        }));
+    }
+
+    /* Claimed in one statement so a second sign-in arriving at the same moment
+       cannot grant the same thing twice: the delete is what decides who owns
+       each row, and only rows it actually removed become grants. */
+    async claim(email : string, userId : string) : Promise<number> {
+        const result = await this.pool.query(
+            `WITH claimed AS (
+                 DELETE FROM entitlement_invites WHERE lower(email) = lower($1)
+                 RETURNING app_id, entitlement_id, notes, offered_by
+             )
+             INSERT INTO entitlement_grants (id, user_id, app_id, entitlement_id, notes, granted_by)
+             SELECT gen_random_uuid()::text, $2, app_id, entitlement_id, notes, offered_by FROM claimed
+             RETURNING id`,
+            [email, userId]);
+        return result.rowCount ?? 0;
     }
 
     private async upsertDefinition(appId : string | null, entitlementId : string, notes : string) : Promise<void> {

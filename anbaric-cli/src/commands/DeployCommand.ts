@@ -16,6 +16,11 @@ type DeployedApp = {
     appName : string,
     status : string,
     appPort : number,
+    /* Where the platform serves this app. The platform decides it, because
+       only it knows whether its apps have hostnames of their own, and on
+       Anbaric Cloud the hostname is the app's own allocated address rather
+       than anything derivable from its name. */
+    url? : string,
 };
 
 class DeployCommand {
@@ -46,11 +51,20 @@ class DeployCommand {
         for (const line of outcome.log ?? []) console.log(dim(`  ${line}`));
 
         if (outcome.status === "running") {
-            console.log(`${check} ${bold(config.name)} is live at ${bold(`${this.client.platformUrl}/app/${config.name}`)}`);
+            console.log(`${check} ${bold(config.name)} is live at ${bold(this.liveUrl(outcome, config.name))}`);
             return 0;
         }
         console.log(`${cross} Deployment of ${bold(config.name)} ${outcome.status}`);
         return 1;
+    }
+
+    /* The address the platform gave, made absolute. A platform that serves its
+       apps by path answers with a path, which is only a link once the console's
+       own address is in front of it. An older platform says nothing at all. */
+    private liveUrl(app : { url? : string }, appName : string) : string {
+        const url = app.url ?? `/app/${appName}`;
+
+        return url.startsWith("/") ? `${this.client.platformUrl}${url}` : url;
     }
 
     private async clearToDeploy(config : AppConfigValues, existingApps : Array<DeployedApp>) : Promise<boolean> {
@@ -84,7 +98,7 @@ class DeployCommand {
         return tarball;
     }
 
-    private async awaitLive(appName : string, spinner : Spinner) : Promise<{ status : string, log? : Array<string> }> {
+    private async awaitLive(appName : string, spinner : Spinner) : Promise<{ status : string, url? : string, log? : Array<string> }> {
         const deadline = Date.now() + DEPLOY_TIMEOUT_MS;
 
         while (Date.now() < deadline) {

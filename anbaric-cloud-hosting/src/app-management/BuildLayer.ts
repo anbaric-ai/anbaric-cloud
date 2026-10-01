@@ -37,6 +37,12 @@ interface BuildLayer {
     // to drain; the hosting server supplies it from its consumer registry.
     consumerUrlsFor : (appName : string) => Array<string>;
 
+    /* Called once an app is really gone, which for one that drained is some
+       minutes after the teardown returned. Whatever outlives the app - its
+       public address, in a hosted platform - is let go here, because this is
+       the only moment both paths out of teardown pass through. */
+    appRemoved : (appName : string) => void;
+
 }
 
 export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining };

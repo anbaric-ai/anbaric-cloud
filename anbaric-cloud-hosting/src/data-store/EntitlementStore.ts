@@ -22,6 +22,18 @@ type EntitlementGrant = {
 
 };
 
+/* An entitlement chosen for somebody who has not signed in yet. An invitation
+   names an email address; a grant names a user id, which that person does not
+   have until they arrive. This is the gap between the two. */
+type EntitlementOffer = {
+
+    email : string,
+    appId : string | null,
+    entitlementId : string,
+    notes : string,
+
+};
+
 /* The platform's view of entitlements: what apps can do (register, has) plus
    the management the console performs on their behalf. */
 interface EntitlementStore extends Entitlements {
@@ -36,6 +48,16 @@ interface EntitlementStore extends Entitlements {
 
     listGrants(userId? : string) : Promise<Array<EntitlementGrant>>;
 
+    // Held against an email address until whoever holds it signs in.
+    offer(offers : Array<EntitlementOffer>, offeredBy : string) : Promise<void>;
+
+    offersFor(email : string) : Promise<Array<EntitlementOffer>>;
+
+    /* Turns everything offered to this email into real grants and forgets the
+       offers. Returns how many were made, and is safe to call on every sign-in
+       because the second call has nothing left to claim. */
+    claim(email : string, userId : string) : Promise<number>;
+
 }
 
-export type { EntitlementStore, EntitlementDefinition, EntitlementGrant }
+export type { EntitlementStore, EntitlementDefinition, EntitlementGrant, EntitlementOffer }

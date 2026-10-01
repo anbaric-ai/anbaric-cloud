@@ -1,39 +1,32 @@
 /* An app is reachable at a hostname of its own, so that it is served at the
-   root of it and works exactly as it did when it was built locally. Two tenants
-   will both have a hello-world, so the tenant is part of the name.
+   root of it and works exactly as it did when it was built locally.
 
-   One label, not two: a TLS wildcard matches a single label, so app.tenant.domain
-   would need a certificate and a DNS record for every tenant, which would put a
-   person in the middle of a self-serve signup. app--tenant.domain needs neither,
-   ever. The separator is a double hyphen because an underscore is not legal in a
-   hostname and would be rejected by certificates and by some browsers. */
+   The address itself is one DNS label and belongs to the control plane, which
+   is the only thing that can see every tenant and so the only thing that can
+   keep an address unique. What is checked here is narrower and local: that the
+   app's name could be a hostname label at all, since it is the first address
+   the control plane will be asked for.
 
-const SEPARATOR = "--";
+   A hosted app whose name is already taken is given a different address rather
+   than refused, so this is about shape, never about availability. */
 
-// A DNS label may not exceed 63 characters, and the whole label is the app and
-// the tenant together, so the limit is shared between them.
-const LABEL_LIMIT = 63;
+/* A DNS label may not exceed 63 characters, and the control plane may have to
+   add a distinguishing word to a name two tenants both wanted - so a name is
+   held well short of the limit to leave room for one. */
+const NAME_LIMIT = 48;
 
 const SHAPE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
-const hostLabelFor = (appName : string, tenant : string) : string => `${appName}${SEPARATOR}${tenant}`;
-
 /* Why this name cannot have a hostname, or undefined when it can. Returned as a
    sentence because it is shown to whoever ran the deploy. */
-const hostnameObjection = (appName : string, tenant : string) : string | undefined => {
+const hostnameObjection = (appName : string) : string | undefined => {
     if (! SHAPE.test(appName)) {
         return `"${appName}" must be lower-case letters, numbers and hyphens, starting and ending with a letter or number`;
     }
-    if (appName.includes(SEPARATOR)) {
-        return `"${appName}" cannot contain "${SEPARATOR}" - it is what separates the app from the tenant in its hostname`;
-    }
-    if (! tenant) return undefined;
-
-    const label = hostLabelFor(appName, tenant);
-    if (label.length > LABEL_LIMIT) {
-        return `"${appName}" is too long for a hostname alongside tenant "${tenant}": ${label.length} characters, and a hostname label allows ${LABEL_LIMIT}`;
+    if (appName.length > NAME_LIMIT) {
+        return `"${appName}" is too long for an app name: ${appName.length} characters, and the limit is ${NAME_LIMIT}`;
     }
     return undefined;
 };
 
-export { hostLabelFor, hostnameObjection, SEPARATOR, LABEL_LIMIT };
+export { hostnameObjection, NAME_LIMIT };

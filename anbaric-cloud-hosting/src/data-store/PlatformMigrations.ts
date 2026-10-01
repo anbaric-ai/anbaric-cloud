@@ -237,6 +237,25 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         "CREATE INDEX jobs_heartbeat ON jobs (heartbeat_at) WHERE heartbeat_at IS NOT NULL",
     ),
 
+    /* Entitlements chosen for someone who has not arrived yet. An invitation
+       goes to an email address and a grant is made against a user id, which
+       that person does not have until the first time they sign in - so what
+       the inviter chose waits here under the email and is turned into real
+       grants at that moment. Rows are deleted as they are claimed, so this
+       table holds only what is still owed. */
+    statements("005-entitlement-invites",
+        `CREATE TABLE IF NOT EXISTS entitlement_invites (
+            email           TEXT NOT NULL,
+            app_id          TEXT,
+            entitlement_id  TEXT NOT NULL,
+            notes           TEXT NOT NULL DEFAULT '',
+            offered_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            offered_by      TEXT NOT NULL
+        )`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS entitlement_invites_key
+            ON entitlement_invites (email, COALESCE(app_id, ''), entitlement_id)`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

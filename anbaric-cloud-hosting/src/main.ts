@@ -34,6 +34,7 @@ import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
 import {PluginLoader} from "./plugins/PluginLoader";
 import {UsageReporter} from "./usage/UsageReporter";
+import {HttpSubdomains} from "./subdomains/HttpSubdomains";
 
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);
@@ -109,6 +110,13 @@ const memberships = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARI
     ? new HttpMembershipService(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
     : undefined;
 
+/* Where this tenant's apps answer. The addresses are the control plane's to
+   keep, because one has to be unique across every tenant; a platform that has
+   no control plane to ask has no addresses and serves its apps by path. */
+const subdomains = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARIC_TENANT
+    ? new HttpSubdomains(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
+    : undefined;
+
 /* Files are owned by an app, like secrets: on the hosted platform each app
    gets its own key prefix in the tenant's bucket, and locally its own folder
    under the storage root. A caller with no app - the console - gets the whole
@@ -127,7 +135,7 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
-    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor);
+    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 
@@ -145,6 +153,17 @@ if (buildLayer && process.env.ANBARIC_TENANT && process.env.ANBARIC_CLI_KEY_LOOK
         process.env.ANBARIC_TENANT,
         () => buildLayer.list().filter(app => app.status === "running" || app.status === "draining").length,
     ).start();
+}
+
+/* Makes sure every app this platform is running has an address. Allocation is
+   idempotent, so this costs one call per app and changes nothing in the
+   ordinary case - but it is what gives an address to an app deployed before
+   addresses existed, and what repairs one the control plane never managed to
+   publish to the edge. Cheaper and harder to forget than a migration script. */
+if (buildLayer && subdomains) {
+    void buildLayer.ensureHydrated()
+        .then(() => Promise.all(buildLayer.list().map(app => subdomains.allocate(app.appName))))
+        .catch(error => console.warn(`[subdomains] could not reconcile app addresses: ${error instanceof Error ? error.message : error}`));
 }
 
 // Jobs whose long-running step stopped saying it was alive are marked, not touched.

@@ -9,6 +9,8 @@ import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
 import {AppProxyHandler} from "./handlers/AppProxyHandler";
 import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
 import {AppsHandler} from "./handlers/AppsHandler";
+import {MyAppsHandler} from "./handlers/MyAppsHandler";
+import {Subdomains} from "../subdomains/Subdomains";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
 import {KeysHandler} from "./handlers/auth/KeysHandler";
@@ -74,7 +76,8 @@ class HostingServer {
                 userDirectory? : UserDirectory,
                 memberships? : MembershipService,
                 promptManagerFor? : (appId : string) => PromptManager,
-                fileStorageFor? : (appId : string) => FileStorage) {
+                fileStorageFor? : (appId : string) => FileStorage,
+                subdomains? : Subdomains) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -107,7 +110,7 @@ class HostingServer {
         if (notifier) publicRouter.registerApi("notifications", new NotificationsHandler(notifier));
         if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
         if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
-        if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships));
+        if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships, entitlements));
         const prompts = promptManagerFor && new PromptsHandler(promptManagerFor);
         if (prompts) publicRouter.registerApi("prompts", prompts);
         if (cliAuthorizer) {
@@ -120,8 +123,15 @@ class HostingServer {
             // are wherever they registered themselves.
             buildLayer.consumerUrlsFor = appName =>
                 [...new Set(registry.list().filter(consumer => consumer.appId === appName).map(consumer => consumer.url))];
-            publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant));
+            buildLayer.appRemoved = appName => void subdomains?.release(appName);
+            publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant, subdomains));
             publicRouter.register("app", appProxy);
+
+            // The directory a person who is not a builder sees instead of the
+            // console, so it only exists where entitlements decide access.
+            if (entitlements) {
+                publicRouter.registerApi("my-apps", new MyAppsHandler(buildLayer, entitlements, subdomains));
+            }
         }
         // An unrouted absolute path carrying an app Referer is an app-internal
         // link the proxy's prefix-stripping left bare; send it back to its app.
@@ -151,10 +161,22 @@ class HostingServer {
             request.url.pathname === "/favicon.ico" ||
             (request.method === "GET" && CLI_KEY_POLL.test(request.url.pathname));
 
+        const authentication =
+            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships);
+
+        /* Entitlements an inviter chose before this person had a user id were
+           put aside under their email address; their first sign-in is when
+           they can finally be granted. */
+        if (entitlements) {
+            authentication.claimWhatIsOwed = async user => {
+                if (user.email) await entitlements.claim(user.email, user.id);
+            };
+        }
+
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
             new TenantRoutingMiddleware(tenant),
-            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships),
+            authentication,
             /* After authentication and before routing: an app reached by its own
                hostname owns every path on it, so nothing of the platform's would
                match anyway - but a nicer address must not also be a way in

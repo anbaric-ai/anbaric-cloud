@@ -5,27 +5,13 @@ import type { NavEntry } from '@anbaric/design-system/components/SideNav'
 
 import { registry } from './plugins/PluginRegistry'
 
+import { appUrl, type CurrentUser } from './appUrl'
+
 interface App {
   appName: string
   status: string
-}
-
-const appUrl = (appName: string, user: CurrentUser | undefined): string =>
-  user?.appHostSuffix && user.tenant
-    ? `https://${appName}--${user.tenant}.${user.appHostSuffix}`
-    : `/app/${appName}`
-
-interface CurrentUser {
-  id: string
-  roles: string[]
-  name?: string
-  picture?: string
-  tenant?: string
-  tenantRole?: string
-  // The domain under which each app has a hostname of its own. Sent by the
-  // platform rather than guessed from the browser's address, because only the
-  // platform knows whether wildcard DNS exists for it.
-  appHostSuffix?: string
+  subdomain?: string
+  url?: string
 }
 
 function Sym({ name }: { name: string }) {
@@ -74,7 +60,7 @@ function PlatformNav({
             // An app's own hostname serves it at the root, so links, assets and
             // fetches inside it behave as they did on the machine it was built
             // on. Fall back to the path form where there is no such domain.
-            href: appUrl(app.appName, user),
+            href: appUrl(app),
             external: true,
             icon: <Sym name="deployed_code" />,
             disabled: app.status !== 'running',
@@ -87,8 +73,16 @@ function PlatformNav({
     icon: <Sym name={page.icon ?? 'widgets'} />,
   }))
 
+  /* An undefined role means this platform is not enforcing roles at all - a
+     self-hosted or local install, where everyone may build. Asking whether the
+     role permits building would hide the page from every one of them. */
+  const mayBuild = user === undefined
+    || user.tenantRole === undefined
+    || ['OWNER', 'ADMIN', 'BUILDER'].includes(user.tenantRole)
+
   const items: NavEntry[] = [
     ...pageEntries,
+    ...(mayBuild ? [{ label: 'Manage apps', value: '/manage-apps', icon: <Sym name="deployed_code" /> }] : []),
     { label: 'Audit', value: '/audit', icon: <Sym name="history" /> },
     ...appEntries,
   ]

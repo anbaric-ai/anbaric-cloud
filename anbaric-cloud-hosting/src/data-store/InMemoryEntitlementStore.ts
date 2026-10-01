@@ -1,10 +1,11 @@
 import {randomUUID} from "node:crypto";
-import {EntitlementDefinition, EntitlementGrant, EntitlementStore} from "./EntitlementStore";
+import {EntitlementDefinition, EntitlementGrant, EntitlementOffer, EntitlementStore} from "./EntitlementStore";
 
 class InMemoryEntitlementStore implements EntitlementStore {
 
     private definitions = new Map<string, EntitlementDefinition>();
     private grants = new Map<string, EntitlementGrant>();
+    private offers = new Map<string, { offer : EntitlementOffer, offeredBy : string }>();
 
     constructor() {
         this.definitions.set(this.key(null, "access"), { appId: null, entitlementId: "access", notes: "Global access" });
@@ -44,6 +45,29 @@ class InMemoryEntitlementStore implements EntitlementStore {
         return Array.from(this.grants.values())
             .filter(grant => userId === undefined || grant.userId === userId)
             .map(grant => ({ ...grant }));
+    }
+
+    // Held against an email address; see PostgresEntitlementStore.
+    async offer(offers : Array<EntitlementOffer>, offeredBy : string) : Promise<void> {
+        for (const offer of offers) {
+            this.offers.set(`${offer.email} ${this.key(offer.appId, offer.entitlementId)}`, { offer, offeredBy });
+        }
+    }
+
+    async offersFor(email : string) : Promise<Array<EntitlementOffer>> {
+        return [...this.offers.values()]
+            .filter(held => held.offer.email === email)
+            .map(held => ({ ...held.offer }));
+    }
+
+    async claim(email : string, userId : string) : Promise<number> {
+        const owed = [...this.offers.entries()].filter(([, held]) => held.offer.email === email);
+
+        for (const [key, held] of owed) {
+            await this.grant(userId, held.offer.appId, held.offer.entitlementId, held.offer.notes, held.offeredBy);
+            this.offers.delete(key);
+        }
+        return owed.length;
     }
 
     private key(appId : string | null, entitlementId : string) : string {

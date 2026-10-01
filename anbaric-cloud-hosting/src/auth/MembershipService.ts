@@ -5,6 +5,7 @@ type PendingInvitation = {
     token : string,
     email : string,
     role : TenantRole,
+    landingApp? : string,
     invitedBy : string,
     invitedByName? : string,
     link : string,
@@ -29,7 +30,10 @@ interface MembershipService {
 
     roleFor(userId : string) : Promise<TenantRole | undefined>;
 
-    invite(email : string, role : TenantRole, invitedBy : Inviter) : Promise<PendingInvitation>;
+    /* landingApp is the app the invitation should open on rather than the
+       person's app directory. The control plane turns it into an address when
+       the invitation is accepted, so a later change of address still works. */
+    invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation>;
 
     pending(asking : Inviter) : Promise<Array<PendingInvitation>>;
 

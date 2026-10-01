@@ -46,12 +46,12 @@ unrouted absolute path that arrives with a `Referer` from your app is redirected
 back to `/app/<name>/…` (a `307`, so form POSTs keep their body). So ordinary
 absolute links followed from a page of your app just work.
 
-## Your app's own hostname
+## Your app's own address
 
-Every app also answers on a hostname of its own:
+Every app answers on an address of its own:
 
 ```
-https://<app>--<tenant>.<platform domain>
+https://<address>.<platform domain>
 ```
 
 There your app is at the root, exactly where it was when you ran it locally, so
@@ -59,10 +59,29 @@ absolute paths, `fetch("/api/…")` and anything else that assumes the root work
 without being rewritten. This is the address to share and the one to prefer; the
 `/app/<name>` form below stays available and unchanged.
 
-The tenant is part of the name because two tenants may each have a `hello-world`.
-A double hyphen separates the two, so an app name may not contain one, and the
-app and tenant together must fit the 63 characters a hostname label allows. A
-deploy that would break either rule is refused with the reason.
+`anbaric app deploy` prints the address, and the console shows it next to the app
+on the **Manage apps** page.
+
+### How an address is chosen
+
+An address is one label under the platform's domain, so it has to be unique
+across every customer, not just yours. When an app is first deployed it is given
+its own name if that name is free. If it is not, a word is added — `invoices`
+becomes something like `invoices-walnut` — and if even that is crowded, a short
+number. A handful of names are reserved and never handed out.
+
+Your app's name is unaffected by any of this. The name is what you deploy,
+reference and tear down by; the address is only where it answers.
+
+### Changing an address
+
+A builder can set an app's address on the **Manage apps** page in the console. An
+address someone else already holds is refused, and the old address stops working
+as soon as the new one is saved — so change it before you share it, not after.
+
+An address lasts as long as the app. Tearing an app down frees its address for
+anyone to take, including another customer, so a torn-down app's links should be
+treated as gone for good.
 
 ## Under /app/&lt;name&gt;
 

@@ -17,13 +17,14 @@ class InMemoryMembershipService implements MembershipService {
         return this.members.get(userId);
     }
 
-    async invite(email : string, role : TenantRole, invitedBy : Inviter) : Promise<PendingInvitation> {
+    async invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation> {
         const token = randomUUID();
         const now = new Date();
         const invitation : PendingInvitation = {
             token,
             email: email.trim().toLowerCase(),
             role,
+            landingApp,
             invitedBy: invitedBy.id,
             invitedByName: invitedBy.name,
             link: `${this.linkBase}/${token}`,

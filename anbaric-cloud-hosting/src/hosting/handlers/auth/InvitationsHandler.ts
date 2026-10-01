@@ -1,4 +1,5 @@
 import {MembershipService} from "../../../auth/MembershipService";
+import {EntitlementOffer, EntitlementStore} from "../../../data-store/EntitlementStore";
 import {canInvite, isTenantRole} from "../../../auth/TenantRole";
 import {Request} from "../../Request";
 import {RequestHandler} from "../../RequestHandler";
@@ -6,10 +7,17 @@ import {RequestHandler} from "../../RequestHandler";
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* The console's side of inviting people into this tenant: list what is
-   pending, invite by email (attributed to the signed-in user), revoke. */
+   pending, invite by email (attributed to the signed-in user), revoke.
+
+   An invitation may also carry the app it should open on and the entitlements
+   the inviter picked out for whoever accepts it. The two are kept apart on
+   purpose: the landing app travels to the control plane, which owns the
+   invitation and the addresses, while the entitlements stay here, because
+   grants are the platform's and are held against the email address until
+   that person first signs in. */
 class InvitationsHandler implements RequestHandler {
 
-    constructor(private memberships : MembershipService) {}
+    constructor(private memberships : MembershipService, private entitlements? : EntitlementStore) {}
 
     async handle(request : Request) : Promise<void> {
         // Only a tenant's owner or admin administers its membership. Central
@@ -34,7 +42,8 @@ class InvitationsHandler implements RequestHandler {
     }
 
     private async invite(request : Request) : Promise<void> {
-        const body = await request.body() as { email? : string, role? : string } | undefined;
+        const body = await request.body() as
+            { email? : string, role? : string, landingApp? : string, entitlements? : Array<unknown> } | undefined;
         const email = String(body?.email ?? "").trim();
         if (! EMAIL_SHAPE.test(email)) return request.reply(400, { error: "A valid email address is required" });
 
@@ -43,7 +52,38 @@ class InvitationsHandler implements RequestHandler {
             return request.reply(400, { error: "Invite someone as an ADMIN, BUILDER or USER" });
         }
 
-        request.reply(201, await this.memberships.invite(email, role, this.asking(request)));
+        const landingApp = typeof body?.landingApp === "string" && body.landingApp.trim()
+            ? body.landingApp.trim()
+            : undefined;
+
+        const invitation = await this.memberships.invite(email, role, this.asking(request), landingApp);
+
+        /* Put aside after the invitation exists, so nothing is held for an
+           email that was never actually invited. */
+        const chosen = this.chosenEntitlements(email, body?.entitlements);
+        if (chosen.length > 0 && this.entitlements) {
+            await this.entitlements.offer(chosen, request.user?.id ?? "system");
+        }
+
+        request.reply(201, { ...invitation, entitlements: chosen.length });
+    }
+
+    // Each is an app and an entitlement, with a null app meaning every app -
+    // the same scoping a grant already has.
+    private chosenEntitlements(email : string, chosen : Array<unknown> | undefined) : Array<EntitlementOffer> {
+        if (! Array.isArray(chosen)) return [];
+
+        return chosen.flatMap(each => {
+            const offer = each as { appId? : unknown, entitlementId? : unknown };
+            if (typeof offer?.entitlementId !== "string" || ! offer.entitlementId) return [];
+
+            return [{
+                email,
+                appId: typeof offer.appId === "string" && offer.appId ? offer.appId : null,
+                entitlementId: offer.entitlementId,
+                notes: "",
+            }];
+        });
     }
 
 }

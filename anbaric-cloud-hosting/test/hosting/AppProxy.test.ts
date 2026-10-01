@@ -35,6 +35,7 @@ const runningApp = (appName : string, appHost : string, appPort : number) : Buil
     logs: async function* () {},
     teardown: async () => undefined,
     consumerUrlsFor: () => [],
+    appRemoved: () => {},
     regenerateDocs: async () => 0,
     cleanUp: async () => {},
 });

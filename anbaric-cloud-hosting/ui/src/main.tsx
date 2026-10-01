@@ -4,11 +4,13 @@ import { createRoot } from 'react-dom/client'
 import '@anbaric/design-system/tokens.css'
 import './plugins/PluginRuntime'
 
+import { AppDirectoryPage } from './AppDirectoryPage'
 import { AuditPage } from './AuditPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
 import { SubscribePage } from './SubscribePage'
 import { ChooseTenantPage } from './ChooseTenantPage'
 import { IdentityBar } from './IdentityBar'
+import { ManageAppsPage } from './ManageAppsPage'
 import { ManageKeysPage } from './ManageKeysPage'
 import { PageShell } from './PageShell'
 import { PlatformNav } from './PlatformNav'
@@ -29,8 +31,13 @@ const routeFromLocation = () => {
   return window.location.hash.replace(/^#/, '') || '/'
 }
 
+// The three pages central serves itself, outside any console.
+const isStandalone = (path: string) =>
+  path.startsWith('/authorize-cli/') || path.startsWith('/subscribe') || path.startsWith('/choose-tenant')
+
 function pageFor(path: string): { title: string; width: string; body: ReactNode } {
   if (path === '/manage-keys') return { title: 'Manage keys', width: '30rem', body: <ManageKeysPage /> }
+  if (path === '/manage-apps') return { title: 'Manage apps', width: '64rem', body: <ManageAppsPage /> }
   if (path === '/audit') return { title: 'Audit', width: '64rem', body: <AuditPage /> }
   const page = registry().pageAt(path)
   if (page) return { title: page.title, width: '64rem', body: <PluginPage path={path} /> }
@@ -50,6 +57,7 @@ function App() {
   // Nav collapse is app state: it survives client-side navigation (the shell
   // stays mounted) but resets on a hard reload. Collapsed by default on mobile.
   const [collapsed, setCollapsed] = useState(isMobile)
+  const [role, setRole] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
     const onRoute = () => setPath(routeFromLocation())
@@ -61,10 +69,26 @@ function App() {
     }
   }, [])
 
+  /* Whether this person gets the console at all. A USER is given the app
+     directory instead, wherever they point their browser, because none of the
+     console is theirs to use. Null means the question has been asked and
+     answered with no role, which is what an unmanaged platform says - there
+     everyone gets the console, as they always have. */
+  useEffect(() => {
+    // Central serves the standalone pages and has no platform API behind it,
+    // so there is no role to ask for and nothing waiting on one.
+    if (isStandalone(path)) return setRole(null)
+
+    void fetch('/api/v2/whoami')
+      .then((response) => (response.ok ? response.json() : undefined))
+      .then((who: { tenantRole?: string } | undefined) => setRole(who?.tenantRole ?? null))
+      .catch(() => setRole(null))
+  }, [])
+
   // The CLI-authorize, subscribe and choose-tenant flows are standalone pages
   // reached directly, outside the nav - so they carry their own identity
   // control (who you are, sign out) pinned top-right.
-  if (path.startsWith('/authorize-cli/') || path.startsWith('/subscribe') || path.startsWith('/choose-tenant')) {
+  if (isStandalone(path)) {
     return (
       <>
         <div style={{ position: 'fixed', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
@@ -78,6 +102,15 @@ function App() {
       </>
     )
   }
+
+  /* The directory has a route of its own as well as being what a USER is
+     given, because a platform that enforces no roles has no USERs at all and
+     the page would otherwise be unreachable there. */
+  if (path === '/apps' || role === 'USER') return <AppDirectoryPage />
+
+  // Nothing is rendered until the role is known, or a USER would see the
+  // console flash past on its way to being replaced.
+  if (role === undefined) return null
 
   const navigate = (to: string) => {
     if (to === path) return

@@ -23,6 +23,14 @@ class AuthenticationMiddleware implements Middleware {
 
     private recorded = new Map<string, number>();
 
+    /* Anything owed to this person that could only be arranged against their
+       email address, because until now they had no user id - entitlements an
+       inviter chose for them before they ever arrived. Injected rather than
+       named here: the middleware's business is who someone is, not what they
+       are owed. Called where the directory first records them, which is that
+       moment, and safe to call again because claiming twice claims nothing. */
+    claimWhatIsOwed : (user : User) => Promise<void> = async () => {};
+
     constructor(private authenticator? : Authenticator,
                 private tokenAuthenticator? : TokenAuthenticator,
                 private isOpen : OpenRequestPredicate = () => false,
@@ -96,18 +104,25 @@ class AuthenticationMiddleware implements Middleware {
     }
 
     private async remember(user : User) : Promise<void> {
-        if (! this.userDirectory) return;
-
         const now = Date.now();
         const last = this.recorded.get(user.id) ?? 0;
         if (now - last < DIRECTORY_REFRESH_MS) return;
 
         this.recorded.set(user.id, now);
+
+        if (this.userDirectory) {
+            try {
+                await this.userDirectory.record(user);
+            } catch (error) {
+                this.recorded.delete(user.id);
+                console.error(`Could not record user "${user.id}" in the directory:`, error);
+            }
+        }
+
         try {
-            await this.userDirectory.record(user);
+            await this.claimWhatIsOwed(user);
         } catch (error) {
-            this.recorded.delete(user.id);
-            console.error(`Could not record user "${user.id}" in the directory:`, error);
+            console.error(`Could not claim what is owed to "${user.id}":`, error);
         }
     }
 
