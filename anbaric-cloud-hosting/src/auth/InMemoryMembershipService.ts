@@ -17,6 +17,10 @@ class InMemoryMembershipService implements MembershipService {
         return this.members.get(userId);
     }
 
+    async remove(userId : string, _asking : Inviter) : Promise<boolean> {
+        return this.members.delete(userId);
+    }
+
     async invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation> {
         const token = randomUUID();
         const now = new Date();

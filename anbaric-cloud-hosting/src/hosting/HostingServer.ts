@@ -10,6 +10,7 @@ import {AppProxyHandler} from "./handlers/AppProxyHandler";
 import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
 import {AppsHandler} from "./handlers/AppsHandler";
 import {MyAppsHandler} from "./handlers/MyAppsHandler";
+import {MembersHandler} from "./handlers/auth/MembersHandler";
 import {Subdomains} from "../subdomains/Subdomains";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
@@ -111,6 +112,7 @@ class HostingServer {
         if (entitlements) publicRouter.registerApi("entitlements", new EntitlementsAdminHandler(entitlements));
         if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
         if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships, entitlements));
+        if (memberships) publicRouter.registerApi("members", new MembersHandler(memberships, entitlements));
         const prompts = promptManagerFor && new PromptsHandler(promptManagerFor);
         if (prompts) publicRouter.registerApi("prompts", prompts);
         if (cliAuthorizer) {

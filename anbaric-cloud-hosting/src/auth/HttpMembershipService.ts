@@ -46,6 +46,12 @@ class HttpMembershipService implements MembershipService {
         return response.status === 204;
     }
 
+    async remove(userId : string, asking : Inviter) : Promise<boolean> {
+        const response = await this.call("DELETE", `/members/${encodeURIComponent(userId)}`, undefined, [404], asking);
+        this.roles.delete(userId);
+        return response.status === 204;
+    }
+
     private async call(method : string, path : string, body? : unknown,
                        tolerated : Array<number> = [], asking? : Inviter) : Promise<Response> {
         const headers : Record<string, string> = { "x-anbaric-central-key": this.secret };

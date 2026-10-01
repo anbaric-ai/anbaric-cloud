@@ -39,6 +39,9 @@ interface MembershipService {
 
     revoke(token : string, asking : Inviter) : Promise<boolean>;
 
+    // Ends someone's membership. False when they were not a member.
+    remove(userId : string, asking : Inviter) : Promise<boolean>;
+
 }
 
 export type { MembershipService, PendingInvitation, Inviter }
