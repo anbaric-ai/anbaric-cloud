@@ -56,16 +56,20 @@
   padding-block: var(--space-xl);
 }
 
+/* Centred over the page, because on its own it is the whole top of the
+   screen rather than a corner of a nav. */
 .ds-page-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 /* The full lockup - the wordmark is in the image, so nothing spells the name
    beside it; the alt text carries it for screen readers. */
 .ds-page-brand__logo {
-  height: 3.5rem;
+  height: 5rem;
   width: auto;
+  max-width: 100%;
   flex: 0 0 auto;
 }
 
