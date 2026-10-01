@@ -71,7 +71,12 @@ class AuthenticationMiddleware implements Middleware {
 
         if (!this.authenticator) return true;
 
-        const authenticated = await this.authenticator.authenticate(request.session, request.raw, request.rawResponse);
+        /* No session this platform can verify. Before sending anyone back
+           through the login, offer the authenticator the identity cookie the
+           central login set for the whole domain: a person arriving from
+           another tenant carries that tenant's session, which this platform
+           cannot read, but their identity is the same and still proven. */
+        const authenticated = await this.authenticator.authenticate(request.identity ?? request.session, request.raw, request.rawResponse);
         if (!authenticated) return false;
 
         [request.user, request.tenant] = authenticated;

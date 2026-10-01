@@ -6,10 +6,11 @@ import {User} from "../../src/auth/User";
 import {AuthenticationMiddleware} from "../../src/hosting/middleware/AuthenticationMiddleware";
 import {Request} from "../../src/hosting/Request";
 
-const fakeRequest = (session? : string) => {
+const fakeRequest = (session? : string, identity? : string) => {
     const headers : Record<string, any> = {};
     return {
         session,
+        identity,
         raw: { headers: {}, method: "GET" },
         rawResponse: { getHeader: (name : string) => headers[name], setHeader: (name : string, value : any) => { headers[name] = value; } },
         handled: false,
@@ -50,6 +51,29 @@ describe("AuthenticationMiddleware platform sessions", () => {
         expect(authenticator.authenticate).toHaveBeenCalledOnce();
         expect(request.user?.id).toBe("grace");
         expect(request.setCookie()).toContain("anbaric_session=");
+    });
+
+    /* Moving between tenants: the shared session cookie holds the other
+       tenant's session, which this platform cannot verify, but the identity
+       cookie the central login set still proves who they are. */
+    it("offers the identity cookie to the authenticator when the session is another tenant's", async () => {
+        const authenticator = spyAuthenticator([new User("grace"), new Tenant("acme")]);
+        const middleware = new AuthenticationMiddleware(authenticator, undefined, () => false, signer);
+        const request = fakeRequest(new SessionSigner("another-tenants-secret").mint(new User("grace"), new Tenant("globex")), "id-token");
+
+        expect(await middleware.apply(request)).toBe(true);
+        expect(authenticator.authenticate.mock.calls[0][0]).toBe("id-token");
+        expect(request.user?.id).toBe("grace");
+        expect(request.setCookie()).toContain("anbaric_session=");
+    });
+
+    it("offers the session itself when there is no identity cookie, as a lone platform has none", async () => {
+        const authenticator = spyAuthenticator([new User("grace"), new Tenant("acme")]);
+        const middleware = new AuthenticationMiddleware(authenticator, undefined, () => false, signer);
+        const request = fakeRequest("an-id-token-in-the-session-cookie", undefined);
+
+        expect(await middleware.apply(request)).toBe(true);
+        expect(authenticator.authenticate.mock.calls[0][0]).toBe("an-id-token-in-the-session-cookie");
     });
 
     it("rejects a state-changing request with no session instead of losing its body to a login redirect", async () => {

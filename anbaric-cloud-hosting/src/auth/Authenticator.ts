@@ -4,6 +4,15 @@ import {User} from "./User";
 
 const SESSION_COOKIE = "anbaric_session";
 
+/* The identity cookie: who this person is, as the central login proved it,
+   set for the whole domain and never overwritten by a tenant platform. A
+   platform's own session cookie is bound to that platform - signed with its
+   secret - so moving between tenants invalidates it every time; this one is
+   bound to the person, and is what a platform falls back to before sending
+   anyone through the login again. Mirrors CENTRAL_SESSION_COOKIE in
+   anbaric-cloud-central; keep the two in step. */
+const IDENTITY_COOKIE = "anbaric_central_session";
+
 abstract class Authenticator {
 
     abstract authenticate(session : string | undefined, request : IncomingMessage,
@@ -30,4 +39,4 @@ abstract class Authenticator {
 
 }
 
-export { Authenticator, SESSION_COOKIE }
+export { Authenticator, SESSION_COOKIE, IDENTITY_COOKIE }

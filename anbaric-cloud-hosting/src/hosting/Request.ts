@@ -12,6 +12,8 @@ class Request {
 
     readonly rayId : string;
     session? : string;
+    // The identity cookie from the central login, when the browser holds one.
+    identity? : string;
     user? : User;
     tenant? : Tenant;
 
