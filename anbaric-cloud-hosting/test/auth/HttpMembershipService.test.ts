@@ -78,6 +78,24 @@ describe("HttpMembershipService", () => {
         expect((revoked.calls[0].init.headers as Record<string, string>)["x-anbaric-user"]).toBe("auth0|new");
     });
 
+    it("ends a membership through central, naming who asked, and forgets the cached role", async () => {
+        const { fetchFn, calls } = fakeFetch(204);
+        const membership = service(fetchFn);
+
+        expect(await membership.remove("auth0|fox", asking)).toBe(true);
+        expect(calls[0].url).toBe("https://central.example/tenants/dana-x/members/auth0%7Cfox");
+        expect(calls[0].init.method).toBe("DELETE");
+        expect((calls[0].init.headers as Record<string, string>)["x-anbaric-user"]).toBe("auth0|new");
+    });
+
+    it("reports false when the person was not a member, and surfaces a refusal", async () => {
+        const missing = fakeFetch(404, { error: "Not a member of that tenant" });
+        const refused = fakeFetch(403, { error: "The owner of a tenant cannot be removed" });
+
+        expect(await service(missing.fetchFn).remove("auth0|ghost", asking)).toBe(false);
+        await expect(service(refused.fetchFn).remove("auth0|owner", asking)).rejects.toThrow("cannot be removed");
+    });
+
     it("revokes by token and reports whether anything was there", async () => {
         const gone = fakeFetch(204);
         const missing = fakeFetch(404, { error: "No such invitation" });
