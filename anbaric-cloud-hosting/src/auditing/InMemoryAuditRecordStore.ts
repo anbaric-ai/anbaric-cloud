@@ -26,6 +26,16 @@ class InMemoryAuditRecordStore implements AuditRecordStore {
             .slice(page * pageSize, (page + 1) * pageSize);
     }
 
+    async deleteBefore(before : Date, limit : number) : Promise<number> {
+        const stale = this.records
+            .filter(record => new Date(record.at ?? 0) < before)
+            .sort((left, right) => String(left.at).localeCompare(String(right.at)))
+            .slice(0, limit);
+
+        this.records = this.records.filter(record => ! stale.includes(record));
+        return stale.length;
+    }
+
 }
 
 export { InMemoryAuditRecordStore }

@@ -256,6 +256,12 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
             ON entitlement_invites (email, COALESCE(app_id, ''), entitlement_id)`,
     ),
 
+    // Audit records are weeded by age, which without this is a scan of the
+    // whole table every day.
+    statements("006-audit-records-by-age",
+        "CREATE INDEX IF NOT EXISTS audit_records_at ON anbaric_system.audit_records (at)",
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

@@ -92,6 +92,21 @@ class PostgresAuditRecordStore implements AuditRecordStore {
         }));
     }
 
+    /* Oldest first and bounded, so the sweep that calls this can work through
+       a large backlog a batch at a time. The subquery is what the index on
+       `at` serves; the delete itself goes by primary key. */
+    async deleteBefore(before : Date, limit : number) : Promise<number> {
+        const result = await this.pool.query(
+            `DELETE FROM anbaric_system.audit_records
+             WHERE id IN (
+                 SELECT id FROM anbaric_system.audit_records
+                 WHERE at < $1 ORDER BY at, id LIMIT $2
+             )`,
+            [before, limit],
+        );
+        return result.rowCount ?? 0;
+    }
+
 }
 
 export { PostgresAuditRecordStore }

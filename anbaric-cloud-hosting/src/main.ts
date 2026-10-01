@@ -18,6 +18,7 @@ import {S3FileStorage} from "./data-store/S3FileStorage";
 import {PostgresJobRunSchedulePersistence} from "./data-store/PostgresJobRunSchedulePersistence";
 import {PostgresJobPersistence} from "./data-store/PostgresJobPersistence";
 import {StallSweep} from "./data-store/StallSweep";
+import {AuditSweep, DEFAULT_RETENTION_DAYS} from "./auditing/AuditSweep";
 import {PostgresJsonStore} from "./data-store/PostgresJsonStore";
 import {PostgresQueue} from "./queuing/PostgresQueue";
 import {DockerBuildLayer} from "./app-management/DockerBuildLayer";
@@ -130,9 +131,10 @@ const fileStorageFor = (appId : string) : FileStorage =>
         : new LocalFileSystemStorage(join(process.env.ANBARIC_FILE_STORAGE_PATH ?? join(tmpdir(), "anbaric", "files"), appId));
 
 const jobs = new PostgresJobPersistence(pool);
+const auditRecords = new PostgresAuditRecordStore(pool);
 const server = new HostingServer(jobs, queue, registry, buildLayer,
     (appId, collection) => new PostgresJsonStore(pool, appId, collection), secretStoreFor, authenticator, cliAuthorizer,
-    tokenAuthenticator, process.env.ANBARIC_TENANT, new PostgresAuditRecordStore(pool), plugins,
+    tokenAuthenticator, process.env.ANBARIC_TENANT, auditRecords, plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
     (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains);
@@ -168,5 +170,9 @@ if (buildLayer && subdomains) {
 
 // Jobs whose long-running step stopped saying it was alive are marked, not touched.
 new StallSweep(jobs).start();
+
+/* Audit records older than the retention are removed, daily. The retention is
+   in days; zero keeps everything, and an unset value keeps a year. */
+new AuditSweep(auditRecords, Number(process.env.ANBARIC_AUDIT_RETENTION_DAYS ?? DEFAULT_RETENTION_DAYS)).start();
 
 console.log(`anbaric-cloud-hosting listening on port ${port}, internal entry point on ${internal}`);

@@ -44,6 +44,13 @@ Selection is by `ANBARIC_AUDITOR_TYPE` (`cloud` deployed), set by the platform.
 Reads and lists can be audited too, but the platform masks them by default to
 keep the volume manageable.
 
+## How long records are kept
+
+The platform removes audit records older than its retention once a day, so the
+trail does not grow for ever. The retention is set on the platform in days by
+`ANBARIC_AUDIT_RETENTION_DAYS`; unset, records are kept for a year, and zero
+keeps everything. On Anbaric Cloud the retention is ninety days.
+
 ## Next
 
 - [Authorization with actors and roles](../patterns/authorization.md)
