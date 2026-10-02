@@ -37,9 +37,11 @@
 }
 
 @media (max-width: 40rem) {
+  /* The nav is a slim rail on the screen's left edge, so the content clears
+     it by the rail's width rather than the full nav's. */
   .ds-page-main {
-    margin-left: 0;
-    padding: var(--space-md);
+    margin-left: var(--ds-nav-rail-w, 3.25rem);
+    padding: var(--space-md) var(--space-md) var(--space-md) var(--space-sm);
   }
 
   .ds-page-heading {

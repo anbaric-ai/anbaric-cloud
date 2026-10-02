@@ -230,27 +230,57 @@ a.ds-sidenav__item {
   justify-content: center;
 }
 
-/* --- Mobile: collapse to a hamburger; open to a full-device-width overlay.
-   `!important` overrides any sticky positioning a host sets inline. --------- */
+/* --- Narrow screens: a slim rail flush with the screen edge, and a drawer.
+   Collapsed, the nav is a rail of icons that a page offsets its content by
+   (`--ds-nav-rail-w`); any tap on it opens the drawer. Open, it is a panel over
+   the page behind a backdrop. `!important` overrides any positioning a host
+   sets inline. ------------------------------------------------------------- */
 @media (max-width: 40rem) {
-  .ds-sidenav {
-    width: auto;
+  :root {
+    --ds-nav-rail-w: 3.25rem;
   }
 
-  /* Collapsed on mobile is just the toggle — the items appear only when opened. */
   .ds-sidenav--collapsed {
-    width: auto;
-    padding: var(--space-sm);
+    width: var(--ds-nav-rail-w);
+    padding: var(--space-sm) 0.375rem;
+    gap: var(--space-sm);
   }
 
-  .ds-sidenav--collapsed .ds-sidenav__list {
-    display: none;
+  /* The whole rail is one control, and looks it. */
+  .ds-sidenav--peek {
+    cursor: pointer;
   }
 
-  .ds-sidenav:not(.ds-sidenav--collapsed) {
+  .ds-sidenav--peek .ds-sidenav__item,
+  .ds-sidenav--peek .ds-sidenav__toggle {
+    cursor: pointer;
+  }
+
+  .ds-sidenav--collapsed .ds-sidenav__top {
+    min-height: 1.5rem;
+  }
+
+  .ds-sidenav--collapsed .ds-sidenav__item {
+    padding: var(--space-sm) 0;
+  }
+
+  .ds-sidenav--collapsed .ds-sidenav__footer {
+    padding-top: var(--space-sm);
+  }
+
+  .ds-sidenav__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: color-mix(in srgb, var(--color-foreground) 35%, transparent);
+  }
+
+  .ds-sidenav--drawer {
     position: fixed !important;
-    inset: 0 !important;
-    width: auto;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: min(18rem, 85vw);
     height: 100dvh;
     border-radius: 0;
     overflow-y: auto;

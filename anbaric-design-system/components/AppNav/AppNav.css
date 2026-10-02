@@ -27,12 +27,19 @@
   height: 1.5rem;
 }
 
-/* On narrow screens the rail rejoins the flow at the top; the SideNav's own
-   mobile rules take over its open/closed (hamburger / overlay) behaviour. */
+/* On narrow screens the rail gives up its inset and hugs the screen's left
+   edge, full height, rounded only on the side that faces the content; the
+   SideNav's own narrow-screen rules make it open as a drawer. */
 @media (max-width: 40rem) {
   .ds-app-nav.ds-sidenav {
-    position: static;
-    height: auto;
-    margin: var(--space-md) var(--space-md) 0;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0 var(--radius-container) var(--radius-container) 0;
+  }
+
+  .ds-app-nav.ds-sidenav.ds-sidenav--drawer {
+    border-radius: 0;
   }
 }
