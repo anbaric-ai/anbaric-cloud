@@ -6,6 +6,7 @@ import './plugins/PluginRuntime'
 
 import { AppDirectoryPage } from './AppDirectoryPage'
 import { AuditPage } from './AuditPage'
+import { GettingStartedPage } from './GettingStartedPage'
 import { AuthorizeCliPage } from './AuthorizeCliPage'
 import { SubscribePage } from './SubscribePage'
 import { ChooseTenantPage } from './ChooseTenantPage'
@@ -58,6 +59,9 @@ function App() {
   // stays mounted) but resets on a hard reload. Collapsed by default on mobile.
   const [collapsed, setCollapsed] = useState(isMobile)
   const [role, setRole] = useState<string | null | undefined>(undefined)
+  // How many apps are deployed, or undefined until known. A console with
+  // nothing deployed has nothing to show, so its front page is how to deploy.
+  const [appCount, setAppCount] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     const onRoute = () => setPath(routeFromLocation())
@@ -83,6 +87,10 @@ function App() {
       .then((response) => (response.ok ? response.json() : undefined))
       .then((who: { tenantRole?: string } | undefined) => setRole(who?.tenantRole ?? null))
       .catch(() => setRole(null))
+    void fetch('/api/v2/apps')
+      .then((response) => (response.ok ? response.json() : []))
+      .then((apps: unknown[]) => setAppCount(apps.length))
+      .catch(() => setAppCount(undefined))
   }, [])
 
   // The CLI-authorize, subscribe and choose-tenant flows are standalone pages
@@ -120,7 +128,12 @@ function App() {
     if (isMobile()) setCollapsed(true)
   }
 
-  const page = pageFor(path)
+  /* A tenant with nothing deployed yet - someone who subscribed on the web
+     rather than from a deploy - would otherwise land on an empty dashboard.
+     Until the first app arrives, the front page is how to get one there. */
+  const page = path === '/' && appCount === 0
+    ? { title: 'Get started', width: '64rem', body: <GettingStartedPage /> }
+    : pageFor(path)
 
   return (
     <PageShell
