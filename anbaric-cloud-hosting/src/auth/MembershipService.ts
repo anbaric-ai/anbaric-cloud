@@ -42,6 +42,9 @@ interface MembershipService {
     // Ends someone's membership. False when they were not a member.
     remove(userId : string, asking : Inviter) : Promise<boolean>;
 
+    // Changes someone's role. Undefined when they were not a member.
+    changeRole(userId : string, role : TenantRole, asking : Inviter) : Promise<TenantRole | undefined>;
+
 }
 
 export type { MembershipService, PendingInvitation, Inviter }

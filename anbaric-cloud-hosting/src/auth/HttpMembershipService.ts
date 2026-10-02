@@ -52,6 +52,15 @@ class HttpMembershipService implements MembershipService {
         return response.status === 204;
     }
 
+    async changeRole(userId : string, role : TenantRole, asking : Inviter) : Promise<TenantRole | undefined> {
+        const response = await this.call("PATCH", `/members/${encodeURIComponent(userId)}`, { role }, [404], asking);
+        this.roles.delete(userId);
+        if (response.status === 404) return undefined;
+
+        const changed = (await response.json() as { role? : unknown }).role;
+        return isTenantRole(changed) ? changed : undefined;
+    }
+
     private async call(method : string, path : string, body? : unknown,
                        tolerated : Array<number> = [], asking? : Inviter) : Promise<Response> {
         const headers : Record<string, string> = { "x-anbaric-central-key": this.secret };

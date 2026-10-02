@@ -96,6 +96,24 @@ describe("HttpMembershipService", () => {
         await expect(service(refused.fetchFn).remove("auth0|owner", asking)).rejects.toThrow("cannot be removed");
     });
 
+    it("changes a role through central and forgets the cached one", async () => {
+        const { fetchFn, calls } = fakeFetch(200, { userId: "auth0|fox", role: "BUILDER" });
+
+        expect(await service(fetchFn).changeRole("auth0|fox", "BUILDER", asking)).toBe("BUILDER");
+        expect(calls[0].url).toBe("https://central.example/tenants/dana-x/members/auth0%7Cfox");
+        expect(calls[0].init.method).toBe("PATCH");
+        expect(JSON.parse(calls[0].init.body as string)).toEqual({ role: "BUILDER" });
+        expect((calls[0].init.headers as Record<string, string>)["x-anbaric-user"]).toBe("auth0|new");
+    });
+
+    it("reports no role for a non-member, and surfaces a refusal to change one", async () => {
+        const missing = fakeFetch(404, { error: "Not a member of that tenant" });
+        const refused = fakeFetch(403, { error: "The owner's role cannot be changed" });
+
+        expect(await service(missing.fetchFn).changeRole("auth0|ghost", "USER", asking)).toBeUndefined();
+        await expect(service(refused.fetchFn).changeRole("auth0|owner", "USER", asking)).rejects.toThrow("cannot be changed");
+    });
+
     it("revokes by token and reports whether anything was there", async () => {
         const gone = fakeFetch(204);
         const missing = fakeFetch(404, { error: "No such invitation" });

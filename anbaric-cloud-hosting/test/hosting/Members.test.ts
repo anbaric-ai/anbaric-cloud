@@ -89,4 +89,38 @@ describe("removing someone from the tenant", () => {
         expect((await remove("ada", "stranger")).status).toBe(404);
     });
 
+    describe("changing a role", () => {
+
+        const change = (who : string, target : string, role : string) =>
+            fetch(`${baseUrl}/api/v2/members/${encodeURIComponent(target)}`, {
+                method: "PATCH",
+                headers: { "content-type": "application/json", cookie: as(who) },
+                body: JSON.stringify({ role }),
+            });
+
+        it("lets an owner make a user a builder, and says so", async () => {
+            const response = await change("ada", "fox", "BUILDER");
+
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual({ userId: "fox", role: "BUILDER" });
+            expect(await memberships.roleFor("fox")).toBe("BUILDER");
+        });
+
+        it("refuses a builder, and refuses changing yourself", async () => {
+            expect((await change("bob", "fox", "ADMIN")).status).toBe(403);
+            expect((await change("ada", "ada", "USER")).status).toBe(400);
+            expect(await memberships.roleFor("fox")).toBe("USER");
+        });
+
+        it("never hands out ownership, and refuses a role it does not know", async () => {
+            expect((await change("ada", "fox", "OWNER")).status).toBe(400);
+            expect((await change("ada", "fox", "SUPERUSER")).status).toBe(400);
+        });
+
+        it("is a 404 for somebody who was never a member", async () => {
+            expect((await change("ada", "stranger", "USER")).status).toBe(404);
+        });
+
+    });
+
 });
