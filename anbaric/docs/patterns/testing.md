@@ -25,13 +25,15 @@ test("payOut marks the expense paid", async () => {
 `new Job(id, properties, state)` is all you need to construct a job for a test
 (later constructor arguments have sensible defaults).
 
-Transition predicates and property validations are just as easy:
+Transition predicates and property validations are just as easy. A predicate
+that reads properties is asynchronous, because reading properties is, so `await`
+it:
 
 ```ts
-test("advances once approved", () => {
+test("advances once approved", async () => {
     const job = new Job("job-1", new Map([["approved", true]]), "review");
     const toApproved = machineTransition("approved");
-    expect(toApproved.predicate(job)).toBe(true);
+    expect(await toApproved.predicate(job)).toBe(true);
 });
 
 test("amount must be positive", () => {
@@ -46,10 +48,10 @@ If several actions share a state and choose themselves by `predicate`, assert th
 selection:
 
 ```ts
-test("low-priority tickets auto-triage", () => {
+test("low-priority tickets auto-triage", async () => {
     const job = new Job("t1", new Map([["priority", "low"]]), "open");
-    expect(autoTriage.predicate(job)).toBe(true);
-    expect(escalate.predicate(job)).toBe(false);
+    expect(await autoTriage.predicate(job)).toBe(true);
+    expect(await escalate.predicate(job)).toBe(false);
 });
 ```
 

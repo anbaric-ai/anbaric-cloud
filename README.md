@@ -61,8 +61,8 @@ import {Action, Code, PropertyDefinition, State, StateMachine, Transition} from 
 
 const sendWelcome = new Action("Send welcome email", new Code("welcome"));
 sendWelcome.run = async (job) => {
-    // Access properties stored against the job
-    const email = job.properties.get("email");
+    // Access properties stored against the job - reading one is asynchronous
+    const email = await job.properties.get("email");
     // Run some code
     console.log(`Sending welcome email to ${email}`);
     // Return new properties to add to the job
@@ -72,7 +72,7 @@ sendWelcome.run = async (job) => {
 };
 
 const onboarding = new StateMachine("onboarding", [
-    new State("new", [sendWelcome], [new Transition("active", (job) => job.properties.get("emailSent") === true)]),
+    new State("new", [sendWelcome], [new Transition("active", async (job) => await job.properties.get("emailSent") === true)]),
     new State("active"),
 ]);
 
@@ -80,6 +80,11 @@ const customer = await onboarding.startJob(new Map([["email", "ada@example.com"]
 ```
 
 The job starts in `new`; when it is processed the action runs, sets `emailSent`, and the transition advances it to `active`.
+
+`job.properties` is read on demand: `get`, `has` and `getMany` return promises, so
+a job can hold a great deal while a step that needs one property pays for one.
+That is why an action's `predicate` and a transition's guard may be `async`, as
+above. See [Actions and actors](anbaric/docs/features/actions-and-actors.md#reading-properties-is-asynchronous).
 
 ### Using AI agents to automate states
 
@@ -104,7 +109,7 @@ const triage = new RemoteLLMAgenticAction(
 );
 
 const support = new StateMachine("support", [
-    new State("open", [triage], [new Transition("prioritised", (job) => job.properties.has("priority"))]),
+    new State("open", [triage], [new Transition("prioritised", async (job) => await job.properties.has("priority"))]),
     new State("prioritised"),
 ]);
 ```
@@ -136,7 +141,7 @@ approve.fields = ["approved"];                                  // the input we 
 approve.resolveUrl = (job) => `/approve?job=${job.id}`;         // where the human provides it
 
 const fulfilment = new StateMachine("fulfilment", [
-    new State("review", [approve], [new Transition("approved", (job) => job.properties.get("approved") === true)]),
+    new State("review", [approve], [new Transition("approved", async (job) => await job.properties.get("approved") === true)]),
     new State("approved"),
 ]);
 
