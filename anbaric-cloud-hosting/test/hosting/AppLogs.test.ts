@@ -65,6 +65,16 @@ describe("app runtime log streaming through the hosting server", () => {
         expect(await response.text()).toBe("line one\nline two\n");
     });
 
+    // Builders read these; the people in them did not sign up to be read.
+    it("hides the email addresses in what it streams", async () => {
+        const started = await serve(appWithLogs("crm", ["signed in: Chris.scott@gmail.com"]));
+        server = started.server;
+
+        const response = await fetch(`${started.baseUrl}/api/v2/apps/crm/logs`);
+
+        expect(await response.text()).toBe("signed in: ch****@****.**\n");
+    });
+
     it("404s for an unknown app", async () => {
         const started = await serve(appWithLogs("crm", []));
         server = started.server;

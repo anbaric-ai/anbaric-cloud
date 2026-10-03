@@ -3,6 +3,7 @@ import {deniesBuild} from "../../auth/TenantRole";
 import {Request} from "../Request";
 import {hostnameObjection} from "../../app-management/appHostname";
 import {appAddress} from "../../app-management/appAddress";
+import {redactEmails} from "../../app-management/redactEmails";
 import {RequestHandler} from "../RequestHandler";
 import {Subdomains} from "../../subdomains/Subdomains";
 
@@ -155,7 +156,7 @@ class AppsHandler implements RequestHandler {
         try {
             for await (const line of this.buildLayer.logs(appName, controller.signal)) {
                 clearTimeout(heartbeat);
-                if (!response.write(`${line}\n`)) {
+                if (!response.write(`${redactEmails(line)}\n`)) {
                     await new Promise<void>(resolve => response.once("drain", resolve));
                 }
                 heartbeat = beat();
