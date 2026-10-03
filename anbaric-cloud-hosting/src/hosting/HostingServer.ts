@@ -11,6 +11,8 @@ import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
 import {AppsHandler} from "./handlers/AppsHandler";
 import {MyAppsHandler} from "./handlers/MyAppsHandler";
 import {MembersHandler} from "./handlers/auth/MembersHandler";
+import {BillingHandler} from "./handlers/BillingHandler";
+import {CentralBilling} from "../billing/CentralBilling";
 import {Subdomains} from "../subdomains/Subdomains";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
@@ -78,7 +80,8 @@ class HostingServer {
                 memberships? : MembershipService,
                 promptManagerFor? : (appId : string) => PromptManager,
                 fileStorageFor? : (appId : string) => FileStorage,
-                subdomains? : Subdomains) {
+                subdomains? : Subdomains,
+                billing? : CentralBilling) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -113,6 +116,7 @@ class HostingServer {
         if (userDirectory) publicRouter.registerApi("users", new UsersHandler(userDirectory));
         if (memberships) publicRouter.registerApi("invitations", new InvitationsHandler(memberships, entitlements));
         if (memberships) publicRouter.registerApi("members", new MembersHandler(memberships, entitlements));
+        if (billing) publicRouter.registerApi("billing", new BillingHandler(billing));
         const prompts = promptManagerFor && new PromptsHandler(promptManagerFor);
         if (prompts) publicRouter.registerApi("prompts", prompts);
         if (cliAuthorizer) {

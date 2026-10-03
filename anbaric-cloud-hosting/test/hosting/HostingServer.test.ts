@@ -504,6 +504,18 @@ describe("HostingServer round-trip via the cloud clients", () => {
             expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
         });
 
+        // The identity the central login left, and the tenant the edge was
+        // routing to, would each sign the person straight back in if kept.
+        it("signs out of the central identity and the tenant as well", async () => {
+            const cookies = (await fetch(`${authenticatedUrl}/logout`, {
+                headers: { cookie: "anbaric_session=valid-session" },
+                redirect: "manual",
+            })).headers.getSetCookie();
+
+            expect(cookies.some(cookie => cookie.startsWith("anbaric_central_session=;") && cookie.includes("Max-Age=0"))).toBe(true);
+            expect(cookies.some(cookie => cookie.startsWith("anbaric_tenant=;") && cookie.includes("Max-Age=0"))).toBe(true);
+        });
+
         it("sends the browser on to the identity provider's logout when there is one", async () => {
             const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new ProviderAuthenticator());

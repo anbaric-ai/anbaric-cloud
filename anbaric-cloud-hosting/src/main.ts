@@ -36,6 +36,7 @@ import {HostingServer} from "./hosting/HostingServer";
 import {PluginLoader} from "./plugins/PluginLoader";
 import {UsageReporter} from "./usage/UsageReporter";
 import {HttpSubdomains} from "./subdomains/HttpSubdomains";
+import {CentralBilling} from "./billing/CentralBilling";
 
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);
@@ -118,6 +119,12 @@ const subdomains = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARIC
     ? new HttpSubdomains(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
     : undefined;
 
+// What the tenant is spending, and where it pays: the control plane's to
+// know, and only a tenant that has one can ask.
+const billing = process.env.ANBARIC_CLI_KEY_LOOKUP_URL && process.env.ANBARIC_TENANT
+    ? new CentralBilling(process.env.ANBARIC_CLI_KEY_LOOKUP_URL, process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "", process.env.ANBARIC_TENANT)
+    : undefined;
+
 /* Files are owned by an app, like secrets: on the hosted platform each app
    gets its own key prefix in the tenant's bucket, and locally its own folder
    under the storage root. A caller with no app - the console - gets the whole
@@ -137,7 +144,7 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, auditRecords, plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
-    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains);
+    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 
