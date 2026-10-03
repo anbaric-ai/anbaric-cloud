@@ -81,7 +81,7 @@ function ProvisioningPage({ message, failed = false, stages = [], stage }: Props
       {failed ? null : <LoadingBar variant="plain" messages={[]} />}
 
       {failed || stages.length === 0 ? null : (
-        <div style={{ marginTop: 'var(--space-lg)' }}>
+        <div style={{ margin: 'calc(var(--space-lg) * 1.5) 0 var(--space-md)' }}>
           <Steps steps={stages.map((key) => WORDS[key] ?? 'Working on it')} current={Math.max(reached, 0)} />
         </div>
       )}
