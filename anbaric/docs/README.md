@@ -44,6 +44,7 @@ How to put the features together to build something real.
 - [Integrating external systems](patterns/integrating-external-systems.md) — waiting on callbacks and webhooks
 - [Authorization with actors and roles](patterns/authorization.md) — who is allowed to do what
 - [UX practices](patterns/ux-practices.md) — feedback and polling for an asynchronous UI
+- [Staying within memory](patterns/memory.md) — the 512 MB footprint, and not turning the process into a cache
 - [Testing your app](patterns/testing.md) — driving a machine in memory
 
 ## API reference

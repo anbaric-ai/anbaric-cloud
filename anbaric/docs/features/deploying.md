@@ -48,6 +48,14 @@ anbaric jobs watch <job-id>     # follow a job as it progresses
   the factories at platform-backed persistence, queueing, stores and auditing —
   so your code is identical locally and in the cloud. **Never set these
   yourself.** See [Environment and factories](../api/environment.md).
+- **A fixed footprint.** Each app runs in its own container with **0.25 vCPU
+  and 512 MB of memory**, shared between your process and the small launcher
+  beside it. Node sizes its heap from that limit, so your code gets a heap of
+  roughly **270 MB** before it is out of memory. That is plenty for a workflow
+  app whose steps call services and move a job on; it is not enough to hold
+  thousands of jobs, a whole dataset or a large file in memory at once. See
+  [Staying within memory](../patterns/memory.md) for what to do instead and
+  how an out-of-memory crash shows up.
 
 ## Updating and tearing down
 
