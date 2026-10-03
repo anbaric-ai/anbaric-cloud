@@ -124,10 +124,13 @@ function ChooseTenantPage() {
     )
   }
 
+  /* Until the list is here this page does not know whether it is the picker
+     or the welcome, so it shows neither: just the mark, and no heading that a
+     moment later turns into a different one. */
   if (!tenants) {
     return (
-      <PageShell title="Choose a tenant">
-        <Card><p style={{ margin: 0, ...muted }}>Loading…</p></Card>
+      <PageShell title="Anbaric" quiet>
+        <p style={{ margin: 0, textAlign: 'center', ...muted }}>Loading…</p>
       </PageShell>
     )
   }

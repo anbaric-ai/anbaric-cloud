@@ -14,12 +14,17 @@ function PageShell({
   width = '30rem',
   nav,
   collapsed = false,
+  quiet = false,
   children,
 }: {
   title: string
   width?: string
   nav?: ReactNode
   collapsed?: boolean
+  /* Keep the heading for screen readers only. For a page that does not yet
+     know what it is - still loading what decides it - so no heading shows
+     that the next frame has to take back. */
+  quiet?: boolean
   children: ReactNode
 }) {
   const alone = !nav
@@ -39,7 +44,7 @@ function PageShell({
         {/* With a nav the heading only repeats the highlighted entry, so it is
             kept for structure and screen readers but not shown. A page served
             on its own - the CLI authorize flow - has nothing else naming it. */}
-        <h1 className={nav ? 'ds-page-heading ds-page-heading--assistive' : 'ds-page-heading'}>
+        <h1 className={nav || quiet ? 'ds-page-heading ds-page-heading--assistive' : 'ds-page-heading'}>
           {title}
         </h1>
         {children}
