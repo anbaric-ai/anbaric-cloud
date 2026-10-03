@@ -57,14 +57,6 @@ const heading: CSSProperties = {
   fontFamily: 'var(--font-title)',
   textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
 }
-const points: CSSProperties = {
-  margin: 'var(--space-md) 0 0',
-  padding: 0,
-  listStyle: 'none',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 'var(--space-xs)',
-}
 
 function SubscribePage({ requestId }: { requestId?: string }) {
   const [data, setData] = useState<Status | undefined>(undefined)
@@ -292,11 +284,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
             {data.perApp.display}
             <span style={perMonth}> per app, per month*</span>
           </p>
-          <ul style={points}>
-            <li>Every app hosted behind sign-in, with a team, roles and entitlements.</li>
-            <li>Every change audited: who, what and when, for people, code and agents.</li>
-            <li>An address of its own for each app, backups, and scaling you never think about.</li>
-          </ul>
+          <p style={{ margin: 'var(--space-md) 0 0', fontSize: '1.05rem' }}>The last mile for enterprise vibe-coding.</p>
           <p style={{ margin: 'var(--space-md) 0 0', ...muted }}>
             You'll be billed on the 1st of each month for the days each app has been running.
             Prices exclude {tax}, which is added at checkout for your location.
