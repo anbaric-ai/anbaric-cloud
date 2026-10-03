@@ -55,9 +55,10 @@ anbaric jobs watch <job-id>     # follow a job as it progresses
   app whose steps call services and move a job on; it is not enough to hold
   thousands of jobs, a whole dataset or a large file in memory at once. See
   [Staying within memory](../patterns/memory.md) for what to do instead and
-  how an out-of-memory crash shows up. An app that needs more can be switched
-  to a **large** instance (faster compute, 4× the memory, $50/£50 a month
-  instead of $20/£20) on the console's Manage apps page.
+  how an out-of-memory crash shows up. Every app starts small; one that needs
+  more can be switched to a **large** instance (faster compute, 4× the memory,
+  $50/£50 a month instead of $20/£20, and not covered by the free allowance)
+  on the console's Manage apps page. Deploying never asks about size.
 
 ## Updating and tearing down
 

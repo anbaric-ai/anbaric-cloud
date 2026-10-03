@@ -328,7 +328,7 @@ function ManageAppsPage() {
       >
         <p style={{ marginTop: 0 }}>
           {resizing?.to === 'large'
-            ? `${LARGE_EXPLAINED} It costs ${priceOf('large')} a month instead of ${priceOf('small')}, charged by the day from today.`
+            ? `${LARGE_EXPLAINED} It costs ${priceOf('large')} a month instead of ${priceOf('small')}, charged by the day from today, and is never covered by the free allowance.`
             : `A small instance costs ${priceOf('small')} a month instead of ${priceOf('large')}, charged by the day from today.`}
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: '0.85rem', ...muted }}>

@@ -101,8 +101,9 @@ step spikes, that step needs breaking up.
 If a workload genuinely needs more — a large model run, a heavy transform — an
 app can be moved to a **large** instance from the console's Manage apps page:
 faster compute and four times the memory (2 GB, so a heap of roughly 1 GB),
-for $50/£50 a month instead of $20/£20. It is the right answer for one heavy
-app; it is not the answer to a leak, which will fill 2 GB as surely as 512 MB.
+for $50/£50 a month instead of $20/£20, paid from its first day (the free
+allowance covers small apps only). It is the right answer for one heavy app;
+it is not the answer to a leak, which will fill 2 GB as surely as 512 MB.
 
 ## See also
 
