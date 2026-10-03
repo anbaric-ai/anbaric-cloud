@@ -123,6 +123,10 @@ class DockerBuildLayer extends BaseBuildLayer {
         await this.removeContainer(deployment, this.appHostFor(deployment.appName));
     }
 
+    // A local container has whatever the machine has; the size is remembered
+    // so a later deploy to the cloud starts at it, and otherwise means nothing.
+    protected async applySize(_deployment : Deployment) : Promise<void> {}
+
     // Locally the extracted source from the last deploy is still on disk, so
     // regeneration reads it in place with nothing to clean up.
     protected async sourceDir(appName : string) : Promise<{ dir : string, cleanup : () => Promise<void> }> {

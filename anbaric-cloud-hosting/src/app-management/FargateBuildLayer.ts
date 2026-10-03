@@ -11,6 +11,7 @@ import {ServiceDiscoveryClient, CreateServiceCommand as CreateDiscoveryServiceCo
     ListServicesCommand} from "@aws-sdk/client-servicediscovery";
 import {CloudWatchLogsClient, FilterLogEventsCommand, StartLiveTailCommand} from "@aws-sdk/client-cloudwatch-logs";
 import {BaseBuildLayer, Deployment, Probe} from "./BaseBuildLayer";
+import {AppSize} from "./BuildLayer";
 import {DocGenerator} from "../docs/DocGenerator";
 import {dockerfileFor} from "./DockerBuildLayer";
 
@@ -54,6 +55,15 @@ const defaultClients = (region : string) : AwsClients => ({
 
 const BUILD_TIMEOUT_MS = 900_000;
 const FARGATE_LIVENESS_TIMEOUT_MS = 420_000;
+
+/* What each size is on Fargate, in the units ECS wants. The memory is what
+   the console describes as "4× the RAM"; the CPU is not advertised, only felt. */
+const TASK_SIZES : Record<AppSize, { cpu : string, memory : string }> = {
+    small: { cpu: "256", memory: "512" },
+    large: { cpu: "512", memory: "2048" },
+};
+
+const sizeOfTask = (memory? : string) : AppSize => memory === TASK_SIZES.large.memory ? "large" : "small";
 
 class FargateBuildLayer extends BaseBuildLayer {
 
@@ -110,6 +120,16 @@ class FargateBuildLayer extends BaseBuildLayer {
         await this.bakeImage(deployment, imageUri);
 
         if (!this.isCurrent(deployment)) return;
+        const taskDefinition = await this.registerTaskDefinition(deployment, imageUri);
+        const registryArn = await this.discoveryServiceFor(deployment.appName);
+        await this.upsertService(deployment, taskDefinition, registryArn);
+    }
+
+    /* The image is the one already baked for this app; only the task's shape
+       changes. Registering a definition at the new size and rolling the
+       service onto it is exactly the tail of a deploy. */
+    protected async applySize(deployment : Deployment) : Promise<void> {
+        const imageUri = `${this.options.appsRepositoryUrl}:${deployment.appName}`;
         const taskDefinition = await this.registerTaskDefinition(deployment, imageUri);
         const registryArn = await this.discoveryServiceFor(deployment.appName);
         await this.upsertService(deployment, taskDefinition, registryArn);
@@ -173,8 +193,7 @@ class FargateBuildLayer extends BaseBuildLayer {
             family: this.serviceNameFor(deployment.appName),
             requiresCompatibilities: ["FARGATE"],
             networkMode: "awsvpc",
-            cpu: "256",
-            memory: "512",
+            ...TASK_SIZES[deployment.size],
             executionRoleArn: this.options.appExecutionRoleArn,
             runtimePlatform: { operatingSystemFamily: "LINUX", cpuArchitecture: "X86_64" },
             containerDefinitions: [{
@@ -338,6 +357,7 @@ class FargateBuildLayer extends BaseBuildLayer {
             status: (service.runningCount ?? 0) > 0 ? "running" : "stopped",
             appPort,
             appHost: this.appHostFor(appName),
+            size: sizeOfTask(taskDefinition.memory),
             adminPort: port("ANBARIC_ADMIN_PORT", 8791),
             consumerPort: port("ANBARIC_CONSUMER_PORT", 0),
             log: [],

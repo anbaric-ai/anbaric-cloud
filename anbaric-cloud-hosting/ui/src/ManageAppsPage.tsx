@@ -5,16 +5,25 @@ import { Badge } from '@anbaric/design-system/components/Badge'
 import { Button } from '@anbaric/design-system/components/Button'
 import { Card } from '@anbaric/design-system/components/Card'
 import { Modal } from '@anbaric/design-system/components/Modal'
+import { Toggle } from '@anbaric/design-system/components/Toggle'
+import { Tooltip } from '@anbaric/design-system/components/Tooltip'
 
 import { appUrl, type CurrentUser } from './appUrl'
+
+type AppSize = 'small' | 'large'
 
 type ManagedApp = {
   appName: string
   status: string
+  size?: AppSize
   subdomain?: string
   url?: string
   draining?: { inFlight: number; since: number }
 }
+
+// What each size costs a month, as the control plane quotes it in the
+// tenant's currency. Absent on a platform with no control plane behind it.
+type Pricing = { small: string; large: string }
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
@@ -59,20 +68,45 @@ const addressForm: CSSProperties = {
   flexWrap: 'wrap',
 }
 
+const sizeControl: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-sm)',
+  fontSize: '0.85rem',
+}
+
+const infoIcon: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '1.1rem',
+  height: '1.1rem',
+  borderRadius: '50%',
+  border: '1px solid var(--color-foreground-tint-2)',
+  fontSize: '0.7rem',
+  fontFamily: 'var(--font-mono)',
+  cursor: 'help',
+  ...muted,
+}
+
+const LARGE_EXPLAINED = 'A large instance gets faster compute and 4× the RAM.'
+
 const tone = (status: string) =>
   status === 'running' ? 'success' : status === 'failed' ? 'danger' : status === 'building' ? 'primary' : 'neutral'
 
 /* What a builder can do to a deployed app from the console: move it to a
-   different address, or take it away. Deploying stays the CLI's job - this is
-   for the two things that have no other home. */
+   different address, give it a bigger instance, or take it away. Deploying
+   stays the CLI's job - this is for the things that have no other home. */
 function ManageAppsPage() {
   const [apps, setApps] = useState<ManagedApp[] | undefined>(undefined)
   const [user, setUser] = useState<CurrentUser | undefined>(undefined)
+  const [pricing, setPricing] = useState<Pricing | undefined>(undefined)
   const [problem, setProblem] = useState<string | undefined>(undefined)
   const [busy, setBusy] = useState<string | undefined>(undefined)
   const [changing, setChanging] = useState<ManagedApp | undefined>(undefined)
   const [wanted, setWanted] = useState('')
   const [addressProblem, setAddressProblem] = useState<string | undefined>(undefined)
+  const [resizing, setResizing] = useState<{ app: ManagedApp; to: AppSize } | undefined>(undefined)
   const [removing, setRemoving] = useState<ManagedApp | undefined>(undefined)
 
   const load = async () => {
@@ -90,6 +124,13 @@ function ManageAppsPage() {
     void fetch('/api/v2/whoami')
       .then((response) => (response.ok ? response.json() : undefined))
       .then((who: CurrentUser | undefined) => setUser(who))
+      .catch(() => {})
+    // Only a platform with a control plane has prices, or sizes worth offering.
+    void fetch('/api/v2/billing/summary')
+      .then((response) => (response.ok ? response.json() : undefined))
+      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string } }) => {
+        if (summary?.perApp && summary.perLargeApp) setPricing({ small: summary.perApp.display, large: summary.perLargeApp.display })
+      })
       .catch(() => {})
   }, [])
 
@@ -129,6 +170,30 @@ function ManageAppsPage() {
     }
   }
 
+  const resize = async () => {
+    if (!resizing) return
+    const { app, to } = resizing
+    setResizing(undefined)
+    setBusy(app.appName)
+    setProblem(undefined)
+    try {
+      const response = await fetch(`/api/v2/apps/${encodeURIComponent(app.appName)}/size`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ size: to }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body?.error ?? 'Could not change the size of that app')
+      }
+      await load()
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : 'Could not change the size of that app')
+    } finally {
+      setBusy(undefined)
+    }
+  }
+
   const tearDown = async (app: ManagedApp) => {
     setBusy(app.appName)
     setProblem(undefined)
@@ -152,6 +217,7 @@ function ManageAppsPage() {
   }
 
   const unchanged = wanted.trim().toLowerCase() === (changing?.subdomain ?? '')
+  const priceOf = (size: AppSize) => pricing?.[size] ?? (size === 'large' ? '$50 / £50' : '$20 / £20')
 
   return (
     <div style={rows}>
@@ -180,6 +246,20 @@ function ManageAppsPage() {
             <Badge tone={tone(app.status)}>{app.status}</Badge>
 
             <span style={actions}>
+              {pricing ? (
+                <span style={sizeControl}>
+                  <Toggle
+                    checked={app.size === 'large'}
+                    disabled={busy !== undefined}
+                    aria-label={`Large instance for ${app.appName}`}
+                    onChange={(large) => setResizing({ app, to: large ? 'large' : 'small' })}
+                    label={app.size === 'large' ? `Large · ${pricing.large}/mo` : `Small · ${pricing.small}/mo`}
+                  />
+                  <Tooltip label={LARGE_EXPLAINED}>
+                    <span style={infoIcon} tabIndex={0} aria-label={LARGE_EXPLAINED}>i</span>
+                  </Tooltip>
+                </span>
+              ) : null}
               {addressable ? (
                 <Button variant="ghost" disabled={busy !== undefined} onClick={() => openChange(app)}>
                   Change URL
@@ -230,6 +310,29 @@ function ManageAppsPage() {
         <p style={{ ...muted, fontSize: '0.8rem', margin: 'var(--space-md) 0 0' }}>
           One label under {user?.appHostSuffix}, unique across every tenant, so the one you ask for may already be
           taken. Links to the old address stop working as soon as you save.
+        </p>
+      </Modal>
+
+      <Modal
+        open={resizing !== undefined}
+        onClose={() => setResizing(undefined)}
+        title={resizing?.to === 'large' ? `Make ${resizing?.app.appName ?? ''} large?` : `Make ${resizing?.app.appName ?? ''} small?`}
+        footer={
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
+            <Button variant="ghost" onClick={() => setResizing(undefined)}>Leave it</Button>
+            <Button variant="primary" onClick={() => void resize()}>
+              {resizing?.to === 'large' ? `Switch to large · ${priceOf('large')}/mo` : `Switch to small · ${priceOf('small')}/mo`}
+            </Button>
+          </div>
+        }
+      >
+        <p style={{ marginTop: 0 }}>
+          {resizing?.to === 'large'
+            ? `${LARGE_EXPLAINED} It costs ${priceOf('large')} a month instead of ${priceOf('small')}, charged by the day from today.`
+            : `A small instance costs ${priceOf('small')} a month instead of ${priceOf('large')}, charged by the day from today.`}
+        </p>
+        <p style={{ margin: 'var(--space-md) 0 0', fontSize: '0.85rem', ...muted }}>
+          The app is restarted on the new instance. Anything it has in hand is finished first.
         </p>
       </Modal>
 

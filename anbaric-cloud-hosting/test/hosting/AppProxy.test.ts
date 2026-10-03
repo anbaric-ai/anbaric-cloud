@@ -28,9 +28,10 @@ const runningApp = (appName : string, appHost : string, appPort : number) : Buil
     ensureHydrated: async () => {},
     deploy: () => { throw new Error("not deployable in this test"); },
     status: (name) => name === appName
-        ? { appName, status: "running", appPort, appHost, log: [] }
+        ? { appName, status: "running", appPort, appHost, size: "small", log: [] }
         : undefined,
     list: () => [],
+    resize: async () => undefined,
     ping: async () => true,
     logs: async function* () {},
     teardown: async () => undefined,

@@ -3,13 +3,14 @@ import {mkdir, readFile, rm, symlink, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {adminPing} from "../app-admin/adminPing";
 import {DocGenerator} from "../docs/DocGenerator";
-import {BuildLayer, DeploymentStatus, DeploymentSummary} from "./BuildLayer";
+import {AppSize, BuildLayer, DeploymentStatus, DeploymentSummary} from "./BuildLayer";
 
 type Deployment = {
     appName : string,
     status : DeploymentStatus,
     appPort : number,
     appHost : string,
+    size : AppSize,
     adminPort : number,
     consumerPort : number,
     log : Array<string>,
@@ -70,6 +71,8 @@ abstract class BaseBuildLayer implements BuildLayer {
             status: "building",
             appPort,
             appHost: this.appHostFor(appName),
+            // A redeploy keeps the size the app was given; only the console changes it.
+            size: existing?.size ?? "small",
             adminPort: APP_ADMIN_PORT,
             consumerPort: existing?.consumerPort ?? this.consumerPortBase + this.nextAppIndex++,
             log: [],
@@ -104,6 +107,23 @@ abstract class BaseBuildLayer implements BuildLayer {
         const deployment = this.deployments.get(appName);
         if (!deployment) throw new Error(`No app named "${appName}"`);
         yield* this.streamLogs(deployment, signal);
+    }
+
+    async resize(appName : string, size : AppSize) : Promise<DeploymentSummary | undefined> {
+        const deployment = this.deployments.get(appName);
+        if (!deployment) return undefined;
+        if (deployment.size === size) return this.summarize(deployment);
+
+        const before = deployment.size;
+        deployment.size = size;
+        this.log(deployment, `resizing to ${size}`);
+        try {
+            await this.applySize(deployment);
+        } catch (error) {
+            deployment.size = before;
+            throw error;
+        }
+        return this.summarize(deployment);
     }
 
     async teardown(appName : string) : Promise<DeploymentSummary | undefined> {
@@ -200,6 +220,8 @@ abstract class BaseBuildLayer implements BuildLayer {
     protected abstract appHostFor(appName : string) : string;
     protected abstract start(deployment : Deployment, appDir : string, entryPoint : string) : Promise<void>;
     protected abstract stop(deployment : Deployment) : Promise<void>;
+    // Puts the running app onto the instance its (already changed) size names.
+    protected abstract applySize(deployment : Deployment) : Promise<void>;
     protected abstract streamLogs(deployment : Deployment, signal : AbortSignal) : AsyncIterable<string>;
     // Materialises the app's source into a directory for regeneration; the
     // returned cleanup removes anything temporary the implementation created.
@@ -319,6 +341,7 @@ abstract class BaseBuildLayer implements BuildLayer {
             status: deployment.status,
             appPort: deployment.appPort,
             appHost: deployment.appHost,
+            size: deployment.size,
             ...(deployment.draining
                 ? { draining: { inFlight: deployment.draining.inFlight, since: new Date(deployment.draining.since).toISOString() } }
                 : {}),

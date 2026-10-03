@@ -1,4 +1,4 @@
-import {BuildLayer} from "../../app-management/BuildLayer";
+import {BuildLayer, isAppSize} from "../../app-management/BuildLayer";
 import {deniesBuild} from "../../auth/TenantRole";
 import {Request} from "../Request";
 import {hostnameObjection} from "../../app-management/appHostname";
@@ -32,6 +32,9 @@ class AppsHandler implements RequestHandler {
             case "subdomain":
                 if (request.id) return this.handleSubdomain(request, request.id);
                 break;
+            case "size":
+                if (request.id) return this.handleSize(request, request.id);
+                break;
             case undefined:
                 if (request.id) return this.handleApp(request, request.id);
                 return this.handleCollection(request);
@@ -41,8 +44,22 @@ class AppsHandler implements RequestHandler {
 
     private changesApps(request : Request) : boolean {
         if (request.subresource === "deploy" || request.subresource === "docs") return true;
-        if (request.subresource === "subdomain") return request.method === "PUT";
+        if (request.subresource === "subdomain" || request.subresource === "size") return request.method === "PUT";
         return request.subresource === undefined && request.method === "DELETE";
+    }
+
+    /* How big the app's instance is, which is a builder's to change and costs
+       what the console told them it would. The app is rolled onto the new
+       size; what it is doing is drained first, as any deploy does. */
+    private async handleSize(request : Request, appName : string) : Promise<void> {
+        if (request.method !== "PUT") return request.notFound();
+
+        const body = await request.body() as { size? : string } | undefined;
+        if (! isAppSize(body?.size)) return request.reply(400, { error: 'Expected a body of { size : "small" | "large" }' });
+
+        const summary = await this.buildLayer.resize(appName, body.size);
+        if (! summary) return request.reply(404, { error: `No app named "${appName}"` });
+        return request.reply(200, summary);
     }
 
     /* Where an app answers, which is a builder's to change. The address itself

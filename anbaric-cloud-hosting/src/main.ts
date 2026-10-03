@@ -160,7 +160,10 @@ if (buildLayer && process.env.ANBARIC_TENANT && process.env.ANBARIC_CLI_KEY_LOOK
         process.env.ANBARIC_CLI_KEY_LOOKUP_URL,
         process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "",
         process.env.ANBARIC_TENANT,
-        () => buildLayer.list().filter(app => app.status === "running" || app.status === "draining").length,
+        () => {
+            const live = buildLayer.list().filter(app => app.status === "running" || app.status === "draining");
+            return { apps: live.length, large: live.filter(app => app.size === "large").length };
+        },
     ).start();
 }
 

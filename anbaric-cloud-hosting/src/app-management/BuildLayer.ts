@@ -8,15 +8,31 @@ type Draining = {
     since : string,
 };
 
+/* How big an app's instance is. Small is what every app starts as; large is
+   faster compute and four times the memory, and costs more. The sizes are
+   named rather than numbered so the platform can change what they mean. */
+type AppSize = "small" | "large";
+
+const APP_SIZES : Array<AppSize> = ["small", "large"];
+
+const isAppSize = (value : unknown) : value is AppSize =>
+    typeof value === "string" && APP_SIZES.includes(value as AppSize);
+
 type DeploymentSummary = {
     appName : string,
     status : DeploymentStatus,
     appPort : number,
     appHost : string,
+    size : AppSize,
     draining? : Draining,
 };
 
 interface BuildLayer {
+
+    /* Moves a running app onto a different size of instance. The app is rolled
+       as a deploy would roll it, so nothing in hand is lost. Returns undefined
+       for an unknown app. */
+    resize(appName : string, size : AppSize) : Promise<DeploymentSummary | undefined>;
 
     ensureHydrated() : Promise<void>;
     deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary;
@@ -45,4 +61,5 @@ interface BuildLayer {
 
 }
 
-export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining };
+export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining, AppSize };
+export { APP_SIZES, isAppSize };

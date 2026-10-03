@@ -98,9 +98,11 @@ tells you in one run whether the step is the problem. If `heapUsed` climbs
 across steps and never comes back down, something is holding on; if a single
 step spikes, that step needs breaking up.
 
-The limit itself is not configurable per app today. If you have a workload that
-genuinely needs more — a large model run, a heavy transform — tell us; that is
-the signal that it should be.
+If a workload genuinely needs more — a large model run, a heavy transform — an
+app can be moved to a **large** instance from the console's Manage apps page:
+faster compute and four times the memory (2 GB, so a heap of roughly 1 GB),
+for $50/£50 a month instead of $20/£20. It is the right answer for one heavy
+app; it is not the answer to a leak, which will fill 2 GB as surely as 512 MB.
 
 ## See also
 

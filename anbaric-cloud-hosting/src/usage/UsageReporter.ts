@@ -1,6 +1,7 @@
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
-type CountApps = () => number;
+// How many apps are running, and how many of those are on a large instance.
+type CountApps = () => { apps : number, large : number };
 
 const REPORT_INTERVAL_MS = 60 * 60_000;
 
@@ -36,7 +37,7 @@ class UsageReporter {
             const response = await this.fetchFn(`${this.centralUrl}/usage`, {
                 method: "POST",
                 headers: { "content-type": "application/json", "x-anbaric-central-key": this.secret },
-                body: JSON.stringify({ slug: this.tenantSlug, apps: this.countApps(), day: this.today() }),
+                body: JSON.stringify({ slug: this.tenantSlug, ...this.counted(), day: this.today() }),
             });
             if (! response.ok) console.warn(`[usage] central answered ${response.status} to the app count`);
             return response.ok;
@@ -44,6 +45,11 @@ class UsageReporter {
             console.warn(`[usage] could not report the app count: ${error instanceof Error ? error.message : error}`);
             return false;
         }
+    }
+
+    private counted() : { apps : number, largeApps : number } {
+        const { apps, large } = this.countApps();
+        return { apps, largeApps: large };
     }
 
     // The day in UTC, so every tenant's day starts at the same moment however

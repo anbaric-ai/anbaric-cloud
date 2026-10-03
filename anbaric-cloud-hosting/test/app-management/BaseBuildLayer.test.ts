@@ -34,7 +34,7 @@ class StubBuildLayer extends BaseBuildLayer {
 
     running(appName : string) : Deployment {
         const deployment : Deployment = {
-            appName, status: "running", appPort: 3000, appHost: appName, adminPort: 8791, consumerPort: 8800, log: [],
+            appName, status: "running", appPort: 3000, appHost: appName, size: "small", adminPort: 8791, consumerPort: 8800, log: [],
         };
         this.deployments.set(appName, deployment);
         return deployment;
@@ -47,6 +47,7 @@ class StubBuildLayer extends BaseBuildLayer {
     protected appHostFor(appName : string) : string { return appName; }
     protected async start() : Promise<void> {}
     protected async stop(deployment : Deployment) : Promise<void> { this.stopped.push(deployment.appName); }
+    protected async applySize() : Promise<void> {}
     protected async *streamLogs() : AsyncIterable<string> {}
     protected async sourceDir() : Promise<{ dir : string, cleanup : () => Promise<void> }> { return { dir: "", cleanup: async () => {} }; }
 

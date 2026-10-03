@@ -172,6 +172,29 @@ describe("FargateBuildLayer", () => {
         expect(container.environment).toContainEqual({ name: "ANBARIC_CONSUMER_URL", value: `http://crm.anbaric-test.local:${CONSUMER_PORT_BASE}` });
     });
 
+    it("starts every app small", async () => {
+        const status = await deployFixture();
+
+        const registered = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
+        expect(status.size).toBe("small");
+        expect(registered).toMatchObject({ cpu: "256", memory: "512" });
+    });
+
+    // The image is already baked; a resize is a new task shape and a roll.
+    it("resizes a running app by registering a larger task and rolling the service", async () => {
+        await deployFixture();
+        existingEcsService = true;
+
+        const resized = await buildLayer.resize("crm", "large");
+
+        expect(resized?.size).toBe("large");
+        const registrations = sent.ecs.filter(command => command.constructor.name === "RegisterTaskDefinitionCommand");
+        expect(registrations.at(-1).input).toMatchObject({ cpu: "512", memory: "2048" });
+        expect(registrations.at(-1).input.containerDefinitions[0].image).toBe("123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-apps:crm");
+        expect(sent.ecs.some(command => command.constructor.name === "UpdateServiceCommand")).toBe(true);
+        expect(sent.codeBuild).toHaveLength(2);
+    });
+
     it("creates the app service with cloud map discovery on first deploy", async () => {
         await deployFixture();
 
@@ -229,6 +252,7 @@ describe("FargateBuildLayer", () => {
 
     it("rehydrates its registry from the running ECS services after a restart", async () => {
         const appTaskDefinition = {
+            memory: "2048",
             containerDefinitions: [{
                 environment: [
                     { name: "PORT", value: "4000" },
@@ -263,7 +287,7 @@ describe("FargateBuildLayer", () => {
         await restarted.ensureHydrated();
 
         expect(restarted.list()).toEqual([
-            { appName: "crm", status: "running", appPort: 4000, appHost: "crm.anbaric-test.local" },
+            { appName: "crm", status: "running", appPort: 4000, appHost: "crm.anbaric-test.local", size: "large" },
         ]);
     });
 
