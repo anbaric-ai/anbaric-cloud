@@ -38,6 +38,16 @@ const INITIAL_FAIL_LIMIT = 5
    session and everything behind it finished long since. */
 const STALE_AFTER_FAILURES = 4
 
+/* Stripe sends the browser back a moment before its webhook reaches us, and
+   until that lands the control plane still says there is nothing. Returning
+   with ?checkout=success is the browser's word that payment went through, so
+   the progress screen is shown while we wait - but not for ever: after this
+   many polls the word is doubted and the plan is offered again, with a
+   warning not to pay twice. */
+const CONFIRMATION_POLLS = 20
+
+const returnedFromCheckout = () => new URLSearchParams(window.location.search).get('checkout') === 'success'
+
 const price: CSSProperties = { fontFamily: 'var(--font-title)', fontSize: '2.25rem', margin: 0, lineHeight: 1 }
 const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: '0.95rem' }
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
@@ -59,6 +69,7 @@ const points: CSSProperties = {
 function SubscribePage({ requestId }: { requestId?: string }) {
   const [data, setData] = useState<Status | undefined>(undefined)
   const [failedLoads, setFailedLoads] = useState(0)
+  const [pollsSinceCheckout, setPollsSinceCheckout] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
   const [busy, setBusy] = useState(false)
   const [promoCode, setPromoCode] = useState('')
@@ -94,6 +105,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
         if (!live) return
         setData(status)
         setFailedLoads(0)
+        if (status.status === 'none') setPollsSinceCheckout((n) => n + 1)
         if (status.status === 'active') {
           void autoApprove()
           if (timer) clearInterval(timer)
@@ -210,7 +222,10 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     )
   }
 
-  if (data.status === 'subscribing' || data.status === 'provisioning') {
+  const awaitingConfirmation = data.status === 'none' && returnedFromCheckout() && pollsSinceCheckout <= CONFIRMATION_POLLS
+  const unconfirmed = data.status === 'none' && returnedFromCheckout() && pollsSinceCheckout > CONFIRMATION_POLLS
+
+  if (data.status === 'subscribing' || data.status === 'provisioning' || awaitingConfirmation) {
     return (
       <PageShell title="Setting things up">
         {failedLoads >= STALE_AFTER_FAILURES ? (
@@ -222,7 +237,9 @@ function SubscribePage({ requestId }: { requestId?: string }) {
           </Alert>
         ) : null}
         <ProvisioningPage
-          message="This usually takes a couple of minutes. You can keep this tab open — it updates itself."
+          message={awaitingConfirmation
+            ? 'Confirming your payment with Stripe — this takes a few seconds.'
+            : 'This usually takes a couple of minutes. You can keep this tab open — it updates itself.'}
           stages={data.stages}
           stage={data.stage}
         />
@@ -255,6 +272,14 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       {data.status === 'failed' ? (
         <Alert variant="warning" title="That didn't finish">
           Your last attempt did not complete, so nothing was set up and you have not been charged. Try again below.
+        </Alert>
+      ) : null}
+      {unconfirmed ? (
+        <Alert variant="warning" title="We have not heard from Stripe yet">
+          Your payment has not been confirmed to us. If you did complete checkout, do not pay again — give it a
+          minute and{' '}
+          <a href="" onClick={(event) => { event.preventDefault(); window.location.reload() }}>reload</a>, or get
+          in touch. If you left checkout without paying, you can subscribe below.
         </Alert>
       ) : null}
       <Card>
@@ -296,7 +321,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
             Redeem
           </Button>
         </div>
-        {promoError ? <p style={{ margin: 'var(--space-sm) 0 0', color: 'var(--color-danger)', fontSize: '0.85rem' }}>{promoError}</p> : null}
+        {promoError ? <p style={{ margin: 'var(--space-sm) 0 0', color: 'var(--color-failure)', fontSize: '0.85rem' }}>{promoError}</p> : null}
       </Card>
     </PageShell>
   )
