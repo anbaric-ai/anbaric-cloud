@@ -129,7 +129,7 @@ function ChooseTenantPage() {
      moment later turns into a different one. */
   if (!tenants) {
     return (
-      <PageShell title="Anbaric" quiet>
+      <PageShell title="Anbaric" quiet logoHeight="9rem">
         <p style={{ margin: 0, textAlign: 'center', ...muted }}>Loading…</p>
       </PageShell>
     )
@@ -141,7 +141,7 @@ function ChooseTenantPage() {
      nothing to do but wait, and should be told so rather than offered a plan. */
   if (newcomer(tenants) && waitingToBeInvited) {
     return (
-      <PageShell title="Welcome to Anbaric" width="36rem">
+      <PageShell title="Anbaric" quiet logoHeight="9rem" width="36rem">
         <Card>
           <p style={{ margin: 0 }}>Your account has been created successfully.</p>
           <p style={{ margin: 'var(--space-md) 0 0', ...muted }}>
@@ -162,7 +162,7 @@ function ChooseTenantPage() {
 
   if (newcomer(tenants)) {
     return (
-      <PageShell title="Welcome to Anbaric" width="40rem">
+      <PageShell title="Anbaric" quiet logoHeight="9rem" width="40rem">
         <p style={{ ...muted, margin: '0 0 var(--space-md)' }}>Are you here to…</p>
         <div style={choices}>
           <Card>

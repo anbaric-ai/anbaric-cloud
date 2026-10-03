@@ -15,6 +15,7 @@ function PageShell({
   nav,
   collapsed = false,
   quiet = false,
+  logoHeight,
   children,
 }: {
   title: string
@@ -25,6 +26,10 @@ function PageShell({
      know what it is - still loading what decides it - so no heading shows
      that the next frame has to take back. */
   quiet?: boolean
+  /* How tall the mark is on a page standing alone. The default suits a form;
+     a page that is mostly the mark - the first thing a new person sees - asks
+     for more. */
+  logoHeight?: string
   children: ReactNode
 }) {
   const alone = !nav
@@ -38,7 +43,7 @@ function PageShell({
       <main className="ds-page-main" style={{ maxWidth: width }}>
         {alone ? (
           <header className="ds-page-brand">
-            <img className="ds-page-brand__logo" src={logo} alt="Anbaric" />
+            <img className="ds-page-brand__logo" src={logo} alt="Anbaric" style={logoHeight ? { height: logoHeight } : undefined} />
           </header>
         ) : null}
         {/* With a nav the heading only repeats the highlighted entry, so it is
