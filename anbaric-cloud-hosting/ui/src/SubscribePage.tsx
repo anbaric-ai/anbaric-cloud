@@ -10,12 +10,13 @@ import { PageShell } from './PageShell'
 import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
 import { ProvisioningPage } from './ProvisioningPage'
 
-type Plan = 'solo' | 'team'
-type PlanPrice = { amount: number; display: string }
+type PerApp = { amount: number; display: string; perDay: string; footnote: string }
 type Status = {
   status: 'none' | 'subscribing' | 'provisioning' | 'active' | 'failed'
   slug: string
-  prices: Record<Plan, PlanPrice>
+  currency: 'GBP' | 'USD'
+  perApp: PerApp
+  freeApps: number
   // Where the provisioner has actually got to, and the run of stages it will
   // pass through. Absent until there is something being built.
   stage?: string
@@ -25,11 +26,6 @@ type Status = {
   // person is charged twice for the same tenant.
   subscribed?: boolean
 }
-
-const PLANS: Array<{ plan: Plan; name: string; blurb: string }> = [
-  { plan: 'solo', name: 'Solo', blurb: 'A single user, up to 10 live apps.' },
-  { plan: 'team', name: 'Team', blurb: 'Up to 10 users, up to 50 apps.' },
-]
 
 const POLL_MS = 3000
 // Only surface a load error if we never managed a first read - a blip mid-
@@ -42,10 +38,8 @@ const INITIAL_FAIL_LIMIT = 5
    session and everything behind it finished long since. */
 const STALE_AFTER_FAILURES = 4
 
-const grid: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'stretch' }
-const tile: CSSProperties = { flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }
-const price: CSSProperties = { fontFamily: 'var(--font-title)', fontSize: '2rem', margin: 0 }
-const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: '0.9rem' }
+const price: CSSProperties = { fontFamily: 'var(--font-title)', fontSize: '2.25rem', margin: 0, lineHeight: 1 }
+const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: '0.95rem' }
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 const subtle: CSSProperties = { ...muted, fontSize: '0.8rem', marginTop: 'var(--space-md)' }
 const heading: CSSProperties = {
@@ -53,12 +47,20 @@ const heading: CSSProperties = {
   fontFamily: 'var(--font-title)',
   textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
 }
+const points: CSSProperties = {
+  margin: 'var(--space-md) 0 0',
+  padding: 0,
+  listStyle: 'none',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-xs)',
+}
 
 function SubscribePage({ requestId }: { requestId?: string }) {
   const [data, setData] = useState<Status | undefined>(undefined)
   const [failedLoads, setFailedLoads] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
-  const [busy, setBusy] = useState<Plan | undefined>(undefined)
+  const [busy, setBusy] = useState(false)
   const [promoCode, setPromoCode] = useState('')
   const [redeeming, setRedeeming] = useState(false)
   const [promoError, setPromoError] = useState<string | undefined>(undefined)
@@ -126,14 +128,14 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     }
   }
 
-  const choose = async (plan: Plan) => {
-    setBusy(plan)
+  const subscribe = async () => {
+    setBusy(true)
     setRedirecting(true)
     try {
       const response = await fetch('/subscribe/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ plan, returnTo: window.location.pathname }),
+        body: JSON.stringify({ returnTo: window.location.pathname }),
       })
       const body = await response.json()
       if (body?.url) {
@@ -144,7 +146,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       // fall through to reset
     }
     setRedirecting(false)
-    setBusy(undefined)
+    setBusy(false)
   }
 
   // A promo code skips checkout: on success the status flips to provisioning
@@ -173,7 +175,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     }
   }
 
-  // Once a plan is chosen we are navigating to Stripe: show only the redirect
+  // Once checkout is chosen we are navigating to Stripe: show only the redirect
   // notice so the progress screen never flashes in the gap before navigation.
   if (redirecting) {
     return (
@@ -246,34 +248,42 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     )
   }
 
+  const tax = data.currency === 'GBP' ? 'VAT' : 'tax'
+
   return (
-    <PageShell title="Choose a plan">
+    <PageShell title="Subscribe">
       {data.status === 'failed' ? (
         <Alert variant="warning" title="That didn't finish">
-          Your last attempt did not complete, so nothing was set up and you have not been charged. Choose a plan to try again.
+          Your last attempt did not complete, so nothing was set up and you have not been charged. Try again below.
         </Alert>
       ) : null}
-      <div style={grid}>
-        {PLANS.map(({ plan, name, blurb }) => (
-          <Card key={plan}>
-            <div style={tile}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                <h2 style={{ margin: 0, fontFamily: 'var(--font-title)' }}>{name}</h2>
-                <Badge tone="primary">First month free</Badge>
-              </div>
-              <p style={price}>
-                {data.prices[plan].display}
-                <span style={perMonth}> /month</span>
-              </p>
-              <p style={{ margin: 0 }}>{blurb}</p>
-              <Button variant="primary" fullWidth loading={busy === plan} disabled={busy !== undefined} onClick={() => choose(plan)}>
-                Start free month
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-      <p style={subtle}>You can add more apps to any plan later.</p>
+      <Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-title)' }}>Anbaric Cloud</h2>
+            <Badge tone="primary">{data.freeApps} apps free in your first month</Badge>
+          </div>
+          <p style={price}>
+            {data.perApp.display}
+            <span style={perMonth}> per app, per month*</span>
+          </p>
+          <ul style={points}>
+            <li>Every app hosted behind sign-in, with a team, roles and entitlements.</li>
+            <li>Every change audited: who, what and when, for people, code and agents.</li>
+            <li>An address of its own for each app, backups, and scaling you never think about.</li>
+          </ul>
+          <p style={{ margin: 'var(--space-md) 0 0', ...muted }}>
+            You'll be billed on the 1st of each month for the days each app has been running.
+            Prices exclude {tax}, which is added at checkout for your location.
+          </p>
+          <div style={{ marginTop: 'var(--space-md)' }}>
+            <Button variant="primary" fullWidth loading={busy} disabled={busy} onClick={() => void subscribe()}>
+              Subscribe
+            </Button>
+          </div>
+        </div>
+      </Card>
+      <p style={subtle}>* {data.perApp.footnote}.</p>
       <Card>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -282,7 +292,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
                    style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
                    onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
           </div>
-          <Button variant="ghost" loading={redeeming} disabled={busy !== undefined || !promoCode.trim()} onClick={() => void redeem()}>
+          <Button variant="ghost" loading={redeeming} disabled={busy || !promoCode.trim()} onClick={() => void redeem()}>
             Redeem
           </Button>
         </div>
