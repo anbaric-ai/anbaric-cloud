@@ -27,6 +27,13 @@ const row: CSSProperties = {
   gap: 'var(--space-md)',
 }
 
+const actions: CSSProperties = {
+  display: 'flex',
+  gap: 'var(--space-sm)',
+  alignItems: 'center',
+  marginLeft: 'auto',
+}
+
 const appTitle: CSSProperties = {
   fontFamily: 'var(--font-title)',
   fontSize: '1.125rem',
@@ -41,7 +48,15 @@ const field: CSSProperties = {
   border: '1px solid var(--color-border)',
   borderRadius: 'var(--radius-element)',
   padding: 'var(--space-xs) var(--space-sm)',
-  minWidth: '10rem',
+  minWidth: '8rem',
+  flex: '1 1 8rem',
+}
+
+const addressForm: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-sm)',
+  flexWrap: 'wrap',
 }
 
 const tone = (status: string) =>
@@ -55,7 +70,9 @@ function ManageAppsPage() {
   const [user, setUser] = useState<CurrentUser | undefined>(undefined)
   const [problem, setProblem] = useState<string | undefined>(undefined)
   const [busy, setBusy] = useState<string | undefined>(undefined)
-  const [editing, setEditing] = useState<Record<string, string>>({})
+  const [changing, setChanging] = useState<ManagedApp | undefined>(undefined)
+  const [wanted, setWanted] = useState('')
+  const [addressProblem, setAddressProblem] = useState<string | undefined>(undefined)
   const [removing, setRemoving] = useState<ManagedApp | undefined>(undefined)
 
   const load = async () => {
@@ -78,25 +95,35 @@ function ManageAppsPage() {
 
   const addressable = Boolean(user?.appHostSuffix)
 
-  const saveAddress = async (app: ManagedApp) => {
-    const wanted = (editing[app.appName] ?? '').trim().toLowerCase()
-    if (!wanted || wanted === app.subdomain) return
+  const openChange = (app: ManagedApp) => {
+    setWanted(app.subdomain ?? app.appName)
+    setAddressProblem(undefined)
+    setChanging(app)
+  }
 
-    setBusy(app.appName)
-    setProblem(undefined)
+  const saveAddress = async () => {
+    if (!changing) return
+    const label = wanted.trim().toLowerCase()
+    if (!label || label === changing.subdomain) {
+      setChanging(undefined)
+      return
+    }
+
+    setBusy(changing.appName)
+    setAddressProblem(undefined)
     try {
-      const response = await fetch(`/api/v2/apps/${encodeURIComponent(app.appName)}/subdomain`, {
+      const response = await fetch(`/api/v2/apps/${encodeURIComponent(changing.appName)}/subdomain`, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ subdomain: wanted }),
+        body: JSON.stringify({ subdomain: label }),
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body?.error ?? 'That address is not available')
 
-      setEditing((held) => ({ ...held, [app.appName]: '' }))
+      setChanging(undefined)
       await load()
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'That address is not available')
+      setAddressProblem(error instanceof Error ? error.message : 'That address is not available')
     } finally {
       setBusy(undefined)
     }
@@ -124,6 +151,8 @@ function ManageAppsPage() {
     return <Card><p style={{ margin: 0, ...muted }}>{problem ?? 'Loading…'}</p></Card>
   }
 
+  const unchanged = wanted.trim().toLowerCase() === (changing?.subdomain ?? '')
+
   return (
     <div style={rows}>
       {problem ? <Alert variant="danger">{problem}</Alert> : null}
@@ -139,7 +168,7 @@ function ManageAppsPage() {
       {apps.map((app) => (
         <Card key={app.appName}>
           <div style={row}>
-            <span style={{ flex: '1 1 12rem', minWidth: 0 }}>
+            <span style={{ minWidth: 0 }}>
               <h2 style={appTitle}>{app.appName}</h2>
               <span style={{ display: 'block', fontSize: '0.8rem', ...muted }}>
                 {app.subdomain
@@ -150,31 +179,16 @@ function ManageAppsPage() {
 
             <Badge tone={tone(app.status)}>{app.status}</Badge>
 
-            {addressable ? (
-              <span style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                <label>
-                  <span style={{ display: 'block', fontSize: '0.75rem', ...muted }}>Address</span>
-                  <input
-                    style={field}
-                    value={editing[app.appName] ?? ''}
-                    placeholder={app.subdomain ?? app.appName}
-                    disabled={busy !== undefined}
-                    onChange={(event) => setEditing((held) => ({ ...held, [app.appName]: event.target.value }))}
-                  />
-                </label>
-                <Button
-                  variant="ghost"
-                  disabled={busy !== undefined || !(editing[app.appName] ?? '').trim()}
-                  onClick={() => void saveAddress(app)}
-                >
-                  {busy === app.appName ? 'Saving…' : 'Save'}
+            <span style={actions}>
+              {addressable ? (
+                <Button variant="ghost" disabled={busy !== undefined} onClick={() => openChange(app)}>
+                  Change URL
                 </Button>
-              </span>
-            ) : null}
-
-            <Button variant="danger" disabled={busy !== undefined} onClick={() => setRemoving(app)}>
-              Tear down
-            </Button>
+              ) : null}
+              <Button variant="danger" disabled={busy !== undefined} onClick={() => setRemoving(app)}>
+                Tear down
+              </Button>
+            </span>
           </div>
 
           {app.draining ? (
@@ -185,12 +199,39 @@ function ManageAppsPage() {
         </Card>
       ))}
 
-      {addressable ? (
-        <p style={{ ...muted, fontSize: '0.8rem', margin: 0 }}>
-          An address is one label under {user?.appHostSuffix} and has to be unique across every tenant, so the
-          one you ask for may already be taken.
+      <Modal
+        open={changing !== undefined}
+        onClose={() => setChanging(undefined)}
+        title={`Change the URL of ${changing?.appName ?? ''}`}
+      >
+        <form
+          style={addressForm}
+          onSubmit={(event) => {
+            event.preventDefault()
+            void saveAddress()
+          }}
+        >
+          <input
+            style={field}
+            value={wanted}
+            autoFocus
+            disabled={busy !== undefined}
+            aria-label="Address"
+            onChange={(event) => setWanted(event.target.value)}
+          />
+          <span style={{ ...muted, whiteSpace: 'nowrap' }}>.{user?.appHostSuffix}</span>
+          <Button type="submit" disabled={busy !== undefined || !wanted.trim() || unchanged}>
+            {busy === changing?.appName ? 'Saving…' : 'Save'}
+          </Button>
+        </form>
+        {addressProblem ? (
+          <p style={{ margin: 'var(--space-md) 0 0', color: 'var(--color-failure)', fontSize: '0.85rem' }}>{addressProblem}</p>
+        ) : null}
+        <p style={{ ...muted, fontSize: '0.8rem', margin: 'var(--space-md) 0 0' }}>
+          One label under {user?.appHostSuffix}, unique across every tenant, so the one you ask for may already be
+          taken. Links to the old address stop working as soon as you save.
         </p>
-      ) : null}
+      </Modal>
 
       <Modal
         open={removing !== undefined}
