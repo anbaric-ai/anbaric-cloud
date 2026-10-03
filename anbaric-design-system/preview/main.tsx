@@ -691,10 +691,14 @@ function ComponentDemos() {
 
       <Section title="Loading bar">
         <p className="component-demo__body">
-          An indeterminate, colourful bar with messages that cycle while a long
-          task runs.
+          An indeterminate bar with messages that cycle while a long task runs.
+          The brand variant flows the gradient; the plain one is a single colour
+          for waiting that should feel calm.
         </p>
         <LoadingBar />
+        <div style={{ marginTop: 'var(--space-md)' }}>
+          <LoadingBar variant="plain" messages={[]} />
+        </div>
       </Section>
 
       <Section title="Graph">

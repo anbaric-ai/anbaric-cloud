@@ -34,6 +34,12 @@
   animation: ds-loading-flow 2.4s linear infinite;
 }
 
+/* The plain variant: one colour, and only the sheen moves. */
+.ds-loading--plain .ds-loading__flow {
+  background: var(--color-primary);
+  animation: none;
+}
+
 /* Sweeping sheen on top. */
 .ds-loading__bar::after {
   content: '';
@@ -42,7 +48,7 @@
   background: linear-gradient(
     110deg,
     transparent 35%,
-    #ffffff80 50%,
+    color-mix(in srgb, var(--color-background) 55%, transparent) 50%,
     transparent 65%
   );
   background-size: 220% 100%;

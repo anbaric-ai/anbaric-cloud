@@ -78,7 +78,7 @@ function ProvisioningPage({ message, failed = false, stages = [], stage }: Props
       <h2 style={heading}>{failed ? 'We hit a snag' : 'Setting up your Anbaric environment'}</h2>
       <p style={lead}>{message}</p>
 
-      {failed ? null : <LoadingBar messages={[]} />}
+      {failed ? null : <LoadingBar variant="plain" messages={[]} />}
 
       {failed || stages.length === 0 ? null : (
         <div style={{ marginTop: 'var(--space-lg)' }}>

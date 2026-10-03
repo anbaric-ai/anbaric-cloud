@@ -186,7 +186,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       <PageShell title="One moment">
         <Card>
           <p style={{ margin: '0 0 var(--space-md)', ...muted }}>Taking you to secure checkout…</p>
-          <LoadingBar messages={[]} />
+          <LoadingBar variant="plain" messages={[]} />
         </Card>
       </PageShell>
     )
