@@ -1,6 +1,6 @@
 {
   "name": "anbaric-cli",
-  "version": "1.65.3",
+  "version": "1.66.0",
   "description": "The Anbaric platform CLI: deploy and operate state-machine apps on Anbaric Cloud",
   "license": "MIT",
   "author": "chris@anbaric.ai",
