@@ -300,7 +300,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       <Card>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ ...muted, fontSize: '0.8rem' }}>Have a promo code? No card needed.</span>
+            <span style={{ ...muted, fontSize: '0.8rem' }}>Have a promo code?</span>
             <input value={promoCode} onChange={(event) => setPromoCode(event.target.value)} placeholder="PROMO-CODE"
                    style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
                    onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
