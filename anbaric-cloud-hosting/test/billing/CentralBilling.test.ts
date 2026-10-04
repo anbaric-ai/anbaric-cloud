@@ -35,6 +35,17 @@ describe("CentralBilling", () => {
         expect(JSON.parse(String(init.body))).toEqual({ returnUrl: "https://cloud.example/costs" });
     });
 
+    it("asks central to end the tenant, naming who asked", async () => {
+        const fetchFn = answering(202, { slug: "acme" });
+
+        await billing(fetchFn).terminate("auth0|ada");
+
+        const [url, init] = fetchFn.mock.calls[0];
+        expect(url).toBe("https://central.example/tenants/acme");
+        expect(init.method).toBe("DELETE");
+        expect((init.headers as Record<string, string>)["x-anbaric-user"]).toBe("auth0|ada");
+    });
+
     it("passes central's explanation on when it refuses", async () => {
         await expect(billing(answering(409, { error: "This tenant has no payment details to update" })).portalUrl("https://cloud.example/"))
             .rejects.toThrow("no payment details");

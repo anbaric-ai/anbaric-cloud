@@ -12,7 +12,27 @@ class BillingHandler implements RequestHandler {
     async handle(request : Request) : Promise<void> {
         if (request.method === "GET" && request.id === "summary") return this.summary(request);
         if (request.method === "POST" && request.id === "portal") return this.portal(request);
+        if (request.method === "DELETE" && request.id === "account") return this.terminate(request);
         request.notFound();
+    }
+
+    /* The end of the tenant, which only its owner may ask for, and only by
+       typing the word: the page asks for it, and this refuses without it, so
+       nothing in a script or a stray click can do it by accident. */
+    private async terminate(request : Request) : Promise<void> {
+        if (request.user?.tenantRole !== "OWNER") {
+            return request.reply(403, { error: "Only the owner of this tenant can terminate it" });
+        }
+
+        const body = await request.body() as { confirm? : string } | undefined;
+        if (body?.confirm !== "DELETE") return request.reply(400, { error: 'Terminating a tenant needs { confirm : "DELETE" }' });
+
+        try {
+            await this.billing.terminate(request.user.id);
+            request.reply(202, { terminated: true });
+        } catch (error) {
+            request.reply(409, { error: error instanceof Error ? error.message : "Could not terminate this tenant" });
+        }
     }
 
     private async summary(request : Request) : Promise<void> {

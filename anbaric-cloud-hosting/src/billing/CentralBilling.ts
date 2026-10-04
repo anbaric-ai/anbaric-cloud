@@ -19,8 +19,15 @@ class CentralBilling {
         return String((await response.json() as { url : string }).url);
     }
 
-    private async call(method : string, path : string, body? : unknown) : Promise<Response> {
-        const headers : Record<string, string> = { "x-anbaric-central-key": this.secret };
+    /* Ends the tenant, on the say-so of the person named, whom central checks
+       is its owner. Nothing here is undone afterwards; this platform is among
+       the things going. */
+    async terminate(userId : string) : Promise<void> {
+        await this.call("DELETE", `/tenants/${encodeURIComponent(this.tenantSlug)}`, undefined, { "x-anbaric-user": userId });
+    }
+
+    private async call(method : string, path : string, body? : unknown, extra : Record<string, string> = {}) : Promise<Response> {
+        const headers : Record<string, string> = { "x-anbaric-central-key": this.secret, ...extra };
         if (body !== undefined) headers["content-type"] = "application/json";
 
         const response = await this.fetchFn(`${this.centralUrl.replace(/\/$/, "")}${path}`,

@@ -100,6 +100,30 @@ describe("the costs page's billing api", () => {
         expect(central).not.toHaveBeenCalled();
     });
 
+    const terminate = (who : string, body : unknown) =>
+        fetch(`${baseUrl}/api/v2/billing/account`, {
+            method: "DELETE", headers: { cookie: as(who), "content-type": "application/json" }, body: JSON.stringify(body),
+        });
+
+    it("lets the owner terminate the tenant once they have typed the word", async () => {
+        central.mockImplementation(async () => ({ ok: true, status: 202, json: async () => ({ slug: "acme" }) }) as Response);
+
+        const response = await terminate("ada", { confirm: "DELETE" });
+
+        expect(response.status).toBe(202);
+        const [url, init] = central.mock.calls[0];
+        expect(url).toBe("https://central.example/tenants/acme");
+        expect(init.method).toBe("DELETE");
+        expect((init.headers as Record<string, string>)["x-anbaric-user"]).toBe("ada");
+    });
+
+    it("does nothing without the word, or for anyone but the owner", async () => {
+        expect((await terminate("ada", { confirm: "delete" })).status).toBe(400);
+        expect((await terminate("ada", {})).status).toBe(400);
+        expect((await terminate("bob", { confirm: "DELETE" })).status).toBe(403);
+        expect(central).not.toHaveBeenCalled();
+    });
+
     it("explains when the tenant has no payment details to change", async () => {
         central.mockImplementation(async () => ({
             ok: false, status: 409, json: async () => ({ error: "This tenant has no payment details to update" }),
