@@ -5,7 +5,7 @@ import { Badge } from '@anbaric/design-system/components/Badge'
 import { Button } from '@anbaric/design-system/components/Button'
 import { Card } from '@anbaric/design-system/components/Card'
 import { Modal } from '@anbaric/design-system/components/Modal'
-import { Toggle } from '@anbaric/design-system/components/Toggle'
+import { RadioGroup } from '@anbaric/design-system/components/RadioGroup'
 import { Tooltip } from '@anbaric/design-system/components/Tooltip'
 
 import { appUrl, type CurrentUser } from './appUrl'
@@ -68,11 +68,22 @@ const addressForm: CSSProperties = {
   flexWrap: 'wrap',
 }
 
-const sizeControl: CSSProperties = {
+const sizeRow: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 'var(--space-sm)',
-  fontSize: '0.85rem',
+  flexWrap: 'wrap',
+  gap: 'var(--space-md)',
+  marginTop: 'var(--space-md)',
+  paddingTop: 'var(--space-md)',
+  borderTop: '1px solid var(--color-background-shade-1)',
+}
+
+const sizeLabel: CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: '0.7rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  ...muted,
 }
 
 const infoIcon: CSSProperties = {
@@ -246,20 +257,6 @@ function ManageAppsPage() {
             <Badge tone={tone(app.status)}>{app.status}</Badge>
 
             <span style={actions}>
-              {pricing ? (
-                <span style={sizeControl}>
-                  <Toggle
-                    checked={app.size === 'large'}
-                    disabled={busy !== undefined}
-                    aria-label={`Large instance for ${app.appName}`}
-                    onChange={(large) => setResizing({ app, to: large ? 'large' : 'small' })}
-                    label={app.size === 'large' ? `Large · ${pricing.large}/mo` : `Small · ${pricing.small}/mo`}
-                  />
-                  <Tooltip label={LARGE_EXPLAINED}>
-                    <span style={infoIcon} tabIndex={0} aria-label={LARGE_EXPLAINED}>i</span>
-                  </Tooltip>
-                </span>
-              ) : null}
               {addressable ? (
                 <Button variant="ghost" disabled={busy !== undefined} onClick={() => openChange(app)}>
                   Change URL
@@ -270,6 +267,24 @@ function ManageAppsPage() {
               </Button>
             </span>
           </div>
+
+          {pricing ? (
+            <div style={sizeRow}>
+              <span style={sizeLabel}>Instance</span>
+              <RadioGroup
+                name={`size-${app.appName}`}
+                value={app.size ?? 'small'}
+                onChange={(value) => { if (value !== (app.size ?? 'small')) setResizing({ app, to: value as AppSize }) }}
+                options={[
+                  { label: `Small · ${pricing.small}/mo`, value: 'small', disabled: busy !== undefined },
+                  { label: `Large · ${pricing.large}/mo`, value: 'large', disabled: busy !== undefined },
+                ]}
+              />
+              <Tooltip label={LARGE_EXPLAINED}>
+                <span style={infoIcon} tabIndex={0} aria-label={LARGE_EXPLAINED}>i</span>
+              </Tooltip>
+            </div>
+          ) : null}
 
           {app.draining ? (
             <p style={{ margin: 'var(--space-sm) 0 0', fontSize: '0.8rem', ...muted }}>
