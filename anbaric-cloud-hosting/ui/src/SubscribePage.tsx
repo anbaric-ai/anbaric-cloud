@@ -219,7 +219,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
 
   if (data.status === 'subscribing' || data.status === 'provisioning' || awaitingConfirmation) {
     return (
-      <PageShell title="Setting things up" width="44rem">
+      <PageShell title="Setting things up" quiet logoHeight="9rem" width="44rem">
         {failedLoads >= STALE_AFTER_FAILURES ? (
           <Alert variant="warning" title="We have lost touch with this page">
             It cannot reach the platform, so what is shown below may be out of date — your
@@ -241,7 +241,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
 
   if (data.status === 'failed' && data.subscribed) {
     return (
-      <PageShell title="Setting things up" width="44rem">
+      <PageShell title="Setting things up" quiet logoHeight="9rem" width="44rem">
         <ProvisioningPage failed message="Something went wrong while we were building your environment. Your subscription is fine and you will not be charged again — we can simply run it through once more." />
         <Card>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
