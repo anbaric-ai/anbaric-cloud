@@ -92,6 +92,12 @@ import identUrl from '@anbaric/design-system/shared/assets/anbaric-ident.svg'
 // or the bottom of the nav: the ident plus "Built with Anbaric", small and
 // muted so it never competes with the app's own UI.
 import { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnbaric'
+
+// The left rail. In an app, leave `account` out: the foot of the rail then
+// carries "Built with Anbaric" itself, and there is no account menu to fill.
+// The console passes an account and gets the avatar menu instead.
+import { AppNav } from '@anbaric/design-system/components/AppNav'
+<AppNav items={[{ label: 'Orders', value: 'orders', icon: 'receipt_long' }]} active="orders" onChange={navigate} />
 ```
 
 Every token is a CSS custom property on `:root`, so reference them directly in

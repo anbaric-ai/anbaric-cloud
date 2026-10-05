@@ -27,6 +27,20 @@
   height: 1.5rem;
 }
 
+/* The app variant's foot: the attribution, centred in the rail, and only the
+   ident once the rail is collapsed to icon width. */
+.ds-app-nav .ds-app-nav__built-with {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-xs) 0;
+  white-space: nowrap;
+}
+
+.ds-sidenav--collapsed .ds-app-nav__built-with span {
+  display: none;
+}
+
 /* On narrow screens the rail gives up its inset and hugs the screen's left
    edge, full height, rounded only on the side that faces the content; the
    SideNav's own narrow-screen rules make it open as a drawer. */

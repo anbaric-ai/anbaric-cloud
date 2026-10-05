@@ -59,7 +59,18 @@ foot of the page or the bottom of the nav. It's an attribution, not a feature:
 small type, a muted tint, the ident (its Asriel Ink is near enough black) at
 text height, and nothing that draws the eye away from the app's own UI.
 
-With the design system, it's one component:
+With the design system's left rail you get it for free: `AppNav` **without an
+`account`** is the app variant, and puts the attribution at the foot of the rail.
+Don't pass an account in an app — the account menu is the console's; an app has
+no identity to show there and ends up displaying raw OAuth ids and empty menus.
+
+```tsx
+import { AppNav } from '@anbaric/design-system/components/AppNav'
+
+<AppNav items={[{ label: 'Orders', value: 'orders', icon: 'receipt_long' }]} active={page} onChange={setPage} />
+```
+
+Without the rail, it's one component at the foot of the page:
 
 ```tsx
 import { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnbaric'
