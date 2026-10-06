@@ -7,12 +7,27 @@ type EncryptedSecret = {
     authTag : Buffer,
 };
 
+type Environment = Record<string, string | undefined>;
+
+// The environment variable a secret name falls back to: "openai-key" reads
+// OPENAI_KEY, "stripe.secret" reads STRIPE_SECRET.
+const environmentNameFor = (name : string) : string =>
+    name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+
+/* The secret store an app gets with no platform behind it. Anything written is
+   held encrypted in memory for the life of the process; anything asked for and
+   never written is looked for in the environment, under the name upper-cased.
+   That is the local backstop: an app that reads its model key from the store
+   runs on a laptop with the key in a shell variable and on the platform with
+   the key in the real store, from the same line of code. Deployed stores have
+   no such fallback - a missing secret there is a missing secret. */
 class InMemorySecretStore extends SecretStore {
 
     private secrets = new Map<string, EncryptedSecret>();
     private encryptionKey : Buffer;
 
-    constructor(encryptionKey : Buffer = randomBytes(32), auditor : Auditor = new NoOpAuditor()) {
+    constructor(encryptionKey : Buffer = randomBytes(32), auditor : Auditor = new NoOpAuditor(),
+                private environment : Environment = process.env) {
         super(auditor);
         this.encryptionKey = encryptionKey;
     }
@@ -27,6 +42,8 @@ class InMemorySecretStore extends SecretStore {
     protected async retrieveInternal(name : string) : Promise<string> {
         const secret = this.secrets.get(name);
         if (!secret) {
+            const fromEnvironment = this.environment[environmentNameFor(name)];
+            if (fromEnvironment !== undefined) return fromEnvironment;
             throw new Error(`No secret found with name "${name}"`);
         }
         const decipher = createDecipheriv("aes-256-gcm", this.encryptionKey, secret.iv);
@@ -44,4 +61,4 @@ class InMemorySecretStore extends SecretStore {
 
 }
 
-export { InMemorySecretStore }
+export { InMemorySecretStore, environmentNameFor }

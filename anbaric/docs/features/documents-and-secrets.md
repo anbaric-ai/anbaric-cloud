@@ -58,6 +58,19 @@ Use the secret store for third-party API keys and other credentials your app
 needs at runtime. Retrieving an unknown name throws `No secret found with name
 "..."`.
 
+**Locally, the environment is the backstop.** With no platform behind it, a
+secret that was never written resolves from the environment under its name
+upper-cased: `retrieve("openai-key")` reads `OPENAI_KEY`, `retrieve("stripe.secret")`
+reads `STRIPE_SECRET`. So the line that reads a key from the store on the
+platform reads it from a shell variable on your laptop, unchanged.
+
+**Deployed, you set secrets once and the app reads them.** There is no
+environment fallback on the platform. Set a secret from the app's directory with
+`anbaric secrets set openai-key` (the value is prompted for, or piped on stdin -
+never on the command line), from the console's **Secrets** page, or with the
+`anbaric_secret_set` tool in Claude Code. Values can be set and replaced but
+never read back: `anbaric secrets list` and the console show names only.
+
 ## Choosing an implementation
 
 You don't — the factories do, from the environment:

@@ -62,6 +62,18 @@ anbaric app status link-media-brief     # a different app, from anywhere
 | `anbaric jobs kill <job-id>` | Kill a job so it stops progressing. |
 | `anbaric jobs kill-old <age>` | Kill jobs not updated within `<age>` (e.g. `24h`, `7d`; units `s`/`m`/`h`/`d`/`w`). Prompts unless `--yes`. |
 
+## Secrets
+
+Scoped to the app you are in (or `--app <name>`). Values go in and never come
+out: the platform refuses to read a secret back to a person, so the way to check
+one is to set it again.
+
+| Command | Purpose |
+| --- | --- |
+| `anbaric secrets list` | The names of the app's secrets. |
+| `anbaric secrets set <name>` | Set or replace a secret. The value is prompted for without echo, or read whole from stdin (`echo "$KEY" \| anbaric secrets set openai-key`) — never passed on the command line. |
+| `anbaric secrets delete <name>` | Remove a secret. |
+
 ## Flags
 
 Every command accepts these; they supply the answers a prompt would otherwise

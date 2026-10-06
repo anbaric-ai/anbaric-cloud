@@ -5,6 +5,7 @@ import {choosePlatformUrl} from "./PlatformPicker";
 import {AppsCommand} from "./commands/AppsCommand";
 import {AppStatusCommand} from "./commands/AppStatusCommand";
 import {AppTailCommand} from "./commands/AppTailCommand";
+import {SecretsCommand} from "./commands/SecretsCommand";
 import {AppTearDownCommand} from "./commands/AppTearDownCommand";
 import {ConfigureCommand} from "./commands/ConfigureCommand";
 import {DeployCommand} from "./commands/DeployCommand";
@@ -48,9 +49,12 @@ ${bold("Usage")}
   anbaric jobs update <job-id> <key=value ...>  update job properties and re-queue it
   anbaric jobs kill <job-id>                    kill a job so it stops progressing
   anbaric jobs kill-old <age>                   kill jobs not updated within <age> (e.g. 24h, 7d)
+  anbaric secrets list                          list the names of the app's secrets (values are never shown)
+  anbaric secrets set <name>                    set a secret for the app: prompts for the value, or reads it from stdin
+  anbaric secrets delete <name>                 remove a secret from the app
 
-${dim("  An app command with no name is about the app you are in: the nearest")}
-${dim("  package.json above the working directory, named by its .anbaric config.")}
+${dim("  An app or secrets command with no name is about the app you are in: the")}
+${dim("  nearest package.json above the working directory, named by its .anbaric config.")}
 
 ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and agents)")}
   -h, --help                                    show this help
@@ -62,7 +66,7 @@ ${bold("Options")} ${dim("(every interactive prompt has a flag, for scripts and 
   --port <port>                                 app configure: internal port, skipping the prompt
   --state <state>                               jobs list: only jobs in this state
   --status <status>                             jobs list: only jobs with this status (active, "Awaiting input", Failed)
-  --app <app>                                   jobs list: only jobs belonging to this app
+  --app <app>                                   jobs list: only jobs belonging to this app; secrets: the app to manage
   --page <n>                                    jobs list: which page, from 0
   --page-size <n>                               jobs list: jobs per page (default 100)
   --oldest                                      jobs list: oldest first instead of newest`);
@@ -209,6 +213,26 @@ const runJobCommand = async (args : Array<string>) : Promise<number> => {
     }
 };
 
+const runSecretsCommand = async (args : Array<string>) : Promise<number> => {
+    const [subcommand, name] = args;
+    const secrets = async () => new SecretsCommand(await clientFromConfig());
+
+    switch (subcommand) {
+        case "list":
+            return (await secrets()).list(await resolveAppName(values.app));
+        case "set":
+            if (!name) return fail("usage: anbaric secrets set <name>   (the value is prompted for, or piped on stdin)");
+            return (await secrets()).set(await resolveAppName(values.app), name);
+        case "delete":
+        case "remove":
+            if (!name) return fail("usage: anbaric secrets delete <name>");
+            return (await secrets()).delete(await resolveAppName(values.app), name);
+        default:
+            usage();
+            return 1;
+    }
+};
+
 try {
     switch (command) {
         case "login":
@@ -223,6 +247,8 @@ try {
             process.exit(await new StateMachinesCommand(await clientFromConfig()).run());
         case "jobs":
             process.exit(await runJobCommand(commandArgs));
+        case "secrets":
+            process.exit(await runSecretsCommand(commandArgs));
         default:
             usage();
             process.exit(command ? 1 : 0);

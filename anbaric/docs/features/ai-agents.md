@@ -114,8 +114,11 @@ For a provider none of them covers, implement an `Agent.Client` (a class with a
 `generate(request)` method) and pass it to a plain `Agent`. See the [API
 reference](../api/actors-and-agents.md#agents-and-ai) for the client contract.
 
-> Keep model API keys in the [secret store](documents-and-secrets.md), not in
-> source. Locally you can read them from the environment as above.
+> Read model API keys from the [secret store](documents-and-secrets.md) rather
+> than the environment directly - `apiKey: await secrets.retrieve("openai-key", actor)`.
+> Locally that falls back to `OPENAI_KEY` in your shell, so the examples above
+> run on a laptop as written; deployed, set it once with
+> `anbaric secrets set openai-key` and the same line reads the real store.
 
 ## Next
 

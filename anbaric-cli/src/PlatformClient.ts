@@ -3,6 +3,8 @@ import {TokenSigner} from "./TokenSigner";
 
 const API_PREFIX = "/api/v2";
 
+type Headers = Record<string, string>;
+
 class PlatformClient {
 
     constructor(private options : CliOptions) {}
@@ -15,24 +17,24 @@ class PlatformClient {
         return this.options.tenant;
     }
 
-    async get(path : string) : Promise<any> {
-        return this.request("GET", path);
+    async get(path : string, headers : Headers = {}) : Promise<any> {
+        return this.request("GET", path, undefined, undefined, headers);
     }
 
-    async post(path : string, body : unknown) : Promise<any> {
-        return this.request("POST", path, JSON.stringify(body), "application/json");
+    async post(path : string, body : unknown, headers : Headers = {}) : Promise<any> {
+        return this.request("POST", path, JSON.stringify(body), "application/json", headers);
     }
 
-    async put(path : string, body : unknown) : Promise<any> {
-        return this.request("PUT", path, JSON.stringify(body), "application/json");
+    async put(path : string, body : unknown, headers : Headers = {}) : Promise<any> {
+        return this.request("PUT", path, JSON.stringify(body), "application/json", headers);
     }
 
-    async patch(path : string, body : unknown) : Promise<any> {
-        return this.request("PATCH", path, JSON.stringify(body), "application/json");
+    async patch(path : string, body : unknown, headers : Headers = {}) : Promise<any> {
+        return this.request("PATCH", path, JSON.stringify(body), "application/json", headers);
     }
 
-    async delete(path : string) : Promise<any> {
-        return this.request("DELETE", path);
+    async delete(path : string, headers : Headers = {}) : Promise<any> {
+        return this.request("DELETE", path, undefined, undefined, headers);
     }
 
     async postBinary(path : string, body : Buffer, contentType : string) : Promise<any> {
@@ -40,7 +42,7 @@ class PlatformClient {
     }
 
     async stream(path : string, onChunk : (text : string) => void, signal? : AbortSignal) : Promise<void> {
-        const headers : Record<string, string> = {};
+        const headers : Headers = {};
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
         if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
 
@@ -59,8 +61,8 @@ class PlatformClient {
         }
     }
 
-    private async request(method : string, path : string, body? : BodyInit, contentType? : string) : Promise<any> {
-        const headers : Record<string, string> = {};
+    private async request(method : string, path : string, body? : BodyInit, contentType? : string, extra : Headers = {}) : Promise<any> {
+        const headers : Headers = { ...extra };
         if (contentType) headers["content-type"] = contentType;
         if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
         if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
