@@ -209,6 +209,14 @@ resource "aws_lb_target_group" "platform" {
     unhealthy_threshold = 3
     interval            = 15
   }
+
+  /* A target group cannot be deleted while the listener rule points at it,
+     and anything that forces a new one - a rename, a new VPC - would otherwise
+     try exactly that and fail. Making the new one first lets the rule move
+     across before the old one goes. */
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 /* How this tenant claims its share of the cell's load balancer. The edge
