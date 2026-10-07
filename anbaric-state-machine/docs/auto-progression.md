@@ -36,7 +36,7 @@ value, so an action returning the same value every tick kept the job "changed"
 action loop skips a write whose value equals the stored one:
 
 ```
-if (job.properties.has(key) && this.sameValue(job.properties.get(key), value)) continue;
+if (await job.properties.has(key) && this.sameValue(await job.properties.get(key), value)) continue;
 ```
 
 `sameValue` is `a === b || JSON.stringify(a) === JSON.stringify(b)` — a cheap
@@ -80,10 +80,10 @@ on an endless same-state back-off.
 
 ```
 const machine = new StateMachine("order", [
-    new State("placed", [charge], [new Transition("paid", j => j.properties.get("charged") === true)]),
+    new State("placed", [charge], [new Transition("paid", async j => await j.properties.get("charged") === true)]),
     new State("paid", [ship], [
-        new Transition("shipped", j => j.properties.get("shipped") === true),
-        new Transition("refunded", j => j.properties.get("chargeFailed") === true),
+        new Transition("shipped", async j => await j.properties.get("shipped") === true),
+        new Transition("refunded", async j => await j.properties.get("chargeFailed") === true),
     ]),
     new Terminal("shipped", Terminal.Outcome.SUCCESS),
     new Terminal("refunded", Terminal.Outcome.FAILURE),
@@ -99,15 +99,18 @@ progression of its state, so an unguarded action re-runs each tick.
   action's own output:
   ```
   draft.run = async (job) => new Map([["article", await write(job)]]);
-  draft.predicate = (job) => !job.properties.has("article");   // run once, until "article" exists
+  draft.predicate = async (job) => !await job.properties.has("article");   // run once, until "article" exists
   ```
+  Properties are read on demand, so every read is a promise: a predicate or
+  guard that forgets to `await` compares a `Promise` to a value and is always
+  false — the action never runs, or the transition never fires.
 - **The predicate gates before `run`, and the cost lives in `run`.** Guarding the
   predicate is the only way to avoid paying for redundant work — change detection
   (A) still calls `run` and only discards the identical result afterwards.
 - **Predicates also route.** Sibling actions select who acts, e.g. an escalate
   action guarded on `priority === "high"` beside a low-priority sibling.
 - **Polling pattern.** For "keep checking until ready", pair a condition guard
-  with the same-state back-off (B): `predicate = j => !j.properties.get("ready")`,
+  with the same-state back-off (B): `predicate = async j => !await j.properties.get("ready")`,
   `run` checks the external system and sets `ready`, a transition fires on
   `ready`. The job polls every `sameStateDelayMs` rather than hot-looping.
 - **Termination is a state, not a predicate.** When a job is *finished*, transition
