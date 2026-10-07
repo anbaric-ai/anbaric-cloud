@@ -35,7 +35,9 @@ export { plugin };
 ```
 
 - A **page** registers a route (`path`), a nav `title`, an optional Material
-  Symbols `icon`, and `navOrder`.
+  Symbols `icon`, and `navOrder`. A page about the tenant or the person rather
+  than the work can set `placement: 'account'` to be offered from the account
+  menu instead of the nav rail; it is reachable at its path either way.
 - A **widget** attaches a React `component` to any page (`page` + `id` +
   `position`), optionally backed by a server-side `data` function.
 

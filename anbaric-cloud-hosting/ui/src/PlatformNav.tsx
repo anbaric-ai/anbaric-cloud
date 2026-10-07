@@ -67,11 +67,17 @@ function PlatformNav({
           })),
         ]
 
-  const pageEntries: NavEntry[] = registry().pages.map((page) => ({
-    label: page.title,
-    value: page.path,
-    icon: <Sym name={page.icon ?? 'widgets'} />,
-  }))
+  const pageEntries: NavEntry[] = registry()
+    .pages.filter((page) => page.placement !== 'account')
+    .map((page) => ({
+      label: page.title,
+      value: page.path,
+      icon: <Sym name={page.icon ?? 'widgets'} />,
+    }))
+
+  // Pages about the tenant or the person rather than the work: they sit in the
+  // account menu, above the things that are always there.
+  const accountPages = registry().pages.filter((page) => page.placement === 'account')
 
   /* An undefined role means this platform is not enforcing roles at all - a
      self-hosted or local install, where everyone may build. Asking whether the
@@ -97,6 +103,7 @@ function PlatformNav({
         subtitle: user ? [user.tenant, user.tenantRole].filter(Boolean).join(' · ') || undefined : undefined,
         src: user?.picture,
         items: [
+          ...accountPages.map((page) => ({ label: page.title, onSelect: () => navigate(page.path) })),
           { label: 'Manage keys', onSelect: () => navigate('/manage-keys') },
           { label: 'Sign out', onSelect: () => (window.location.href = '/logout') },
         ],

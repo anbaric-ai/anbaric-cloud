@@ -6,6 +6,10 @@ type PluginPage = {
     title : string;
     icon? : string;
     navOrder? : number;
+    /* Where the console offers the page. The nav rail by default; the account
+       menu for a page about the tenant or the person rather than the work -
+       billing, say. Either way the page is reachable at its path. */
+    placement? : "nav" | "account";
 
 };
 
