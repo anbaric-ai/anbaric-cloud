@@ -42,7 +42,7 @@ const triage = new RemoteLLMAgenticAction(
 );
 
 const support = new StateMachine("support", [
-    new State("open", [triage], [new Transition("prioritised", (job) => job.properties.has("priority"))]),
+    new State("open", [triage], [new Transition("prioritised", async (job) => await job.properties.has("priority"))]),
     new State("prioritised"),
 ], "open", [new PropertyDefinition("priority")]);
 ```
