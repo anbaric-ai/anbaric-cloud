@@ -11,12 +11,16 @@ import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
 import { ProvisioningPage } from './ProvisioningPage'
 
 type PerApp = { amount: number; display: string; perDay: string; footnote: string }
+type Promo = { code: string; freeMonths: number }
 type Status = {
   status: 'none' | 'subscribing' | 'provisioning' | 'active' | 'failed'
   slug: string
   currency: 'GBP' | 'USD'
   perApp: PerApp
   freeApps: number
+  // A promo code applied to the subscription about to be taken out: it makes
+  // the free period this many months instead of the first one.
+  promo?: Promo | null
   // Where the provisioner has actually got to, and the run of stages it will
   // pass through. Absent until there is something being built.
   stage?: string
@@ -47,6 +51,8 @@ const STALE_AFTER_FAILURES = 4
 const CONFIRMATION_POLLS = 20
 
 const returnedFromCheckout = () => new URLSearchParams(window.location.search).get('checkout') === 'success'
+
+const lowerFirst = (sentence: string) => sentence.charAt(0).toLowerCase() + sentence.slice(1)
 
 const price: CSSProperties = { fontFamily: 'var(--font-title)', fontSize: '2.25rem', margin: 0, lineHeight: 1 }
 const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: '0.95rem' }
@@ -153,8 +159,8 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     setBusy(false)
   }
 
-  // A promo code skips checkout: on success the status flips to provisioning
-  // and the poll above takes over with the progress screen.
+  // A promo code lengthens the free period; checkout still follows, card and
+  // all. On success the offer above is restated with the code's months.
   const redeem = async () => {
     const code = promoCode.trim()
     if (!code) return
@@ -171,7 +177,8 @@ function SubscribePage({ requestId }: { requestId?: string }) {
         setPromoError(body?.error ?? "That promo code isn't valid")
         return
       }
-      setData((current) => current ? { ...current, status: 'provisioning' } : current)
+      setPromoCode('')
+      setData((current) => current ? { ...current, promo: body.promo as Promo } : current)
     } catch {
       setPromoError("Couldn't redeem that code. Try again.")
     } finally {
@@ -258,6 +265,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   }
 
   const tax = data.currency === 'GBP' ? 'VAT' : 'tax'
+  const promo = data.promo ?? undefined
 
   return (
     <PageShell title="Subscribe">
@@ -278,7 +286,16 @@ function SubscribePage({ requestId }: { requestId?: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontFamily: 'var(--font-title)' }}>Anbaric Cloud</h2>
-            <Badge tone="primary">{data.freeApps} apps free in your first month</Badge>
+            {promo ? (
+              <>
+                <Badge tone="neutral"><s>First month free</s></Badge>
+                <Badge tone="primary">
+                  Promo {promo.code} applied: you get {promo.freeMonths} months of free hosting*
+                </Badge>
+              </>
+            ) : (
+              <Badge tone="primary">{data.freeApps} apps free in your first month</Badge>
+            )}
           </div>
           <p style={price}>
             {data.perApp.display}
@@ -296,11 +313,13 @@ function SubscribePage({ requestId }: { requestId?: string }) {
           </div>
         </div>
       </Card>
-      <p style={subtle}>* {data.perApp.footnote}.</p>
+      <p style={subtle}>
+        {promo ? `* Free hosting covers up to ${data.freeApps} apps. Beyond those, ${lowerFirst(data.perApp.footnote)}.` : `* ${data.perApp.footnote}.`}
+      </p>
       <Card>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ ...muted, fontSize: '0.8rem' }}>Have a promo code?</span>
+            <span style={{ ...muted, fontSize: '0.8rem' }}>{promo ? 'Have a different promo code?' : 'Have a promo code?'}</span>
             <input value={promoCode} onChange={(event) => setPromoCode(event.target.value)} placeholder="PROMO-CODE"
                    style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
                    onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
