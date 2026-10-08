@@ -75,6 +75,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   const [promoError, setPromoError] = useState<string | undefined>(undefined)
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState<string | undefined>(undefined)
+  const [entering, setEntering] = useState(false)
   const approved = useRef(false)
   const redirectingRef = useRef(false)
   redirectingRef.current = redirecting
@@ -186,6 +187,23 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     }
   }
 
+  /* Into the console of the tenant just built. Choosing it sets the routing
+     cookie the edge reads, the same way the tenant chooser does, so the home
+     page then lands on the tenant rather than back here. */
+  const enterConsole = async () => {
+    setEntering(true)
+    try {
+      await fetch('/choose-tenant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug: data?.slug }),
+      })
+    } catch {
+      // The home page routes on its own for someone with one tenant.
+    }
+    window.location.assign('/')
+  }
+
   // Once checkout is chosen we are navigating to Stripe: show only the redirect
   // notice so the progress screen never flashes in the gap before navigation.
   if (redirecting) {
@@ -216,6 +234,11 @@ function SubscribePage({ requestId }: { requestId?: string }) {
               ? 'Return to your terminal — the CLI will continue automatically.'
               : 'You can head back to your terminal and deploy.'}
           </p>
+          <div style={{ marginTop: 'var(--space-lg)' }}>
+            <Button variant="primary" loading={entering} disabled={entering} onClick={() => void enterConsole()}>
+              Go to your console
+            </Button>
+          </div>
         </Card>
       </PageShell>
     )
