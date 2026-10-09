@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it} from "vitest";
+import {afterEach, describe, expect, it, vi} from "vitest";
 import {createServer, get, Server} from "node:http";
 import {AddressInfo} from "node:net";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
@@ -93,6 +93,61 @@ describe("app proxy through the hosting server", () => {
         const response = await fetch(`${started.baseUrl}/app/myapp/`);
 
         expect(response.headers.get("set-cookie")).toContain("sid=abc");
+    });
+
+    /* Streams end for reasons that are nobody's failure: the browser closes
+       the tab, or the app drops the connection. The platform must shrug off
+       both - the one that got through to its error handler was taking the
+       whole process down with every dropped event stream. */
+    describe("a response that is cut off mid-stream", () => {
+
+        let streaming : Server;
+        const upstreamSockets : Array<import("node:net").Socket> = [];
+
+        const startStreamingUpstream = async () : Promise<number> => {
+            streaming = createServer((request, response) => {
+                response.writeHead(200, { "content-type": "text/event-stream" });
+                response.write("data: hello\n\n");
+                upstreamSockets.push(request.socket);
+                if (request.url === "/drop") setTimeout(() => request.socket.destroy(), 20);
+            });
+            await new Promise<void>(resolve => streaming.listen(0, resolve));
+            return (streaming.address() as AddressInfo).port;
+        };
+
+        afterEach(async () => {
+            for (const socket of upstreamSockets.splice(0)) socket.destroy();
+            await new Promise<void>(resolve => streaming.close(() => resolve()));
+        });
+
+        it("lets go of the app when the client goes away, and keeps serving", async () => {
+            const port = await startStreamingUpstream();
+            await startUpstream();
+            const started = await serve(runningApp("myapp", "127.0.0.1", port));
+            server = started.server;
+
+            const controller = new AbortController();
+            const response = await fetch(`${started.baseUrl}/app/myapp/events`, { signal: controller.signal });
+            expect(response.status).toBe(200);
+            controller.abort();
+
+            await vi.waitFor(() => expect(upstreamSockets[0].destroyed).toBe(true));
+            expect((await fetch(`${started.baseUrl}/app/myapp/events`, { signal: AbortSignal.timeout(2000) })).status).toBe(200);
+        });
+
+        it("ends the request when the app drops the connection, and keeps serving", async () => {
+            const port = await startStreamingUpstream();
+            await startUpstream();
+            const started = await serve(runningApp("myapp", "127.0.0.1", port));
+            server = started.server;
+
+            const response = await fetch(`${started.baseUrl}/app/myapp/drop`);
+            expect(response.status).toBe(200);
+            await expect(response.text()).rejects.toThrow();
+
+            expect((await fetch(`${started.baseUrl}/app/myapp/events`, { signal: AbortSignal.timeout(2000) })).status).toBe(200);
+        });
+
     });
 
     it("passes the app's redirect through instead of following it", async () => {

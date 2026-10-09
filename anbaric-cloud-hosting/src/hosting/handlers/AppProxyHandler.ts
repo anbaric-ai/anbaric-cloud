@@ -54,7 +54,20 @@ class AppProxyHandler implements RequestHandler {
 
         const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.rawBody();
 
+        /* Once the app's response has started, whatever ends it ends the
+           request: a browser that closed the tab mid-stream, or an app that
+           dropped the connection. Neither is a failure of the platform's,
+           and there is nothing left to say to the client, so the upstream is
+           let go and the request is over. Only a failure before the first
+           byte is an error worth answering. */
         await new Promise<void>((resolve, reject) => {
+            const client = request.rawResponse;
+            const settle = (error : unknown) => {
+                if (! client.headersSent) return reject(error);
+                client.destroy();
+                resolve();
+            };
+
             const upstream = httpRequest({
                 host: app.appHost,
                 port: app.appPort,
@@ -62,12 +75,18 @@ class AppProxyHandler implements RequestHandler {
                 path: `${appPath}${request.url.search}`,
                 headers: this.forwardHeaders(request, prefix),
             }, response => {
-                request.rawResponse.writeHead(response.statusCode ?? 502, this.passThrough(response.headers));
-                response.pipe(request.rawResponse);
+                client.writeHead(response.statusCode ?? 502, this.passThrough(response.headers));
+                response.pipe(client);
                 response.on("end", resolve);
-                response.on("error", reject);
+                response.on("error", settle);
+                response.on("close", () => { if (! response.complete) settle(new Error("The app closed the connection")); });
             });
-            upstream.on("error", reject);
+            client.on("close", () => {
+                if (client.writableFinished) return;
+                upstream.destroy();
+                resolve();
+            });
+            upstream.on("error", settle);
             if (body && body.length > 0) upstream.write(body);
             upstream.end();
         });

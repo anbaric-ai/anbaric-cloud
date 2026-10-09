@@ -17,12 +17,30 @@ class Server {
                 const message = error instanceof Error ? error.message : "Internal error";
                 const notFound = /^No .+ found/.test(message);
                 if (! notFound) console.error(`[server] ${incoming.method} ${incoming.url} failed (ray ${response.getHeader("x-anbaric-ray") ?? "-"}):`, error);
-                if (!response.writableEnded) {
-                    response.writeHead(notFound ? 404 : 500, { "content-type": "application/json" });
-                    response.end(JSON.stringify({ error: notFound ? message : Server.internalErrorMessage(response) }));
-                }
+                Server.failResponse(response, notFound ? 404 : 500, notFound ? message : Server.internalErrorMessage(response));
             });
         });
+    }
+
+    /* The last word on a request that failed. A response that has not started
+       gets a status and a body; one that was already streaming when it failed
+       cannot be given either, so its connection is cut instead - the client
+       sees a truncated body, which is the truth. Writing headers twice would
+       throw inside the error handler itself, with nothing left to catch it,
+       and take the whole platform down with one dropped connection. */
+    private static failResponse(response : ServerResponse, status : number, error : string) : void {
+        if (response.writableEnded) return;
+
+        if (response.headersSent) {
+            response.destroy();
+            return;
+        }
+        try {
+            response.writeHead(status, { "content-type": "application/json" });
+            response.end(JSON.stringify({ error }));
+        } catch {
+            response.destroy();
+        }
     }
 
     /* What a failure inside the platform looks like from outside: never the

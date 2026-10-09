@@ -33,10 +33,13 @@ import {PostgresPromptManager} from "./data-store/PostgresPromptManager";
 import {ConsumerRegistry} from "./queuing/ConsumerRegistry";
 import {Dispatcher} from "./queuing/Dispatcher";
 import {HostingServer} from "./hosting/HostingServer";
+import {FatalErrors} from "./hosting/FatalErrors";
 import {PluginLoader} from "./plugins/PluginLoader";
 import {UsageReporter} from "./usage/UsageReporter";
 import {HttpSubdomains} from "./subdomains/HttpSubdomains";
 import {CentralBilling} from "./billing/CentralBilling";
+
+new FatalErrors().install();
 
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);

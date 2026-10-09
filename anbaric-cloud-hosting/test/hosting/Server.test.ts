@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it} from "vitest";
+import {afterEach, describe, expect, it, vi} from "vitest";
 import {Middleware} from "../../src/hosting/Middleware";
 import {Request} from "../../src/hosting/Request";
 import {RequestHandler} from "../../src/hosting/RequestHandler";
@@ -106,6 +106,25 @@ describe("Server and Router", () => {
 
         expect((await fetch(`${baseUrl}/missing`)).status).toBe(404);
         expect((await fetch(`${baseUrl}/broken`)).status).toBe(500);
+    });
+
+    /* A handler that fails after it has started streaming cannot be answered
+       with a status; trying would throw inside the error handler and bring
+       the process down. The connection is cut and the server carries on. */
+    it("survives a handler that fails after the response has started", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        const router = new Router();
+        router.register("stream", { async handle(request : Request) {
+            request.rawResponse.writeHead(200, { "content-type": "text/plain" });
+            request.rawResponse.write("partial");
+            await new Promise(resolve => setTimeout(resolve, 10));
+            throw new Error("upstream went away");
+        } });
+        router.register("things", echoHandler);
+        const baseUrl = await start(router);
+
+        await expect(fetch(`${baseUrl}/stream`).then(response => response.text())).rejects.toThrow();
+        expect((await fetch(`${baseUrl}/things/1`)).status).toBe(200);
     });
 
     it("keeps a not-found message but never sends an internal error's message to the client", async () => {
