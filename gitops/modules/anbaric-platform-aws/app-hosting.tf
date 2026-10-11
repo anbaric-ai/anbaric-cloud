@@ -230,6 +230,23 @@ resource "aws_iam_role" "platform_task" {
   })
 }
 
+# Only while a sender is named; the identity it sends as is verified outside
+# this module, which is also where the SES sandbox is left.
+resource "aws_iam_role_policy" "platform_sends_notifications" {
+  count = var.notifier_from == "" ? 0 : 1
+  name  = "send-notifications"
+  role  = aws_iam_role.platform_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ses:SendEmail", "ses:SendRawEmail"]
+      Resource = "*"
+    }]
+  })
+}
+
 resource "aws_iam_role_policy" "platform_deploys_apps" {
   name = "deploy-apps"
   role = aws_iam_role.platform_task.id

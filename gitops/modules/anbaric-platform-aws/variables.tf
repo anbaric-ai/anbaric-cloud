@@ -191,6 +191,17 @@ variable "ai_gateway_url" {
   default     = ""
 }
 
+/* Email for jobs awaiting input. The platform loads a notifier module from its
+   image and hands it this sender; links in the mail point at the platform's
+   public URL. Empty keeps notifications off: the platform accepts them and
+   delivers nothing. The sender must be an address at a verified SES identity,
+   and sending out of the SES sandbox needs production access in the region. */
+variable "notifier_from" {
+  description = "Verified SES sender for job notifications; empty disables them"
+  type        = string
+  default     = ""
+}
+
 variable "agentic_model" {
   description = "Model id the platform requests for its own LLM features (doc generation)"
   type        = string

@@ -172,6 +172,9 @@ resource "aws_ecs_task_definition" "platform" {
       { name = "ANBARIC_AI_GATEWAY_URL", value = var.ai_gateway_url },
       ], var.agentic_model == "" ? [] : [
       { name = "ANBARIC_AGENTIC_MODEL", value = var.agentic_model },
+      ], var.notifier_from == "" ? [] : [
+      { name = "ANBARIC_NOTIFIER_FROM", value = var.notifier_from },
+      { name = "ANBARIC_PUBLIC_URL", value = local.platform_public_url },
     ])
 
     secrets = concat([
