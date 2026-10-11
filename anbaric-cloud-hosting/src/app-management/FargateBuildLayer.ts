@@ -57,9 +57,9 @@ const BUILD_TIMEOUT_MS = 900_000;
 const FARGATE_LIVENESS_TIMEOUT_MS = 420_000;
 
 /* What each size is on Fargate, in the units ECS wants. The memory is what
-   the console describes as "4× the RAM"; the CPU is not advertised, only felt. */
+   the console describes as "2× the RAM"; the CPU is not advertised, only felt. */
 const TASK_SIZES : Record<AppSize, { cpu : string, memory : string }> = {
-    small: { cpu: "256", memory: "512" },
+    small: { cpu: "256", memory: "1024" },
     large: { cpu: "512", memory: "2048" },
 };
 

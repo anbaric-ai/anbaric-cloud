@@ -177,7 +177,7 @@ describe("FargateBuildLayer", () => {
 
         const registered = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
         expect(status.size).toBe("small");
-        expect(registered).toMatchObject({ cpu: "256", memory: "512" });
+        expect(registered).toMatchObject({ cpu: "256", memory: "1024" });
     });
 
     // The image is already baked; a resize is a new task shape and a roll.

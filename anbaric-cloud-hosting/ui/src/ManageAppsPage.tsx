@@ -100,7 +100,7 @@ const infoIcon: CSSProperties = {
   ...muted,
 }
 
-const LARGE_EXPLAINED = 'A large instance gets faster compute and 4× the RAM.'
+const LARGE_EXPLAINED = 'A large instance gets faster compute and 2× the RAM.'
 
 const tone = (status: string) =>
   status === 'running' ? 'success' : status === 'failed' ? 'danger' : status === 'building' ? 'primary' : 'neutral'

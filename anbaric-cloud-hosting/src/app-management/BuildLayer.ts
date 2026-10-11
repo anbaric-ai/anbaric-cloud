@@ -9,7 +9,7 @@ type Draining = {
 };
 
 /* How big an app's instance is. Small is what every app starts as; large is
-   faster compute and four times the memory, and costs more. The sizes are
+   faster compute and twice the memory, and costs more. The sizes are
    named rather than numbered so the platform can change what they mean. */
 type AppSize = "small" | "large";
 

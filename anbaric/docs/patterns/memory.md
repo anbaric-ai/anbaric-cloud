@@ -1,7 +1,7 @@
 # Staying within memory
 
-A deployed app gets **512 MB** of memory and a quarter of a vCPU, and Node gives
-your code a heap of roughly **270 MB** of that. This is a deliberate shape: an
+A deployed app gets **1 GB** of memory and a quarter of a vCPU, and Node gives
+your code a heap of roughly **510 MB** of that. This is a deliberate shape: an
 Anbaric app is a set of small steps that each read a job, do one thing and
 record the result. The job's data lives in the platform, not in your process,
 so a well-shaped app rarely needs more than a few tens of megabytes however
@@ -20,7 +20,7 @@ Two different limits, two different symptoms:
   collector that stopped working: the collector only frees what nothing refers
   to any more.
 - **The container limit.** Buffers and native memory live outside the heap. If
-  they take the container past 512 MB the container is killed outright, with no
+  they take the container past 1 GB the container is killed outright, with no
   stack trace: `anbaric app status <name>` shows the task stopped with
   `OutOfMemoryError: Container killed due to memory usage`.
 
@@ -92,18 +92,18 @@ Your app serves HTTP as well as running steps, and the two share the heap.
 
 ## When you need to know
 
-`process.memoryUsage()` is the honest answer: `heapUsed` against the ~270 MB
-heap, `rss` against 512 MB. Logging it at the start and end of a suspect step
+`process.memoryUsage()` is the honest answer: `heapUsed` against the ~510 MB
+heap, `rss` against 1 GB. Logging it at the start and end of a suspect step
 tells you in one run whether the step is the problem. If `heapUsed` climbs
 across steps and never comes back down, something is holding on; if a single
 step spikes, that step needs breaking up.
 
 If a workload genuinely needs more — a large model run, a heavy transform — an
 app can be moved to a **large** instance from the console's Manage apps page:
-faster compute and four times the memory (2 GB, so a heap of roughly 1 GB),
+faster compute and twice the memory (2 GB, so a heap of roughly 1 GB),
 for $50/£50 a month instead of $20/£20, paid from its first day (the free
 allowance covers small apps only). It is the right answer for one heavy app;
-it is not the answer to a leak, which will fill 2 GB as surely as 512 MB.
+it is not the answer to a leak, which will fill 2 GB as surely as 1 GB.
 
 ## See also
 
