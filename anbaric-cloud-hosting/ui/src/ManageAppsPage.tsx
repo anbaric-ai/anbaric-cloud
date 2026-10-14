@@ -6,6 +6,7 @@ import { Button } from '@anbaric/design-system/components/Button'
 import { Card } from '@anbaric/design-system/components/Card'
 import { Modal } from '@anbaric/design-system/components/Modal'
 import { RadioGroup } from '@anbaric/design-system/components/RadioGroup'
+import { Toggle } from '@anbaric/design-system/components/Toggle'
 import { Tooltip } from '@anbaric/design-system/components/Tooltip'
 
 import { appUrl, type CurrentUser } from './appUrl'
@@ -19,11 +20,13 @@ type ManagedApp = {
   subdomain?: string
   url?: string
   draining?: { inFlight: number; since: number }
+  // Absent on a platform that does not offer it.
+  zeroDowntime?: boolean
 }
 
-// What each size costs a month, as the control plane quotes it in the
-// tenant's currency. Absent on a platform with no control plane behind it.
-type Pricing = { small: string; large: string }
+// What each size, and each extra, costs a month, as the control plane quotes
+// it in the tenant's currency. Absent on a platform with no control plane.
+type Pricing = { small: string; large: string; zeroDowntime?: string }
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
@@ -101,6 +104,8 @@ const infoIcon: CSSProperties = {
 }
 
 const LARGE_EXPLAINED = 'A large instance gets faster compute and 2× the RAM.'
+const ZERO_DOWNTIME_EXPLAINED =
+  'A deploy brings the new version up beside the old one and only then lets the old one go, so the app never stops answering. Without it, the old version is stopped before the new one starts.'
 
 const tone = (status: string) =>
   status === 'running' ? 'success' : status === 'failed' ? 'danger' : status === 'building' ? 'primary' : 'neutral'
@@ -139,8 +144,10 @@ function ManageAppsPage() {
     // Only a platform with a control plane has prices, or sizes worth offering.
     void fetch('/api/v2/billing/summary')
       .then((response) => (response.ok ? response.json() : undefined))
-      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string } }) => {
-        if (summary?.perApp && summary.perLargeApp) setPricing({ small: summary.perApp.display, large: summary.perLargeApp.display })
+      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string }; perZeroDowntime?: { display: string } }) => {
+        if (summary?.perApp && summary.perLargeApp) {
+          setPricing({ small: summary.perApp.display, large: summary.perLargeApp.display, zeroDowntime: summary.perZeroDowntime?.display })
+        }
       })
       .catch(() => {})
   }, [])
@@ -200,6 +207,28 @@ function ManageAppsPage() {
       await load()
     } catch (error) {
       setProblem(error instanceof Error ? error.message : 'Could not change the size of that app')
+    } finally {
+      setBusy(undefined)
+    }
+  }
+
+  // Takes effect from the app's next deploy; nothing restarts now.
+  const setZeroDowntime = async (app: ManagedApp, on: boolean) => {
+    setBusy(app.appName)
+    setProblem(undefined)
+    try {
+      const response = await fetch(`/api/v2/apps/${encodeURIComponent(app.appName)}/zero-downtime`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ on }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body?.error ?? 'Could not change zero-downtime deploys for that app')
+      }
+      await load()
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : 'Could not change zero-downtime deploys for that app')
     } finally {
       setBusy(undefined)
     }
@@ -282,6 +311,21 @@ function ManageAppsPage() {
               />
               <Tooltip label={LARGE_EXPLAINED}>
                 <span style={infoIcon} tabIndex={0} aria-label={LARGE_EXPLAINED}>i</span>
+              </Tooltip>
+            </div>
+          ) : null}
+
+          {pricing && app.zeroDowntime !== undefined ? (
+            <div style={sizeRow}>
+              <span style={sizeLabel}>Deploys</span>
+              <Toggle
+                checked={app.zeroDowntime}
+                disabled={busy !== undefined}
+                onChange={(on) => void setZeroDowntime(app, on)}
+                label={`Zero-downtime deploys · ${pricing.zeroDowntime ?? '$10 / £10'}/mo`}
+              />
+              <Tooltip label={ZERO_DOWNTIME_EXPLAINED}>
+                <span style={infoIcon} tabIndex={0} aria-label={ZERO_DOWNTIME_EXPLAINED}>i</span>
               </Tooltip>
             </div>
           ) : null}

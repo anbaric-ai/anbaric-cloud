@@ -13,6 +13,7 @@ import {MyAppsHandler} from "./handlers/MyAppsHandler";
 import {MembersHandler} from "./handlers/auth/MembersHandler";
 import {BillingHandler} from "./handlers/BillingHandler";
 import {CentralBilling} from "../billing/CentralBilling";
+import {AppSettingsStore} from "../data-store/AppSettingsStore";
 import {Subdomains} from "../subdomains/Subdomains";
 import {AuditsHandler} from "./handlers/AuditsHandler";
 import {AuthorizeCliHandler} from "./handlers/auth/AuthorizeCliHandler";
@@ -81,7 +82,8 @@ class HostingServer {
                 promptManagerFor? : (appId : string) => PromptManager,
                 fileStorageFor? : (appId : string) => FileStorage,
                 subdomains? : Subdomains,
-                billing? : CentralBilling) {
+                billing? : CentralBilling,
+                appSettings? : AppSettingsStore) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -130,7 +132,7 @@ class HostingServer {
             buildLayer.consumerUrlsFor = appName =>
                 [...new Set(registry.list().filter(consumer => consumer.appId === appName).map(consumer => consumer.url))];
             buildLayer.appRemoved = appName => void subdomains?.release(appName);
-            publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant, subdomains));
+            publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant, subdomains, appSettings));
             publicRouter.register("app", appProxy);
 
             // The directory a person who is not a builder sees instead of the

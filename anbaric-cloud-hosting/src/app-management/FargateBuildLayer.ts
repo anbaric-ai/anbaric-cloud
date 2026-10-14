@@ -35,6 +35,10 @@ type FargateBuildLayerOptions = {
     sqlDatabaseUrlSecretArn? : string,
     sqlSchema? : string,
     docGenerator? : DocGenerator,
+    /* Put on every task definition and service this layer makes, and from
+       there on every task, so the cost of a tenant's apps can be told apart
+       on the bill. Empty means untagged. */
+    tags? : Record<string, string>,
 };
 
 type AwsClients = {
@@ -55,6 +59,7 @@ const defaultClients = (region : string) : AwsClients => ({
 
 const BUILD_TIMEOUT_MS = 900_000;
 const FARGATE_LIVENESS_TIMEOUT_MS = 420_000;
+const ROLL_POLL_INTERVAL_MS = 5_000;
 
 /* What each size is on Fargate, in the units ECS wants. The memory is what
    the console describes as "2× the RAM"; the CPU is not advertised, only felt. */
@@ -64,6 +69,22 @@ const TASK_SIZES : Record<AppSize, { cpu : string, memory : string }> = {
 };
 
 const sizeOfTask = (memory? : string) : AppSize => memory === TASK_SIZES.large.memory ? "large" : "small";
+
+/* What makes a roll zero-downtime: ECS only retires the old task once the
+   new one is healthy, and without a health check "healthy" means "started",
+   before the app inside is listening. This asks the app's admin port the
+   same `ping` the platform's own probe sends. Only a task with zero-downtime
+   deploys carries it, so nothing already running is touched. The start
+   period is Fargate's longest, for apps that build at boot. */
+const adminHealthCheck = (adminPort : number) => ({
+    command: ["CMD-SHELL", `node -e "const s=require('net').connect(${adminPort},'127.0.0.1');`
+        + `s.setTimeout(3000,()=>process.exit(1));s.on('connect',()=>s.write('ping\\n'));`
+        + `s.on('data',d=>process.exit(String(d).startsWith('ok')?0:1));s.on('error',()=>process.exit(1))"`],
+    interval: 10,
+    timeout: 5,
+    retries: 3,
+    startPeriod: 300,
+});
 
 class FargateBuildLayer extends BaseBuildLayer {
 
@@ -135,6 +156,50 @@ class FargateBuildLayer extends BaseBuildLayer {
         await this.upsertService(deployment, taskDefinition, registryArn);
     }
 
+    /* ECS can run the new task beside the old one and swap the service over
+       once the new one is up, which is what a zero-downtime deploy buys: the
+       old version, already drained, keeps answering until then. */
+    protected rollsInPlace(deployment : Deployment) : boolean {
+        return deployment.zeroDowntime && deployment.replaces !== undefined;
+    }
+
+    /* The roll is done when ECS says so, not when something answers on the
+       app's name: during the roll that name resolves to the old task as
+       readily as the new, so a probe would call the deploy live too soon.
+       ECS reports one deployment, completed, once the old task is gone. */
+    protected async awaitRolled(deployment : Deployment) : Promise<void> {
+        const deadline = Date.now() + this.livenessTimeoutMs;
+
+        while (Date.now() < deadline) {
+            if (deployment.status !== "building") return;
+            if (await this.rolled(deployment.appName)) {
+                deployment.status = "running";
+                this.log(deployment, "app is live: the service has rolled over to the new version");
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, ROLL_POLL_INTERVAL_MS));
+        }
+
+        /* The old version is still serving - ECS keeps it until the new one
+           is healthy - so nothing is torn down; the deploy is reported as
+           failed and the app's log says why it never came up. */
+        deployment.status = "failed";
+        this.log(deployment, `the service did not roll over within ${this.livenessTimeoutMs / 1000}s; the previous version is still serving`);
+        for (const line of await this.diagnostics(deployment).catch(() => [])) this.log(deployment, `  ${line}`);
+    }
+
+    private async rolled(appName : string) : Promise<boolean> {
+        const {services} = await this.aws.ecs.send(new DescribeServicesCommand({
+            cluster: this.options.cluster,
+            services: [this.serviceNameFor(appName)],
+        }));
+        const deployments : Array<{ status? : string, rolloutState? : string, runningCount? : number }> = services?.[0]?.deployments ?? [];
+        const primary = deployments.find(each => each.status === "PRIMARY");
+
+        return deployments.length === 1 && primary !== undefined
+            && (primary.rolloutState === "COMPLETED" || (primary.rolloutState === undefined && (primary.runningCount ?? 0) > 0));
+    }
+
     protected async stop(deployment : Deployment) : Promise<void> {
         if (this.deployments.get(deployment.appName) !== deployment) return;
 
@@ -192,6 +257,7 @@ class FargateBuildLayer extends BaseBuildLayer {
         const registered = await this.aws.ecs.send(new RegisterTaskDefinitionCommand({
             family: this.serviceNameFor(deployment.appName),
             requiresCompatibilities: ["FARGATE"],
+            ...this.taggedWith(),
             networkMode: "awsvpc",
             ...TASK_SIZES[deployment.size],
             executionRoleArn: this.options.appExecutionRoleArn,
@@ -203,6 +269,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                 // The most Fargate allows between SIGTERM and SIGKILL, so an
                 // app signalled with steps still in hand gets to finish them.
                 stopTimeout: 120,
+                ...(deployment.zeroDowntime ? { healthCheck: adminHealthCheck(deployment.adminPort) } : {}),
                 portMappings: [
                     { containerPort: deployment.appPort, protocol: "tcp" },
                     { containerPort: deployment.adminPort, protocol: "tcp" },
@@ -280,6 +347,7 @@ class FargateBuildLayer extends BaseBuildLayer {
                 taskDefinition,
                 desiredCount: 1,
                 forceNewDeployment: true,
+                ...this.propagatingTags(),
             }));
             return;
         }
@@ -291,6 +359,8 @@ class FargateBuildLayer extends BaseBuildLayer {
             taskDefinition,
             desiredCount: 1,
             launchType: "FARGATE",
+            ...this.taggedWith(),
+            ...this.propagatingTags(),
             networkConfiguration: {
                 awsvpcConfiguration: {
                     subnets: this.options.subnets,
@@ -358,6 +428,7 @@ class FargateBuildLayer extends BaseBuildLayer {
             appPort,
             appHost: this.appHostFor(appName),
             size: sizeOfTask(taskDefinition.memory),
+            zeroDowntime: false,
             adminPort: port("ANBARIC_ADMIN_PORT", 8791),
             consumerPort: port("ANBARIC_CONSUMER_PORT", 0),
             log: [],
@@ -366,6 +437,16 @@ class FargateBuildLayer extends BaseBuildLayer {
 
     private serviceNameFor(appName : string) : string {
         return `anbaric-app-${appName}`;
+    }
+
+    private taggedWith() : { tags? : Array<{ key : string, value : string }> } {
+        const entries = Object.entries(this.options.tags ?? {});
+        return entries.length === 0 ? {} : { tags: entries.map(([key, value]) => ({ key, value })) };
+    }
+
+    // The task definition's tags become each task's, which is where the cost is.
+    private propagatingTags() : { propagateTags? : "TASK_DEFINITION" } {
+        return Object.keys(this.options.tags ?? {}).length === 0 ? {} : { propagateTags: "TASK_DEFINITION" };
     }
 
     private buildKeyFor(appName : string) : string {

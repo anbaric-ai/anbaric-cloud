@@ -26,6 +26,7 @@ import {FargateBuildLayer} from "./app-management/FargateBuildLayer";
 import {DocGenerator} from "./docs/DocGenerator";
 import {GatewayDocModel} from "./docs/GatewayDocModel";
 import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
+import {PostgresAppSettingsStore} from "./data-store/PostgresAppSettingsStore";
 import {PostgresEntitlementStore} from "./data-store/PostgresEntitlementStore";
 import {PostgresUserDirectory} from "./data-store/PostgresUserDirectory";
 import {HttpMembershipService} from "./auth/HttpMembershipService";
@@ -41,6 +42,12 @@ import {CentralBilling} from "./billing/CentralBilling";
 
 new FatalErrors().install();
 
+// "key=value,key=value", as the hosting module writes it; nothing means untagged.
+const resourceTags = (spec? : string) : Record<string, string> | undefined => {
+    const entries = (spec ?? "").split(",").map(pair => pair.split("=")).filter(pair => pair.length === 2 && pair[0].trim() && pair[1].trim());
+    return entries.length === 0 ? undefined : Object.fromEntries(entries.map(([key, value]) => [key.trim(), value.trim()]));
+};
+
 const pool = new Pool({ connectionString: process.env.ANBARIC_DATABASE_URL });
 await ensureSchema(pool);
 
@@ -54,6 +61,7 @@ const appsDir = process.env.ANBARIC_APPS_DIR ?? "/tmp/anbaric-apps";
 // Generates user docs from an app's source on deploy; no-ops without an AI
 // gateway token. The build layer calls it fire-and-forget off the deploy path.
 const docGenerator = new DocGenerator(new GatewayDocModel(), new PostgresAppDocsStore(pool));
+const appSettings = new PostgresAppSettingsStore(pool);
 
 const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
     ? new DockerBuildLayer(appsDir, {
@@ -85,6 +93,7 @@ const buildLayer = process.env.ANBARIC_BUILD_LAYER === "docker"
         sqlDatabaseUrlSecretArn: process.env.ANBARIC_AWS_APP_SQL_URL_SECRET,
         sqlSchema: process.env.ANBARIC_SQL_SCHEMA,
         docGenerator,
+        tags: resourceTags(process.env.ANBARIC_RESOURCE_TAGS),
     })
     : undefined;
 
@@ -147,7 +156,7 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, auditRecords, plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
-    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing);
+    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing, appSettings);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 
@@ -163,9 +172,14 @@ if (buildLayer && process.env.ANBARIC_TENANT && process.env.ANBARIC_CLI_KEY_LOOK
         process.env.ANBARIC_CLI_KEY_LOOKUP_URL,
         process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET ?? "",
         process.env.ANBARIC_TENANT,
-        () => {
+        async () => {
             const live = buildLayer.list().filter(app => app.status === "running" || app.status === "draining");
-            return { apps: live.length, large: live.filter(app => app.size === "large").length };
+            const zeroDowntime = new Set((await appSettings.list()).filter(each => each.zeroDowntime).map(each => each.appName));
+            return {
+                apps: live.length,
+                large: live.filter(app => app.size === "large").length,
+                zeroDowntime: live.filter(app => zeroDowntime.has(app.appName)).length,
+            };
         },
     ).start();
 }

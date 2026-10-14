@@ -1,7 +1,10 @@
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
-// How many apps are running, and how many of those are on a large instance.
-type CountApps = () => { apps : number, large : number };
+/* How many apps are running, how many of those are on a large instance, and
+   how many have zero-downtime deploys turned on. Counted afresh each report,
+   and allowed to look something up on the way. */
+type AppCounts = { apps : number, large : number, zeroDowntime? : number };
+type CountApps = () => AppCounts | Promise<AppCounts>;
 
 const REPORT_INTERVAL_MS = 60 * 60_000;
 
@@ -37,7 +40,7 @@ class UsageReporter {
             const response = await this.fetchFn(`${this.centralUrl}/usage`, {
                 method: "POST",
                 headers: { "content-type": "application/json", "x-anbaric-central-key": this.secret },
-                body: JSON.stringify({ slug: this.tenantSlug, ...this.counted(), day: this.today() }),
+                body: JSON.stringify({ slug: this.tenantSlug, ...(await this.counted()), day: this.today() }),
             });
             if (! response.ok) console.warn(`[usage] central answered ${response.status} to the app count`);
             return response.ok;
@@ -47,9 +50,9 @@ class UsageReporter {
         }
     }
 
-    private counted() : { apps : number, largeApps : number } {
-        const { apps, large } = this.countApps();
-        return { apps, largeApps: large };
+    private async counted() : Promise<{ apps : number, largeApps : number, zeroDowntimeApps : number }> {
+        const { apps, large, zeroDowntime } = await this.countApps();
+        return { apps, largeApps: large, zeroDowntimeApps: zeroDowntime ?? 0 };
     }
 
     // The day in UTC, so every tenant's day starts at the same moment however
@@ -66,4 +69,4 @@ class UsageReporter {
 }
 
 export { UsageReporter };
-export type { CountApps };
+export type { CountApps, AppCounts };

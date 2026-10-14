@@ -301,6 +301,16 @@ resource "aws_iam_role_policy" "platform_deploys_apps" {
         Resource = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.anbaric.name}/*"
       },
       {
+        # Tagging a task definition or service as it is made; the tags then
+        # propagate to the tasks, which is where the cost is.
+        Effect = "Allow"
+        Action = ["ecs:TagResource"]
+        Resource = [
+          "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/anbaric-app-*",
+          "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.anbaric.name}/*",
+        ]
+      },
+      {
         Effect   = "Allow"
         Action   = ["servicediscovery:ListServices", "servicediscovery:CreateService", "servicediscovery:GetService"]
         Resource = "*"

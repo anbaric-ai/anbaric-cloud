@@ -19,8 +19,16 @@ describe("UsageReporter", () => {
         expect(url).toBe("https://central.example/usage");
         expect((init.headers as Record<string, string>)["x-anbaric-central-key"]).toBe("central-secret");
         const body = JSON.parse(init.body as string);
-        expect(body).toMatchObject({ slug: "acme", apps: 4, largeApps: 1 });
+        expect(body).toMatchObject({ slug: "acme", apps: 4, largeApps: 1, zeroDowntimeApps: 0 });
         expect(body.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it("takes a count that has to look something up, and the zero-downtime apps with it", async () => {
+        const fetchFn = vi.fn(ok);
+
+        await new UsageReporter("https://central.example", "s", "acme", async () => ({ apps: 3, large: 0, zeroDowntime: 2 }), fetchFn).report();
+
+        expect(JSON.parse(fetchFn.mock.calls[0][1].body as string)).toMatchObject({ apps: 3, largeApps: 0, zeroDowntimeApps: 2 });
     });
 
     it("counts again on every report rather than remembering the first", async () => {

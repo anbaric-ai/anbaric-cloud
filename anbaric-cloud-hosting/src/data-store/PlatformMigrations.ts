@@ -262,6 +262,17 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         "CREATE INDEX IF NOT EXISTS audit_records_at ON anbaric_system.audit_records (at)",
     ),
 
+    /* What a builder has set for an app in the console, kept apart from the
+       app's running infrastructure so that changing a setting never restarts
+       it. An app with no row has the defaults. */
+    statements("007-app-settings",
+        `CREATE TABLE IF NOT EXISTS app_settings (
+            app_name      TEXT PRIMARY KEY,
+            zero_downtime BOOLEAN NOT NULL DEFAULT false,
+            updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+        )`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

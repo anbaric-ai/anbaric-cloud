@@ -3,7 +3,7 @@ import {mkdir, readFile, rm, symlink, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {adminPing} from "../app-admin/adminPing";
 import {DocGenerator} from "../docs/DocGenerator";
-import {AppSize, BuildLayer, DeploymentStatus, DeploymentSummary} from "./BuildLayer";
+import {AppSize, BuildLayer, DeploymentStatus, DeploymentSummary, DeployOptions} from "./BuildLayer";
 
 type Deployment = {
     appName : string,
@@ -14,6 +14,8 @@ type Deployment = {
     adminPort : number,
     consumerPort : number,
     log : Array<string>,
+    // Whether this deploy keeps the version it replaces up until it answers.
+    zeroDowntime : boolean,
     process? : ChildProcess,
     replaces? : Deployment,
     draining? : { inFlight : number, since : number },
@@ -47,7 +49,7 @@ abstract class BaseBuildLayer implements BuildLayer {
 
     constructor(protected appsDir : string, private consumerPortBase : number = 8800,
                 private probe : Probe = adminProbe,
-                private livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS,
+                protected livenessTimeoutMs : number = LIVENESS_TIMEOUT_MS,
                 private drainTimeoutMs : number = DRAIN_TIMEOUT_MS,
                 private drainPollIntervalMs : number = DRAIN_POLL_INTERVAL_MS) {}
 
@@ -63,7 +65,7 @@ abstract class BaseBuildLayer implements BuildLayer {
 
     protected async rehydrate() : Promise<void> {}
 
-    deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary {
+    deploy(appName : string, appPort : number, tarball : Buffer, options : DeployOptions = {}) : DeploymentSummary {
         const existing = this.deployments.get(appName);
 
         const deployment : Deployment = {
@@ -76,6 +78,7 @@ abstract class BaseBuildLayer implements BuildLayer {
             adminPort: APP_ADMIN_PORT,
             consumerPort: existing?.consumerPort ?? this.consumerPortBase + this.nextAppIndex++,
             log: [],
+            zeroDowntime: options.zeroDowntime ?? false,
             replaces: existing,
         };
         this.deployments.set(appName, deployment);
@@ -247,24 +250,43 @@ abstract class BaseBuildLayer implements BuildLayer {
         const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
         await this.linkWorkspacePackages(appDir, manifest);
 
-        // The version being replaced finishes its work first; the build above
-        // ran while it carried on, so the drain is the only pause it sees.
+        /* The version being replaced finishes its work first; the build above
+           ran while it carried on, so the drain is the only pause it sees. A
+           layer that can roll in place keeps it up past that, still serving,
+           until the new version has taken over. */
         if (deployment.replaces) {
             if (deployment.replaces.status === "running") await this.drain(deployment, deployment.replaces);
             if (!this.isCurrent(deployment)) return;
-            await this.stop(deployment.replaces);
+            if (! this.rollsInPlace(deployment)) await this.stop(deployment.replaces);
         }
 
         if (!this.isCurrent(deployment)) return;
         await this.start(deployment, appDir, manifest.main);
-        await this.awaitLive(deployment);
+        if (this.rollsInPlace(deployment)) {
+            await this.awaitRolled(deployment);
+        } else {
+            await this.awaitLive(deployment);
+        }
     }
 
     protected isCurrent(deployment : Deployment) : boolean {
         return this.deployments.get(deployment.appName) === deployment && deployment.status === "building";
     }
 
-    private async awaitLive(deployment : Deployment) : Promise<void> {
+    /* Whether this deploy replaces the old version without stopping it first.
+       Only a layer whose backend can run two versions of one app side by side
+       and swap between them says yes; the default cannot, and the option on
+       the deploy is then simply not honoured. */
+    protected rollsInPlace(_deployment : Deployment) : boolean {
+        return false;
+    }
+
+    // Waits for a roll-in-place to finish; a layer that rolls must say how.
+    protected async awaitRolled(deployment : Deployment) : Promise<void> {
+        await this.awaitLive(deployment);
+    }
+
+    protected async awaitLive(deployment : Deployment) : Promise<void> {
         const deadline = Date.now() + this.livenessTimeoutMs;
 
         while (Date.now() < deadline) {

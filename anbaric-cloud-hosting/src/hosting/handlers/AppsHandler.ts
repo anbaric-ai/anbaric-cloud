@@ -6,11 +6,12 @@ import {appAddress} from "../../app-management/appAddress";
 import {redactEmails} from "../../app-management/redactEmails";
 import {RequestHandler} from "../RequestHandler";
 import {Subdomains} from "../../subdomains/Subdomains";
+import {AppSettingsStore} from "../../data-store/AppSettingsStore";
 
 class AppsHandler implements RequestHandler {
 
     constructor(private buildLayer : BuildLayer, private tenant? : string,
-                private subdomains? : Subdomains) {}
+                private subdomains? : Subdomains, private settings? : AppSettingsStore) {}
 
     async handle(request : Request) : Promise<void> {
         // Changing what is deployed is a builder's job; a USER may look.
@@ -35,6 +36,9 @@ class AppsHandler implements RequestHandler {
             case "size":
                 if (request.id) return this.handleSize(request, request.id);
                 break;
+            case "zero-downtime":
+                if (request.id) return this.handleZeroDowntime(request, request.id);
+                break;
             case undefined:
                 if (request.id) return this.handleApp(request, request.id);
                 return this.handleCollection(request);
@@ -44,8 +48,28 @@ class AppsHandler implements RequestHandler {
 
     private changesApps(request : Request) : boolean {
         if (request.subresource === "deploy" || request.subresource === "docs") return true;
-        if (request.subresource === "subdomain" || request.subresource === "size") return request.method === "PUT";
+        if (["subdomain", "size", "zero-downtime"].includes(request.subresource ?? "")) return request.method === "PUT";
         return request.subresource === undefined && request.method === "DELETE";
+    }
+
+    /* Whether the app's deploys keep the old version up until the new one
+       answers. A builder's choice, priced per app per month as the console
+       says; it takes effect from the next deploy and restarts nothing now. */
+    private async handleZeroDowntime(request : Request, appName : string) : Promise<void> {
+        if (request.method !== "PUT") return request.notFound();
+        if (! this.settings) return request.reply(409, { error: "This platform does not offer zero-downtime deploys" });
+        if (! this.buildLayer.status(appName)) return request.reply(404, { error: `No app named "${appName}"` });
+
+        const body = await request.body() as { on? : unknown } | undefined;
+        if (typeof body?.on !== "boolean") return request.reply(400, { error: "Expected a body of { on : boolean }" });
+
+        const settings = await this.settings.set(appName, { zeroDowntime: body.on });
+        return request.reply(200, { appName, zeroDowntime: settings.zeroDowntime });
+    }
+
+    private async zeroDowntimeOf(appName : string) : Promise<boolean | undefined> {
+        if (! this.settings) return undefined;
+        return (await this.settings.get(appName)).zeroDowntime;
     }
 
     /* How big the app's instance is, which is a builder's to change and costs
@@ -110,7 +134,7 @@ class AppsHandler implements RequestHandler {
                 const tarball = await request.rawBody();
                 if (tarball.length === 0) return request.reply(400, { error: "Expected a gzipped tarball body" });
 
-                const summary = this.buildLayer.deploy(appName, appPort, tarball);
+                const summary = this.buildLayer.deploy(appName, appPort, tarball, { zeroDowntime: await this.zeroDowntimeOf(appName) });
 
                 /* An address is asked for alongside the build rather than
                    after it: allocation is idempotent, so a redeploy costs
@@ -134,11 +158,13 @@ class AppsHandler implements RequestHandler {
                 if (!status) return request.reply(404, { error: `No app named "${appName}"` });
                 const live = await this.buildLayer.ping(appName);
                 const subdomain = await this.addressOf(appName);
-                return request.reply(200, { ...status, live, subdomain, url: appAddress(appName, subdomain) });
+                const zeroDowntime = await this.zeroDowntimeOf(appName);
+                return request.reply(200, { ...status, live, subdomain, url: appAddress(appName, subdomain), zeroDowntime });
             }
             case "DELETE": {
                 const outcome = await this.buildLayer.teardown(appName);
                 if (!outcome) return request.reply(404, { error: `No app named "${appName}"` });
+                await this.settings?.remove(appName);
 
                 // The address is let go by the build layer's appRemoved hook,
                 // which an app that drains reaches minutes after this returns.
@@ -192,9 +218,11 @@ class AppsHandler implements RequestHandler {
         switch (request.method) {
             case "GET": {
                 const addresses = new Map((await this.addresses()).map(held => [held.appName, held.subdomain]));
+                const settings = new Map((await this.settings?.list() ?? []).map(each => [each.appName, each]));
                 return request.reply(200, this.buildLayer.list().map(app => {
                     const subdomain = addresses.get(app.appName);
-                    return { ...app, subdomain, url: appAddress(app.appName, subdomain) };
+                    const zeroDowntime = this.settings ? settings.get(app.appName)?.zeroDowntime ?? false : undefined;
+                    return { ...app, subdomain, url: appAddress(app.appName, subdomain), zeroDowntime };
                 }));
             }
         }

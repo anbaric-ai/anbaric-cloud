@@ -34,7 +34,7 @@ class StubBuildLayer extends BaseBuildLayer {
 
     running(appName : string) : Deployment {
         const deployment : Deployment = {
-            appName, status: "running", appPort: 3000, appHost: appName, size: "small", adminPort: 8791, consumerPort: 8800, log: [],
+            appName, status: "running", appPort: 3000, appHost: appName, size: "small", adminPort: 8791, consumerPort: 8800, log: [], zeroDowntime: false,
         };
         this.deployments.set(appName, deployment);
         return deployment;

@@ -27,6 +27,15 @@ type DeploymentSummary = {
     draining? : Draining,
 };
 
+/* How a deploy replaces the running version. By default the old version is
+   drained and stopped, then the new one started, so there is a gap. With
+   zeroDowntime the new version is brought up beside the old once the drain is
+   done and the old is let go only when the new answers - on a build layer that
+   can do that; one that cannot ignores it. */
+type DeployOptions = {
+    zeroDowntime? : boolean,
+};
+
 interface BuildLayer {
 
     /* Moves a running app onto a different size of instance. The app is rolled
@@ -35,7 +44,7 @@ interface BuildLayer {
     resize(appName : string, size : AppSize) : Promise<DeploymentSummary | undefined>;
 
     ensureHydrated() : Promise<void>;
-    deploy(appName : string, appPort : number, tarball : Buffer) : DeploymentSummary;
+    deploy(appName : string, appPort : number, tarball : Buffer, options? : DeployOptions) : DeploymentSummary;
     status(appName : string) : (DeploymentSummary & { log : Array<string> }) | undefined;
     list() : Array<DeploymentSummary>;
     ping(appName : string) : Promise<boolean>;
@@ -61,5 +70,5 @@ interface BuildLayer {
 
 }
 
-export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining, AppSize };
+export type { BuildLayer, DeploymentStatus, DeploymentSummary, Draining, AppSize, DeployOptions };
 export { APP_SIZES, isAppSize };

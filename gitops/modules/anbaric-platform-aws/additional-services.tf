@@ -108,6 +108,7 @@ resource "aws_ecs_service" "additional_services" {
   task_definition = aws_ecs_task_definition.additional_services[0].arn
   desired_count   = 1
   launch_type     = "FARGATE"
+  propagate_tags  = "SERVICE"
 
   network_configuration {
     subnets          = var.subnet_ids

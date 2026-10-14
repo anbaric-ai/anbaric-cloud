@@ -6,6 +6,8 @@ resource "aws_ecr_repository" "platform" {
 locals {
   image_sources_hash = var.build_image ? sha1(join("", [for file in fileset(var.source_root, "{*/src/**,*/tsconfig.build.json,tsconfig.build.base.json,anbaric-cloud-hosting/Dockerfile,package-lock.json}") : filesha1("${var.source_root}/${file}")])) : sha1(var.platform_image)
   platform_image     = var.platform_image != "" ? var.platform_image : "${aws_ecr_repository.platform.repository_url}:latest"
+  # What the platform stamps on the app tasks it launches: the caller's tags and the tenant's name.
+  app_task_tags = length(var.resource_tags) == 0 ? {} : merge(var.resource_tags, { "anbaric:tenant" = var.tenant })
 }
 
 resource "terraform_data" "platform_image" {
@@ -175,6 +177,8 @@ resource "aws_ecs_task_definition" "platform" {
       ], var.notifier_from == "" ? [] : [
       { name = "ANBARIC_NOTIFIER_FROM", value = var.notifier_from },
       { name = "ANBARIC_PUBLIC_URL", value = local.platform_public_url },
+      ], length(local.app_task_tags) == 0 ? [] : [
+      { name = "ANBARIC_RESOURCE_TAGS", value = join(",", [for key, value in local.app_task_tags : "${key}=${value}"]) },
     ])
 
     secrets = concat([
@@ -254,6 +258,7 @@ resource "aws_ecs_service" "platform" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  propagate_tags       = "SERVICE"
 
   triggers = {
     redeployment = var.redeployment_trigger != "" ? var.redeployment_trigger : local.image_sources_hash

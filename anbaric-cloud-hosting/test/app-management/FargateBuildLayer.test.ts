@@ -53,6 +53,7 @@ describe("FargateBuildLayer", () => {
     let sent : Record<string, Array<any>>;
     let buildStatuses : Array<string>;
     let existingEcsService : boolean;
+    let serviceDeployments : Array<any>;
     let existingDiscoveryService : boolean;
     let liveTailMessages : Array<string>;
 
@@ -76,7 +77,7 @@ describe("FargateBuildLayer", () => {
                     return { taskDefinition: { taskDefinitionArn: "arn:task-def/1" } };
                 }
                 if (command.constructor.name === "DescribeServicesCommand") {
-                    return { services: existingEcsService ? [{ status: "ACTIVE" }] : [] };
+                    return { services: existingEcsService ? [{ status: "ACTIVE", deployments: serviceDeployments }] : [] };
                 }
                 return {};
             },
@@ -108,6 +109,7 @@ describe("FargateBuildLayer", () => {
         sent = {};
         buildStatuses = [];
         existingEcsService = false;
+        serviceDeployments = [{ status: "PRIMARY", rolloutState: "COMPLETED", runningCount: 1 }];
         existingDiscoveryService = false;
         liveTailMessages = [];
         buildLayer = new FargateBuildLayer(
@@ -124,10 +126,10 @@ describe("FargateBuildLayer", () => {
         await rm(workDir, { recursive: true, force: true });
     });
 
-    const deployFixture = async () => {
+    const deployFixture = async (options : { zeroDowntime? : boolean } = {}) => {
         const fixtureDir = join(workDir, "fixture");
         await writeFixtureApp(fixtureDir);
-        buildLayer.deploy("crm", APP_PORT, await packFixture(fixtureDir));
+        buildLayer.deploy("crm", APP_PORT, await packFixture(fixtureDir), options);
         await vi.waitFor(() => {
             const status = buildLayer.status("crm");
             expect(["running", "failed"]).toContain(status?.status);
@@ -193,6 +195,73 @@ describe("FargateBuildLayer", () => {
         expect(registrations.at(-1).input.containerDefinitions[0].image).toBe("123.dkr.ecr.eu-west-3.amazonaws.com/anbaric-test-apps:crm");
         expect(sent.ecs.some(command => command.constructor.name === "UpdateServiceCommand")).toBe(true);
         expect(sent.codeBuild).toHaveLength(2);
+    });
+
+    /* With zero-downtime deploys the drained old version is not stopped first:
+       the service is rolled onto the new task definition and the deploy is
+       live when ECS says the roll is complete, not when the app's name answers. */
+    it("rolls the service in place for a zero-downtime redeploy, leaving the old version up until then", async () => {
+        await deployFixture();
+        existingEcsService = true;
+        sent = {};
+
+        const status = await deployFixture({ zeroDowntime: true });
+
+        expect(status.status).toBe("running");
+        expect(sent.ecs.some(command => command.constructor.name === "UpdateServiceCommand")).toBe(true);
+        expect(sent.ecs.some(command => command.constructor.name === "CreateServiceCommand")).toBe(false);
+        expect(sent.ecs.some(command => command.constructor.name === "DescribeServicesCommand")).toBe(true);
+        expect(status.log.at(-1)).toContain("rolled over");
+    });
+
+    /* ECS retires the old task once the new one is healthy, and without a
+       health check that is the moment the container starts, before the app
+       in it listens - so the check is what makes the roll zero-downtime. */
+    it("gives a zero-downtime task a health check on the admin port, and an ordinary one none", async () => {
+        await deployFixture({ zeroDowntime: true });
+        const checked = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
+        expect(checked.containerDefinitions[0].healthCheck).toMatchObject({ interval: 10, retries: 3, startPeriod: 300 });
+        expect(checked.containerDefinitions[0].healthCheck.command[1]).toContain("connect(8791");
+
+        sent = {};
+        await deployFixture();
+        const plain = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
+        expect(plain.containerDefinitions[0].healthCheck).toBeUndefined();
+    });
+
+    it("waits for the app's name to answer, not for ECS, when zero-downtime is off", async () => {
+        await deployFixture();
+        existingEcsService = true;
+        sent = {};
+
+        const status = await deployFixture();
+
+        expect(status.status).toBe("running");
+        expect(sent.ecs.some(command => command.constructor.name === "UpdateServiceCommand")).toBe(true);
+        expect(status.log.at(-1)).toContain("admin port");
+    });
+
+    /* Cost is per task, so the tags have to reach the tasks: they go on the
+       task definition and the service, and both are told to pass them on. */
+    it("tags the task definition and service, and has the tags propagate to tasks", async () => {
+        buildLayer = new FargateBuildLayer(join(workDir, "apps"), { ...FARGATE_OPTIONS, tags: { Project: "anbaric-cloud-staging", "anbaric:tenant": "acme" } },
+            CONSUMER_PORT_BASE, clients(), async () => true, 1);
+
+        await deployFixture();
+
+        const registered = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
+        expect(registered.tags).toEqual([{ key: "Project", value: "anbaric-cloud-staging" }, { key: "anbaric:tenant", value: "acme" }]);
+        const created = sent.ecs.find(command => command.constructor.name === "CreateServiceCommand").input;
+        expect(created.tags).toEqual(registered.tags);
+        expect(created.propagateTags).toBe("TASK_DEFINITION");
+    });
+
+    it("sends no tags at all when none are configured", async () => {
+        await deployFixture();
+
+        const registered = sent.ecs.find(command => command.constructor.name === "RegisterTaskDefinitionCommand").input;
+        expect(registered.tags).toBeUndefined();
+        expect(sent.ecs.find(command => command.constructor.name === "CreateServiceCommand").input.propagateTags).toBeUndefined();
     });
 
     it("creates the app service with cloud map discovery on first deploy", async () => {

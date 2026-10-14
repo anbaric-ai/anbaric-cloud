@@ -191,6 +191,15 @@ variable "ai_gateway_url" {
   default     = ""
 }
 
+/* Tags the platform puts on the app tasks it launches, with the tenant's
+   name added, so a tenant's compute can be told apart on the bill. Resources
+   the module itself makes are tagged by the provider's default tags. */
+variable "resource_tags" {
+  description = "Tags for every app task this platform launches; the tenant name is added"
+  type        = map(string)
+  default     = {}
+}
+
 /* Email for jobs awaiting input. The platform loads a notifier module from its
    image and hands it this sender; links in the mail point at the platform's
    public URL. Empty keeps notifications off: the platform accepts them and
