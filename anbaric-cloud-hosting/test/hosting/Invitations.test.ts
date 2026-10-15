@@ -2,6 +2,7 @@ import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {QueueMessage} from "anbaric-tsapi";
 import {InMemoryMembershipService} from "../../src/auth/InMemoryMembershipService";
+import {InMemoryEntitlementStore} from "../../src/data-store/InMemoryEntitlementStore";
 import {SessionSigner} from "../../src/auth/SessionSigner";
 import {Tenant} from "../../src/auth/Tenant";
 import {User} from "../../src/auth/User";
@@ -61,6 +62,51 @@ describe("invitations through the console entry point", () => {
         expect(response.status).toBe(201);
         expect(invitation).toMatchObject({ email: "fox@example.com", invitedBy: "ada", invitedByName: "Ada Lovelace" });
         expect(invitation.link).toBe(`https://central.example/invitations/${invitation.token}`);
+    });
+
+    const inviteLink = (body : unknown) => fetch(`${baseUrl}/api/v2/invitations`, {
+        method: "POST", headers: { "content-type": "application/json", cookie: cookie() }, body: JSON.stringify(body),
+    });
+
+    /* A link names nobody. Whoever opens it joins, as many times as it allows,
+       and the entitlements chosen for it are held against the link itself. */
+    it("makes a link invitation with a number of uses and no address", async () => {
+        const response = await inviteLink({ link: true, uses: 5, role: "BUILDER" });
+        const invitation = await response.json();
+
+        expect(response.status).toBe(201);
+        expect(invitation).toMatchObject({ role: "BUILDER", usesRemaining: 5, invitedBy: "ada" });
+        expect(invitation.email).toBeUndefined();
+        expect(invitation.link).toBe(`https://central.example/invitations/${invitation.token}`);
+    });
+
+    it("holds the chosen entitlements against the link and grants them to each person who joins through it", async () => {
+        const entitlements = new InMemoryEntitlementStore();
+        await server.close();
+        server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
+            undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
+            entitlements, undefined, memberships);
+        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+
+        const invitation = await (await inviteLink({ link: true, uses: 2, entitlements: [{ appId: "crm", entitlementId: "access" }] })).json();
+        expect(invitation.entitlements).toBe(1);
+        expect(await entitlements.listGrants()).toEqual([]);
+
+        for (const who of ["fox", "owl"]) {
+            memberships.join(who, "USER", invitation.token);
+            await fetch(`${baseUrl}/api/v2/whoami`, {
+                headers: { cookie: `anbaric_session=${new SessionSigner(SECRET).mint(new User(who, [], [], who, undefined, `${who}@example.com`), new Tenant("acme"))}` },
+            });
+            expect((await entitlements.listGrants(who)).map(grant => grant.entitlementId)).toEqual(["access"]);
+        }
+        expect(await entitlements.listGrants()).toHaveLength(2);
+    });
+
+    it("bounds how often a link may be used", async () => {
+        expect((await inviteLink({ link: true, uses: 0 })).status).toBe(400);
+        expect((await inviteLink({ link: true, uses: 1001 })).status).toBe(400);
+        expect((await inviteLink({ link: true, uses: "many" })).status).toBe(400);
+        expect((await inviteLink({ link: true })).status).toBe(201);
     });
 
     it("refuses to manage members for a role that cannot invite", async () => {

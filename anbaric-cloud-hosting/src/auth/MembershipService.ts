@@ -3,7 +3,8 @@ import {TenantRole} from "./TenantRole";
 type PendingInvitation = {
 
     token : string,
-    email : string,
+    // Absent for a link: nobody is named, whoever opens it may join.
+    email? : string,
     role : TenantRole,
     landingApp? : string,
     invitedBy : string,
@@ -12,6 +13,8 @@ type PendingInvitation = {
     createdAt : string,
     expiresAt : string,
     emailed? : boolean,
+    // Present for a link invitation: how many more people may join through it.
+    usesRemaining? : number,
 
 };
 
@@ -34,6 +37,13 @@ interface MembershipService {
        person's app directory. The control plane turns it into an address when
        the invitation is accepted, so a later change of address still works. */
     invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation>;
+
+    /* An invitation with no name on it: a link that admits whoever opens it
+       and signs in, up to `uses` people. */
+    inviteLink(role : TenantRole, invitedBy : Inviter, uses : number, landingApp? : string) : Promise<PendingInvitation>;
+
+    // The invitation a member came in through, when it is known.
+    joinedVia(userId : string) : Promise<string | undefined>;
 
     pending(asking : Inviter) : Promise<Array<PendingInvitation>>;
 

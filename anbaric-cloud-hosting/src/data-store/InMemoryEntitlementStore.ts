@@ -70,6 +70,27 @@ class InMemoryEntitlementStore implements EntitlementStore {
         return owed.length;
     }
 
+    async offerForLink(linkToken : string, offers : Array<Omit<EntitlementOffer, "email" | "linkToken">>, offeredBy : string) : Promise<void> {
+        for (const offer of offers) {
+            this.offers.set(`link:${linkToken} ${this.key(offer.appId, offer.entitlementId)}`,
+                { offer: { ...offer, email: null, linkToken }, offeredBy });
+        }
+    }
+
+    async claimLink(linkToken : string, userId : string) : Promise<number> {
+        const owed = [...this.offers.values()].filter(held => held.offer.linkToken === linkToken);
+        const already = await this.listGrants(userId);
+        let made = 0;
+
+        for (const held of owed) {
+            const holds = already.some(grant => grant.entitlementId === held.offer.entitlementId && (grant.appId ?? "") === (held.offer.appId ?? ""));
+            if (holds) continue;
+            await this.grant(userId, held.offer.appId, held.offer.entitlementId, held.offer.notes, held.offeredBy);
+            made++;
+        }
+        return made;
+    }
+
     private key(appId : string | null, entitlementId : string) : string {
         return `${appId ?? ""}/${entitlementId}`;
     }

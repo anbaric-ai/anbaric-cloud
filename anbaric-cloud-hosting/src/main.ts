@@ -157,7 +157,9 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     tokenAuthenticator, process.env.ANBARIC_TENANT, auditRecords, plugins,
     new PostgresJobRunSchedulePersistence(pool), await loadNotifier(process.env.ANBARIC_NOTIFIER_MODULE),
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
-    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing, appSettings, new PostgresSkillStore(pool));
+    (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing, appSettings, new PostgresSkillStore(pool),
+    // The control plane's key, which the operators hold, is what writes a managed skill.
+    process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET || undefined);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

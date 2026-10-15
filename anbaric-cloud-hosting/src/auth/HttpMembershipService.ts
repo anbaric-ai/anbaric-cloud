@@ -11,28 +11,45 @@ const ROLE_CACHE_TTL_MS = 60_000;
    role change is a fair trade for not calling central on each of them. */
 class HttpMembershipService implements MembershipService {
 
-    private roles = new Map<string, { role : TenantRole | undefined, expires : number }>();
+    private roles = new Map<string, { role : TenantRole | undefined, invitationToken? : string, expires : number }>();
 
     constructor(private centralUrl : string, private secret : string, private tenantSlug : string,
                 private fetchFn : FetchFn = (url, init) => fetch(url, init),
                 private cacheTtlMs : number = ROLE_CACHE_TTL_MS) {}
 
     async roleFor(userId : string) : Promise<TenantRole | undefined> {
+        return (await this.membership(userId)).role;
+    }
+
+    async joinedVia(userId : string) : Promise<string | undefined> {
+        return (await this.membership(userId)).invitationToken;
+    }
+
+    private async membership(userId : string) : Promise<{ role : TenantRole | undefined, invitationToken? : string }> {
         const cached = this.roles.get(userId);
-        if (cached && cached.expires > Date.now()) return cached.role;
+        if (cached && cached.expires > Date.now()) return cached;
 
         const response = await this.call("GET", `/members/${encodeURIComponent(userId)}`, undefined, [404]);
-        const role = response.status === 404
-            ? undefined
-            : (await response.json() as { role? : unknown }).role;
-        const found = isTenantRole(role) ? role : undefined;
+        const answer = response.status === 404
+            ? {}
+            : await response.json() as { role? : unknown, invitationToken? : unknown };
+        const found = {
+            role: isTenantRole(answer.role) ? answer.role : undefined,
+            invitationToken: typeof answer.invitationToken === "string" ? answer.invitationToken : undefined,
+            expires: Date.now() + this.cacheTtlMs,
+        };
 
-        this.roles.set(userId, { role: found, expires: Date.now() + this.cacheTtlMs });
+        this.roles.set(userId, found);
         return found;
     }
 
     async invite(email : string, role : TenantRole, invitedBy : Inviter, landingApp? : string) : Promise<PendingInvitation> {
         const response = await this.call("POST", "/invitations", { email, role, invitedBy, landingApp });
+        return await response.json() as PendingInvitation;
+    }
+
+    async inviteLink(role : TenantRole, invitedBy : Inviter, uses : number, landingApp? : string) : Promise<PendingInvitation> {
+        const response = await this.call("POST", "/invitations", { link: true, uses, role, invitedBy, landingApp });
         return await response.json() as PendingInvitation;
     }
 

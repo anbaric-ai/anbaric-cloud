@@ -71,7 +71,7 @@ class PostgresEntitlementStore implements EntitlementStore {
             await this.pool.query(
                 `INSERT INTO entitlement_invites (email, app_id, entitlement_id, notes, offered_by)
                  VALUES ($1, $2, $3, $4, $5)
-                 ON CONFLICT (email, COALESCE(app_id, ''), entitlement_id)
+                 ON CONFLICT (COALESCE(email, ''), COALESCE(link_token, ''), COALESCE(app_id, ''), entitlement_id)
                      DO UPDATE SET notes = EXCLUDED.notes, offered_by = EXCLUDED.offered_by`,
                 [offer.email, offer.appId, offer.entitlementId, offer.notes, offeredBy]);
         }
@@ -85,6 +85,34 @@ class PostgresEntitlementStore implements EntitlementStore {
         return result.rows.map(row => ({
             email: row.email, appId: row.app_id, entitlementId: row.entitlement_id, notes: row.notes,
         }));
+    }
+
+    async offerForLink(linkToken : string, offers : Array<Omit<EntitlementOffer, "email" | "linkToken">>, offeredBy : string) : Promise<void> {
+        for (const offer of offers) {
+            await this.pool.query(
+                `INSERT INTO entitlement_invites (email, link_token, app_id, entitlement_id, notes, offered_by)
+                 VALUES (NULL, $1, $2, $3, $4, $5)
+                 ON CONFLICT (COALESCE(email, ''), COALESCE(link_token, ''), COALESCE(app_id, ''), entitlement_id)
+                     DO UPDATE SET notes = EXCLUDED.notes, offered_by = EXCLUDED.offered_by`,
+                [linkToken, offer.appId, offer.entitlementId, offer.notes, offeredBy]);
+        }
+    }
+
+    /* The offers stay: the link may admit more people. The grant is made once
+       per person, so a sign-in that claims again finds nothing new. */
+    async claimLink(linkToken : string, userId : string) : Promise<number> {
+        const result = await this.pool.query(
+            `INSERT INTO entitlement_grants (id, user_id, app_id, entitlement_id, notes, granted_by)
+             SELECT gen_random_uuid()::text, $2, offered.app_id, offered.entitlement_id, offered.notes, offered.offered_by
+             FROM entitlement_invites offered
+             WHERE offered.link_token = $1
+               AND NOT EXISTS (
+                   SELECT 1 FROM entitlement_grants held
+                   WHERE held.user_id = $2 AND held.entitlement_id = offered.entitlement_id
+                     AND COALESCE(held.app_id, '') = COALESCE(offered.app_id, ''))
+             RETURNING id`,
+            [linkToken, userId]);
+        return result.rowCount ?? 0;
     }
 
     /* Claimed in one statement so a second sign-in arriving at the same moment

@@ -6,6 +6,7 @@ class InMemoryMembershipService implements MembershipService {
 
     private invitations = new Map<string, PendingInvitation>();
     private members = new Map<string, TenantRole>();
+    private joinedThrough = new Map<string, string>();
 
     constructor(private linkBase : string = "http://localhost/invitations") {}
 
@@ -15,6 +16,35 @@ class InMemoryMembershipService implements MembershipService {
 
     async roleFor(userId : string) : Promise<TenantRole | undefined> {
         return this.members.get(userId);
+    }
+
+    // What a person who followed a link ends up as, for tests to arrange.
+    join(userId : string, role : TenantRole, token : string) : void {
+        this.members.set(userId, role);
+        this.joinedThrough.set(userId, token);
+    }
+
+    async joinedVia(userId : string) : Promise<string | undefined> {
+        return this.joinedThrough.get(userId);
+    }
+
+    async inviteLink(role : TenantRole, invitedBy : Inviter, uses : number, landingApp? : string) : Promise<PendingInvitation> {
+        const token = randomUUID();
+        const now = new Date();
+        const invitation : PendingInvitation = {
+            token,
+            role,
+            landingApp,
+            invitedBy: invitedBy.id,
+            invitedByName: invitedBy.name,
+            link: `${this.linkBase}/${token}`,
+            createdAt: now.toISOString(),
+            expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            emailed: false,
+            usesRemaining: uses,
+        };
+        this.invitations.set(token, invitation);
+        return { ...invitation };
     }
 
     async remove(userId : string, _asking : Inviter) : Promise<boolean> {

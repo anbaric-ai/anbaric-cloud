@@ -86,7 +86,8 @@ class HostingServer {
                 subdomains? : Subdomains,
                 billing? : CentralBilling,
                 appSettings? : AppSettingsStore,
-                skills? : SkillStore) {
+                skills? : SkillStore,
+                operatorKey? : string) {
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
@@ -175,7 +176,7 @@ class HostingServer {
             (request.method === "GET" && CLI_KEY_POLL.test(request.url.pathname));
 
         const authentication =
-            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships);
+            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships, operatorKey);
 
         /* Entitlements an inviter chose before this person had a user id were
            put aside under their email address; their first sign-in is when
@@ -183,6 +184,9 @@ class HostingServer {
         if (entitlements) {
             authentication.claimWhatIsOwed = async user => {
                 if (user.email) await entitlements.claim(user.email, user.id);
+                // Someone who came in through a link is owed what the link carries.
+                const token = await memberships?.joinedVia(user.id);
+                if (token) await entitlements.claimLink(token, user.id);
             };
         }
 

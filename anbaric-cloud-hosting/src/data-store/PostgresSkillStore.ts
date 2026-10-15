@@ -1,13 +1,14 @@
 import {Pool} from "pg";
 import {Skill, SkillDraft, SkillStore} from "./SkillStore";
 
-const COLUMNS = "id, title, usage_hints, body, created_at, updated_at";
+const COLUMNS = "id, title, usage_hints, body, locked, created_at, updated_at";
 
 const rowToSkill = (row : any) : Skill => ({
     id: row.id,
     title: row.title,
     usageHints: row.usage_hints,
     body: row.body,
+    locked: row.locked,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
 });
@@ -28,12 +29,13 @@ class PostgresSkillStore implements SkillStore {
 
     async save(draft : SkillDraft) : Promise<Skill> {
         const result = await this.pool.query(
-            `INSERT INTO anbaric_system.skills (id, title, usage_hints, body)
-             VALUES ($1, $2, $3, $4)
+            `INSERT INTO anbaric_system.skills (id, title, usage_hints, body, locked)
+             VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (id) DO UPDATE
-                 SET title = EXCLUDED.title, usage_hints = EXCLUDED.usage_hints, body = EXCLUDED.body, updated_at = now()
+                 SET title = EXCLUDED.title, usage_hints = EXCLUDED.usage_hints, body = EXCLUDED.body,
+                     locked = EXCLUDED.locked, updated_at = now()
              RETURNING ${COLUMNS}`,
-            [draft.id, draft.title, draft.usageHints, draft.body]);
+            [draft.id, draft.title, draft.usageHints, draft.body, draft.locked]);
         return rowToSkill(result.rows[0]);
     }
 

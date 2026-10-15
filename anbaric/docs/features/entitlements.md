@@ -65,6 +65,17 @@ Apps can't grant. An administrator opens **Entitlements** in the console, picks
 the user, the entitlement and its scope, and adds a note; the same page revokes
 grants and creates global entitlements. Every grant records who made it.
 
+## Invitations and invite links
+
+Entitlements can be chosen when someone is invited, before they have signed
+in: an invitation by email holds them against that address and grants them the
+first time the person signs in. An **invite link** does the same for whoever
+opens it. An owner or admin creates one on the Users page, choosing how many
+people may use it, the role they join as, and the entitlements they receive;
+each person who opens the link and signs in becomes a member with exactly
+those, and the link counts down until it is used up or revoked. Anyone holding
+the link can join, so it is for sharing with the people you mean to invite.
+
 ## Locally
 
 There's no console on your laptop, so the local implementation is

@@ -27,7 +27,9 @@ type EntitlementGrant = {
    have until they arrive. This is the gap between the two. */
 type EntitlementOffer = {
 
-    email : string,
+    // The address the offer is held against, or null when it is held against a link.
+    email : string | null,
+    linkToken? : string,
     appId : string | null,
     entitlementId : string,
     notes : string,
@@ -57,6 +59,14 @@ interface EntitlementStore extends Entitlements {
        offers. Returns how many were made, and is safe to call on every sign-in
        because the second call has nothing left to claim. */
     claim(email : string, userId : string) : Promise<number>;
+
+    /* Held against an invitation link instead of an address: granted to each
+       person who joins through the link, and kept, since the next person
+       through it is owed the same. Returns how many grants were made for this
+       person; none the second time, as they already hold them. */
+    offerForLink(linkToken : string, offers : Array<Omit<EntitlementOffer, "email" | "linkToken">>, offeredBy : string) : Promise<void>;
+
+    claimLink(linkToken : string, userId : string) : Promise<number>;
 
 }
 

@@ -6,8 +6,10 @@ import {RequestHandler} from "../RequestHandler";
 /* The tenant's skills: guidance its builders write for the agents that work
    on it. Anyone in the tenant may read them - an agent acting for a user
    needs them as much as one acting for a builder - but writing them is a
-   builder's job. Served to people and their agents only, never to deployed
-   apps, which is why this is registered on the public entry point alone. */
+   builder's job. A managed skill is the operators' instead: written with
+   the control plane's key, marked locked, and not the tenant's to change.
+   Served to people and their agents only, never to deployed apps, which is
+   why this is registered on the public entry point alone. */
 class SkillsHandler implements RequestHandler {
 
     constructor(private skills : SkillStore) {}
@@ -31,20 +33,29 @@ class SkillsHandler implements RequestHandler {
                 return request.reply(200, this.publicSkill(skill));
             }
             case "PUT": {
-                if (deniesBuild(request.user?.tenantRole)) return this.refuse(request);
+                if (! request.operator && deniesBuild(request.user?.tenantRole)) return this.refuse(request);
                 if (! isSkillId(id)) {
                     return request.reply(400, { error: `"${id}" is not a skill id: lower-case letters, digits and hyphens, up to 50 characters` });
                 }
+                const existing = await this.skills.get(id);
+                if (existing?.locked && ! request.operator) return this.managed(request);
+
                 const body = await request.body();
                 const draft = this.draftFrom(body);
                 if (! draft) return request.reply(400, { error: "Expected a body of { title : string, usageHints : string, body : string }, none empty" });
 
-                return request.reply(200, this.publicSkill(await this.skills.save({ id, ...draft })));
+                // Only an operator makes a managed skill, and says so each time.
+                const locked = request.operator && (body as { locked? : unknown })?.locked === true;
+                return request.reply(200, this.publicSkill(await this.skills.save({ id, ...draft, locked })));
             }
             case "DELETE": {
-                if (deniesBuild(request.user?.tenantRole)) return this.refuse(request);
-                const removed = await this.skills.remove(id);
-                return removed ? request.reply(204) : request.reply(404, { error: `No skill with id "${id}"` });
+                if (! request.operator && deniesBuild(request.user?.tenantRole)) return this.refuse(request);
+                const existing = await this.skills.get(id);
+                if (! existing) return request.reply(404, { error: `No skill with id "${id}"` });
+                if (existing.locked && ! request.operator) return this.managed(request);
+
+                await this.skills.remove(id);
+                return request.reply(204);
             }
         }
         request.notFound();
@@ -52,6 +63,10 @@ class SkillsHandler implements RequestHandler {
 
     private refuse(request : Request) : void {
         request.reply(403, { error: "Your role in this tenant cannot manage skills" });
+    }
+
+    private managed(request : Request) : void {
+        request.reply(403, { error: "This skill is a managed service and is not yours to change" });
     }
 
     private draftFrom(body : unknown) : { title : string, usageHints : string, body : string } | undefined {
@@ -71,6 +86,7 @@ class SkillsHandler implements RequestHandler {
             title: skill.title,
             usageHints: skill.usageHints,
             body: skill.body,
+            locked: skill.locked,
             createdAt: skill.createdAt.toISOString(),
             updatedAt: skill.updatedAt.toISOString(),
         };

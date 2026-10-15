@@ -2,7 +2,7 @@ import {describe, expect, it} from "vitest";
 import {InMemorySkillStore} from "../../src/data-store/InMemorySkillStore";
 import {isSkillId} from "../../src/data-store/SkillStore";
 
-const draft = { id: "web-fetching", title: "Fetching web pages", usageHints: "Read before fetching a page", body: "POST /html" };
+const draft = { id: "web-fetching", title: "Fetching web pages", usageHints: "Read before fetching a page", body: "POST /html", locked: false };
 
 describe("InMemorySkillStore", () => {
 

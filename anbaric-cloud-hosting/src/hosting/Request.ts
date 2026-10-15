@@ -16,6 +16,10 @@ class Request {
     identity? : string;
     user? : User;
     tenant? : Tenant;
+    /* Set when the platform's operators are calling with the control plane's
+       key rather than anyone signing in: no user, no role, and admitted only
+       where a handler says operators belong. */
+    operator = false;
 
     readonly api : boolean;
 

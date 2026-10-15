@@ -24,6 +24,7 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
 }
 
 const SECRET = "skills-secret";
+const OPERATOR_KEY = "central-secret";
 
 const skill = { title: "Fetching web pages", usageHints: "Read before fetching any external page", body: "POST /html with { url }" };
 
@@ -43,7 +44,7 @@ describe("a tenant's skills", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, "acme",
             undefined, [], undefined, undefined, undefined, undefined, memberships,
-            undefined, undefined, undefined, undefined, undefined, skills);
+            undefined, undefined, undefined, undefined, undefined, skills, OPERATOR_KEY);
         baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
         internalUrl = `http://127.0.0.1:${await server.listenInternal(0)}`;
     });
@@ -105,6 +106,43 @@ describe("a tenant's skills", () => {
         expect((await put("builder", "web-fetching", { ...skill, title: "" })).status).toBe(400);
         expect((await put("builder", "web-fetching", { title: "x", body: "y" })).status).toBe(400);
         expect((await get("builder", "/web-fetching/history")).status).toBe(404);
+    });
+
+    const asOperator = (method : string, id : string, body? : unknown) =>
+        fetch(`${baseUrl}/api/v2/skills/${id}`, {
+            method, headers: { "content-type": "application/json", "x-anbaric-central-key": OPERATOR_KEY },
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
+
+    /* A managed skill is the operators' work, written with the control
+       plane's key: the tenant sees it as such and cannot change or remove it. */
+    it("lets an operator write a managed skill that the tenant cannot change", async () => {
+        const written = await asOperator("PUT", "managed", { ...skill, locked: true });
+        expect(written.status).toBe(200);
+        expect((await written.json()).locked).toBe(true);
+
+        expect((await put("builder", "managed", { ...skill, title: "Mine now" })).status).toBe(403);
+        expect((await fetch(`${baseUrl}/api/v2/skills/managed`, { method: "DELETE", headers: { cookie: as("builder") } })).status).toBe(403);
+        expect((await (await get("reader", "/managed")).json()).title).toBe("Fetching web pages");
+
+        expect((await asOperator("DELETE", "managed")).status).toBe(204);
+    });
+
+    it("writes a tenant's own skill unlocked, whatever the body says", async () => {
+        await put("builder", "web-fetching", { ...skill, locked: true });
+
+        expect((await (await get("builder", "/web-fetching")).json()).locked).toBe(false);
+    });
+
+    // Only the real key makes an operator; a wrong one is nobody in particular.
+    it("does not take a wrong key for the operator", async () => {
+        const written = await fetch(`${baseUrl}/api/v2/skills/managed`, {
+            method: "PUT", headers: { "content-type": "application/json", "x-anbaric-central-key": "not-it", cookie: as("builder") },
+            body: JSON.stringify({ ...skill, locked: true }),
+        });
+
+        expect(written.status).toBe(200);
+        expect((await written.json()).locked).toBe(false);
     });
 
     // A deployed app has no business reading what its builders told their agents.

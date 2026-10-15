@@ -30,6 +30,10 @@ can read them. Skills belong to the tenant, not to an app, and deployed apps
 cannot see them: they are for the people and agents working on the tenant, not
 for its runtime.
 
+A skill marked **Managed service** is written by Anbaric for a service your
+tenant has, such as the additional services, and kept current by us. It is
+offered to your agents like any other but is not yours to edit or remove.
+
 ## How an agent sees them
 
 Each skill is offered to the agent as a tool named `anbaric_skill_<id>` (hyphens

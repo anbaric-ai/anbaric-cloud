@@ -287,6 +287,24 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         )`,
     ),
 
+    // A managed skill is the operators' to change, not the tenant's.
+    statements("009-skills-locked",
+        "ALTER TABLE anbaric_system.skills ADD COLUMN IF NOT EXISTS locked BOOLEAN NOT NULL DEFAULT false",
+    ),
+
+    /* An invitation may be a link rather than an email: anyone who opens it
+       and signs in becomes a member, as many times as it allows. The
+       entitlements chosen for it are held against the link, since there is
+       no address to hold them against, and granted to each person who joins
+       through it. */
+    statements("010-invite-links",
+        "ALTER TABLE entitlement_invites ALTER COLUMN email DROP NOT NULL",
+        "ALTER TABLE entitlement_invites ADD COLUMN IF NOT EXISTS link_token TEXT",
+        "DROP INDEX IF EXISTS entitlement_invites_key",
+        `CREATE UNIQUE INDEX IF NOT EXISTS entitlement_invites_key
+            ON entitlement_invites (COALESCE(email, ''), COALESCE(link_token, ''), COALESCE(app_id, ''), entitlement_id)`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

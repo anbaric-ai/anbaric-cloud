@@ -36,10 +36,19 @@ class AuthenticationMiddleware implements Middleware {
                 private isOpen : OpenRequestPredicate = () => false,
                 private sessionSigner : SessionSigner = new SessionSigner(),
                 private userDirectory? : UserDirectory,
-                private memberships? : MembershipService) {}
+                private memberships? : MembershipService,
+                private operatorKey? : string) {}
 
     async apply(request : Request) : Promise<boolean> {
         if (this.isOpen(request)) return true;
+
+        /* The platform's operators, presenting the control plane's own key,
+           reach exactly one thing: the managed skills they look after. Nothing
+           else is open to the key, so holding it is not a way into a tenant. */
+        if (this.operatorKey && request.resource === "skills" && request.header("x-anbaric-central-key") === this.operatorKey) {
+            request.operator = true;
+            return true;
+        }
 
         if (this.tokenAuthenticator?.handles(request.raw)) {
             const user = await this.tokenAuthenticator.authenticate(request.raw, request.rawResponse);

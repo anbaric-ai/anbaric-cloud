@@ -7,6 +7,9 @@ type Skill = {
     title : string,
     usageHints : string,
     body : string,
+    /* A managed skill: written by the platform's operators rather than the
+       tenant, shown as such, and not the tenant's to change or remove. */
+    locked : boolean,
     createdAt : Date,
     updatedAt : Date,
 };

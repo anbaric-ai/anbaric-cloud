@@ -2,7 +2,7 @@ import {describe, expect, it, vi} from "vitest";
 import {Pool} from "pg";
 import {PostgresSkillStore} from "../../src/data-store/PostgresSkillStore";
 
-const row = { id: "web-fetching", title: "Fetching web pages", usage_hints: "Read first", body: "POST /html",
+const row = { id: "web-fetching", title: "Fetching web pages", usage_hints: "Read first", body: "POST /html", locked: false,
     created_at: new Date("2026-10-01T00:00:00Z"), updated_at: new Date("2026-10-02T00:00:00Z") };
 
 const mockPool = (answers : Array<{ rows? : Array<any>, rowCount? : number }>) => {
@@ -20,7 +20,7 @@ describe("PostgresSkillStore", () => {
         const store = new PostgresSkillStore(pool);
 
         expect(await store.get("web-fetching")).toEqual({
-            id: "web-fetching", title: "Fetching web pages", usageHints: "Read first", body: "POST /html",
+            id: "web-fetching", title: "Fetching web pages", usageHints: "Read first", body: "POST /html", locked: false,
             createdAt: row.created_at, updatedAt: row.updated_at,
         });
         expect(await store.get("nope")).toBeUndefined();
@@ -29,13 +29,13 @@ describe("PostgresSkillStore", () => {
     it("upserts on the id, touching updated_at", async () => {
         const { pool, query } = mockPool([{ rows: [row] }]);
 
-        await new PostgresSkillStore(pool).save({ id: "web-fetching", title: "Fetching web pages", usageHints: "Read first", body: "POST /html" });
+        await new PostgresSkillStore(pool).save({ id: "web-fetching", title: "Fetching web pages", usageHints: "Read first", body: "POST /html", locked: true });
 
         const sql = String(query.mock.calls[0][0]).replace(/\s+/g, " ");
         expect(sql).toContain("INSERT INTO anbaric_system.skills");
         expect(sql).toContain("ON CONFLICT (id) DO UPDATE");
         expect(sql).toContain("updated_at = now()");
-        expect(query.mock.calls[0][1]).toEqual(["web-fetching", "Fetching web pages", "Read first", "POST /html"]);
+        expect(query.mock.calls[0][1]).toEqual(["web-fetching", "Fetching web pages", "Read first", "POST /html", true]);
     });
 
     it("lists in id order and removes by id", async () => {
