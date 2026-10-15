@@ -64,6 +64,13 @@ hardcoding styles.
 > components in separate files, or import server modules only inside the data
 > function.
 
+## Skills
+
+One console page is for the agents rather than the people: **Skills**, where a
+builder writes guidance - when to use it and what to do - that the Anbaric MCP
+offers to every agent working on the tenant as a tool of its own. See
+[Skills](skills.md).
+
 ## Turning plugins on
 
 `ANBARIC_PLUGINS` is a comma-separated list of plugin modules. Setting it

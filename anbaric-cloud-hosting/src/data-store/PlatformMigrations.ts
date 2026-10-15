@@ -273,6 +273,20 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
         )`,
     ),
 
+    /* Guidance the tenant's builders write for the agents that work on it:
+       usage hints say when to reach for a skill, the body says what to do.
+       A platform table rather than workflow data, since apps never see it. */
+    statements("008-skills",
+        `CREATE TABLE IF NOT EXISTS anbaric_system.skills (
+            id          TEXT PRIMARY KEY,
+            title       TEXT NOT NULL,
+            usage_hints TEXT NOT NULL,
+            body        TEXT NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

@@ -28,6 +28,7 @@ What the framework gives you, one capability at a time.
 - [File storage](features/file-storage.md) — bytes at a path, local or in your tenant's storage
 - [Auditing](features/auditing.md) — the record of who changed what
 - [Entitlements](features/entitlements.md) — what a user has been granted, checked per request
+- [Skills](features/skills.md) — guidance your builders write for the agents working on your tenant
 - [Prompts](features/prompts.md) — versioned model instructions and schemas, saved at startup
 - [Serving a web UI](features/serving-a-web-ui.md) — putting your data on a page
 - [The admin console and widgets](features/admin-console-and-widgets.md) — dashboards and plugins
