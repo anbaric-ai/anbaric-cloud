@@ -82,6 +82,22 @@ anbaric app tail <name>       # stream runtime logs
 anbaric app tear-down <name>  # stop and remove the app
 ```
 
+## How work reaches a deployed app
+
+The platform queues each step a job is due and pushes it to the app that owns
+the job, at the address the platform itself gave the app when it placed it.
+Nothing in the app chooses or announces that address, and nothing is lost if
+the platform restarts: the route is the deployment.
+
+When a state machine starts it also **registers** itself: its id, the app it
+belongs to and its definition. That registration is what the console's
+**State machines** page, `anbaric state-machines` and the MCP's
+`anbaric_state_machines` show. The platform keeps it, with when the machine
+last registered and a **version** that advances each time the machine's
+definition changes - the same states, actions and transitions registering
+again, after a restart or a redeploy, keep their version. The console shows
+the latest version.
+
 ## Running your own platform
 
 You don't have to use Anbaric Cloud — `anbaric-hosting` runs the whole platform

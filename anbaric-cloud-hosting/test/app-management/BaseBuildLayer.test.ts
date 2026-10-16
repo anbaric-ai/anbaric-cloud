@@ -70,7 +70,7 @@ describe("BaseBuildLayer draining", () => {
 
     it("tells the app's consumers to drain, waits for nothing to be in flight, and shows the wait", async () => {
         const layer = new StubBuildLayer(appsDir, 5_000);
-        layer.consumerUrlsFor = () => [consumer.url];
+        layer.consumerUrlsFor = async () => [consumer.url];
         const running = layer.running("crm");
         consumer.setInFlight(2);
 
@@ -89,7 +89,7 @@ describe("BaseBuildLayer draining", () => {
 
     it("goes ahead at the deadline when work is still in flight", async () => {
         const layer = new StubBuildLayer(appsDir, 100);
-        layer.consumerUrlsFor = () => [consumer.url];
+        layer.consumerUrlsFor = async () => [consumer.url];
         const running = layer.running("crm");
         consumer.setInFlight(1);
 
@@ -110,7 +110,7 @@ describe("BaseBuildLayer draining", () => {
 
     it("tears a running app down only once it has drained, answering draining meanwhile", async () => {
         const layer = new StubBuildLayer(appsDir, 5_000);
-        layer.consumerUrlsFor = () => [consumer.url];
+        layer.consumerUrlsFor = async () => [consumer.url];
         layer.running("crm");
         consumer.setInFlight(1);
 

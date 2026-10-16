@@ -38,7 +38,7 @@ describe("PLATFORM_MIGRATIONS", () => {
         for (const table of ["jobs", "awaits", "documents", "queue", "job_run_schedule", "app_docs",
                              "entitlements", "entitlement_grants", "prompts",
                              "anbaric_system.cli_keys", "anbaric_system.users", "anbaric_system.audit_records",
-                             "anbaric_system.skills"]) {
+                             "anbaric_system.skills", "anbaric_system.state_machines"]) {
             expect(all).toContain(`CREATE TABLE IF NOT EXISTS ${table} (`);
         }
     });

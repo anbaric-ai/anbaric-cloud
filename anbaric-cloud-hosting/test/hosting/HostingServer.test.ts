@@ -19,6 +19,8 @@ import {User} from "../../src/auth/User";
 import {InMemoryAuditRecordStore} from "../../src/auditing/InMemoryAuditRecordStore";
 import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 import {HostingServer} from "../../src/hosting/HostingServer";
+import {BuildLayer} from "../../src/app-management/BuildLayer";
+import {ConsumerRegistry} from "../../src/queuing/ConsumerRegistry";
 
 const makeJob = (id : string, properties : Map<string, any> = new Map()) => new Job(id, properties, "start");
 const actor = new Code("tester");
@@ -360,7 +362,68 @@ describe("HostingServer round-trip via the cloud clients", () => {
 
         const stateMachines = await (await fetch(`${baseUrl}/api/v2/state-machines`)).json();
 
-        expect(stateMachines).toEqual([{ workflowId: "workflow-1", url: "http://app:8788" }]);
+        expect(stateMachines).toEqual([expect.objectContaining({ workflowId: "workflow-1", url: "http://app:8788", version: 1 })]);
+        expect(stateMachines[0].definition).toBeUndefined();
+    });
+
+    it("refuses a registration that names no workflow or url", async () => {
+        const response = await fetch(`${baseUrl}/api/v2/consumers`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ workflowId: "workflow-1" }),
+        });
+
+        expect(response.status).toBe(400);
+    });
+
+    describe("consumer route", () => {
+
+        const deployedLayer = (addresses : Record<string, string>) => ({
+            ensureHydrated: async () => {},
+            consumerUrlFor: (appName : string) => addresses[appName],
+            consumerUrlsFor: async () => [],
+            appRemoved: () => {},
+        }) as unknown as BuildLayer;
+
+        it("sends an app's messages to its deployment, wherever its machine said it was", async () => {
+            const registry = new ConsumerRegistry();
+            registry.register("crm", "workflow-1", "http://stale:8788");
+            const routed = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), registry,
+                deployedLayer({ crm: "http://crm.apps:8788" }));
+
+            expect(await routed.consumerRoute("crm", "workflow-1")).toBe("http://crm.apps:8788");
+        });
+
+        it("falls back to what was registered for an app the build layer does not have, or a message with no app", async () => {
+            const registry = new ConsumerRegistry();
+            registry.register("local", "workflow-1", "http://localhost:9000");
+            registry.register(undefined, "workflow-2", "http://localhost:9001");
+            const routed = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), registry, deployedLayer({}));
+
+            expect(await routed.consumerRoute("local", "workflow-1")).toBe("http://localhost:9000");
+            expect(await routed.consumerRoute(undefined, "workflow-2")).toBe("http://localhost:9001");
+            expect(await routed.consumerRoute("gone", "workflow-1")).toBeUndefined();
+        });
+
+        it("asks a deployed app to drain at its deployment's address once a machine of its is on record", async () => {
+            const layer = deployedLayer({ crm: "http://crm.apps:8788" });
+            const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), new ConsumerRegistry(), layer);
+            const port = await server.listen(0);
+            try {
+                expect(await layer.consumerUrlsFor("crm")).toEqual([]);
+
+                await fetch(`http://127.0.0.1:${port}/api/v2/consumers`, {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ appId: "crm", workflowId: "workflow-1", url: "http://crm.apps:8788" }),
+                });
+
+                expect(await layer.consumerUrlsFor("crm")).toEqual(["http://crm.apps:8788"]);
+            } finally {
+                await server.close();
+            }
+        });
+
     });
 
     describe("files", () => {

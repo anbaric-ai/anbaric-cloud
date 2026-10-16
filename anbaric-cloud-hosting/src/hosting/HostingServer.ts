@@ -6,6 +6,9 @@ import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {TokenAuthenticator} from "../auth/TokenAuthenticator";
 import {RemoteQueue} from "../queuing/RemoteQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
+import {ConsumerRoute} from "../queuing/Dispatcher";
+import {InMemoryStateMachineStore} from "../data-store/InMemoryStateMachineStore";
+import {StateMachineStore} from "../data-store/StateMachineStore";
 import {AppProxyHandler} from "./handlers/AppProxyHandler";
 import {AppLinkFallbackHandler} from "./handlers/AppLinkFallbackHandler";
 import {AppsHandler} from "./handlers/AppsHandler";
@@ -64,6 +67,10 @@ class HostingServer {
 
     private publicServer : Server;
     private internalServer : Server;
+    /* Where the dispatcher sends a message: to the app's deployment when
+       there is one, since the build layer decided where the app listens,
+       and otherwise wherever its machine registered itself. */
+    readonly consumerRoute : ConsumerRoute;
 
     constructor(persistence : JobPersistence, queue : RemoteQueue,
                 registry : ConsumerRegistry = new ConsumerRegistry(),
@@ -87,13 +94,23 @@ class HostingServer {
                 billing? : CentralBilling,
                 appSettings? : AppSettingsStore,
                 skills? : SkillStore,
-                operatorKey? : string) {
+                operatorKey? : string,
+                stateMachineStore : StateMachineStore = new InMemoryStateMachineStore()) {
+        this.consumerRoute = async (appId, workflowId) => {
+            if (appId && buildLayer) {
+                await buildLayer.ensureHydrated();
+                const deployed = buildLayer.consumerUrlFor(appId);
+                if (deployed) return deployed;
+            }
+            return registry.lookup(appId, workflowId);
+        };
+
         const pages = new PagesHandler();
         const ping = new PingHandler(tenant);
         const jobs = new JobsHandler(persistence);
         const queueHandler = new QueueHandler(queue);
-        const consumers = new ConsumersHandler(registry);
-        const stateMachines = new StateMachinesHandler(registry);
+        const consumers = new ConsumersHandler(registry, stateMachineStore);
+        const stateMachines = new StateMachinesHandler(stateMachineStore);
         const documents = documentStoreFor && new DocumentsHandler(documentStoreFor);
         const secrets = secretStoreFor && new SecretsHandler(secretStoreFor);
         const files = fileStorageFor && new FilesHandler(fileStorageFor);
@@ -133,10 +150,15 @@ class HostingServer {
         }
         const appProxy = buildLayer ? new AppProxyHandler(buildLayer) : undefined;
         if (buildLayer && appProxy) {
-            // So a deploy can ask the running version to drain: its consumers
-            // are wherever they registered themselves.
-            buildLayer.consumerUrlsFor = appName =>
-                [...new Set(registry.list().filter(consumer => consumer.appId === appName).map(consumer => consumer.url))];
+            // So a deploy can ask the running version to drain: an app with a
+            // registered machine is asked at its deployment's address, which
+            // the store remembers across a platform restart.
+            buildLayer.consumerUrlsFor = async appName => {
+                const urls = new Set(registry.list().filter(consumer => consumer.appId === appName).map(consumer => consumer.url));
+                const deployed = buildLayer.consumerUrlFor(appName);
+                if (deployed && (await stateMachineStore.list()).some(machine => machine.appId === appName)) urls.add(deployed);
+                return [...urls];
+            };
             buildLayer.appRemoved = appName => void subdomains?.release(appName);
             publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant, subdomains, appSettings));
             publicRouter.register("app", appProxy);

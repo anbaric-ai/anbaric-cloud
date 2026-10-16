@@ -52,7 +52,7 @@ anbaric app status link-media-brief     # a different app, from anywhere
 
 | Command | Purpose |
 | --- | --- |
-| `anbaric state-machines` | List registered state machines. |
+| `anbaric state-machines` | List registered state machines, with the version of each and when it last registered. |
 | `anbaric jobs create <sm-id> <start-state> [k=v …]` | Create a job and queue it for processing. |
 | `anbaric jobs list [state-machine-id]` | List jobs, newest first, a page at a time (100 by default — `--page 1` for the next). Narrow with `--state`, `--status`, `--app`; `--oldest` flips the order. Filters apply on the platform, across every job, before paging. |
 | `anbaric jobs stats` | Job counts per state and the queue size. |

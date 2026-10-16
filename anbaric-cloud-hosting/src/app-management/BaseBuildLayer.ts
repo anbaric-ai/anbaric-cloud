@@ -41,7 +41,7 @@ abstract class BaseBuildLayer implements BuildLayer {
 
     protected deployments = new Map<string, Deployment>();
     protected docGenerator? : DocGenerator;
-    consumerUrlsFor : (appName : string) => Array<string> = () => [];
+    consumerUrlsFor : (appName : string) => Promise<Array<string>> = async () => [];
 
     appRemoved : (appName : string) => void = () => {};
     private nextAppIndex = 0;
@@ -129,6 +129,11 @@ abstract class BaseBuildLayer implements BuildLayer {
         return this.summarize(deployment);
     }
 
+    consumerUrlFor(appName : string) : string | undefined {
+        const deployment = this.deployments.get(appName);
+        return deployment && `http://${deployment.appHost}:${deployment.consumerPort}`;
+    }
+
     async teardown(appName : string) : Promise<DeploymentSummary | undefined> {
         const deployment = this.deployments.get(appName);
         if (!deployment) return undefined;
@@ -144,8 +149,9 @@ abstract class BaseBuildLayer implements BuildLayer {
             this.appRemoved(appName);
         };
 
-        if (deployment.status === "running" && this.consumerUrlsFor(appName).length > 0) {
-            void this.drain(deployment, deployment).then(finish);
+        const consumerUrls = deployment.status === "running" ? await this.consumerUrlsFor(appName) : [];
+        if (consumerUrls.length > 0) {
+            void this.drain(deployment, deployment, consumerUrls).then(finish);
             return this.summarize(deployment);
         }
 
@@ -158,8 +164,8 @@ abstract class BaseBuildLayer implements BuildLayer {
        refused unconfirmed, so nothing is lost - it waits for the replacement)
        and polled until nothing is in flight or the drain timeout passes;
        `shown` is the deployment whose status the caller is watching. */
-    protected async drain(shown : Deployment, running : Deployment) : Promise<void> {
-        const urls = [...new Set(this.consumerUrlsFor(running.appName))];
+    protected async drain(shown : Deployment, running : Deployment, consumerUrls? : Array<string>) : Promise<void> {
+        const urls = [...new Set(consumerUrls ?? await this.consumerUrlsFor(running.appName))];
         if (urls.length === 0) return;
 
         const previous = shown.status;

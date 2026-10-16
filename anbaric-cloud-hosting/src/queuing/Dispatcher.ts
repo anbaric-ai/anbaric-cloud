@@ -1,13 +1,17 @@
 import {QueueMessage} from "anbaric-tsapi";
 import {RemoteQueue} from "./RemoteQueue";
-import {ConsumerRegistry} from "./ConsumerRegistry";
+
+/* Where a message's consumer can be reached, or nothing if it has none right
+   now. The hosting server composes one from what it knows: an app's
+   deployment first, the consumer registry for messages without an app. */
+type ConsumerRoute = (appId : string | undefined, workflowId : string) => Promise<string | undefined>;
 
 class Dispatcher {
 
     private ticker? : NodeJS.Timeout;
     private draining = false;
 
-    constructor(private queue : RemoteQueue, private registry : ConsumerRegistry,
+    constructor(private queue : RemoteQueue, private route : ConsumerRoute,
                 private dispatchIntervalMs : number = 1000) {}
 
     start() : void {
@@ -24,10 +28,9 @@ class Dispatcher {
     /* The queue leases each dequeued message and redelivers any it is not
        `confirm`ed — the consumer confirms once it has processed one. So the
        dispatcher never puts a message back: a failed push just leaves the
-       message to redeliver on its next lease. A message with no registered
-       listener yet is debounced (backed off), which lets a momentary
-       registration race resolve and cancels the message only if it never
-       finds a listener. */
+       message to redeliver on its next lease. A message with nowhere to go
+       yet is debounced (backed off), which lets a momentary gap resolve and
+       cancels the message only if it never finds a route. */
     private async drain() : Promise<void> {
         if (this.draining) return;
         this.draining = true;
@@ -36,7 +39,7 @@ class Dispatcher {
             const byConsumerUrl = new Map<string, Array<QueueMessage>>();
 
             for (const message of messages) {
-                const url = this.registry.lookup(message.appId, message.workflowId);
+                const url = await this.route(message.appId, message.workflowId);
                 if (!url) {
                     await this.queue.debounce(message);
                     continue;
@@ -68,3 +71,4 @@ class Dispatcher {
 }
 
 export { Dispatcher }
+export type { ConsumerRoute }

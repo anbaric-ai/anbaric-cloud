@@ -28,6 +28,7 @@ import {GatewayDocModel} from "./docs/GatewayDocModel";
 import {PostgresAppDocsStore} from "./data-store/PostgresAppDocsStore";
 import {PostgresAppSettingsStore} from "./data-store/PostgresAppSettingsStore";
 import {PostgresSkillStore} from "./data-store/PostgresSkillStore";
+import {PostgresStateMachineStore} from "./data-store/PostgresStateMachineStore";
 import {PostgresEntitlementStore} from "./data-store/PostgresEntitlementStore";
 import {PostgresUserDirectory} from "./data-store/PostgresUserDirectory";
 import {HttpMembershipService} from "./auth/HttpMembershipService";
@@ -159,11 +160,12 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     new PostgresEntitlementStore(pool), new PostgresUserDirectory(pool), memberships,
     (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing, appSettings, new PostgresSkillStore(pool),
     // The control plane's key, which the operators hold, is what writes a managed skill.
-    process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET || undefined);
+    process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET || undefined,
+    new PostgresStateMachineStore(pool));
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 
-const dispatcher = new Dispatcher(queue, registry, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));
+const dispatcher = new Dispatcher(queue, server.consumerRoute, Number(process.env.ANBARIC_DISPATCH_INTERVAL_MS ?? 1000));
 dispatcher.start();
 
 /* Tells the control plane how many apps this tenant runs, which is what it is

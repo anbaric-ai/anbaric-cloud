@@ -67,7 +67,7 @@ describe("Dispatcher", () => {
     beforeEach(() => {
         queue = new TestQueue();
         registry = new ConsumerRegistry();
-        dispatcher = new Dispatcher(queue, registry, DISPATCH_INTERVAL_MS);
+        dispatcher = new Dispatcher(queue, async (appId, workflowId) => registry.lookup(appId, workflowId), DISPATCH_INTERVAL_MS);
         stubServers = [];
     });
 

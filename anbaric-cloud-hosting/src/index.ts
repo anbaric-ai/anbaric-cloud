@@ -86,4 +86,7 @@ export * from "./hosting/handlers/auth/KeysHandler";
 export * from "./hosting/handlers/auth/WhoamiHandler";
 export * from "./queuing/RemoteQueue";
 export * from "./queuing/ConsumerRegistry";
+export * from "./data-store/StateMachineStore";
+export * from "./data-store/PostgresStateMachineStore";
+export * from "./data-store/InMemoryStateMachineStore";
 export * from "./queuing/Dispatcher";

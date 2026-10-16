@@ -58,9 +58,13 @@ interface BuildLayer {
     // uploaded source, without redeploying it. Returns the number of docs written.
     regenerateDocs(appName : string) : Promise<number>;
     cleanUp() : Promise<void>;
+    // Where a deployed app's queue consumer listens, which the layer itself
+    // decided when it placed the app: the host it gave the app and the
+    // consumer port. Undefined for an app the layer does not have.
+    consumerUrlFor(appName : string) : string | undefined;
     // Where a running app's queue consumers can be reached, so it can be asked
-    // to drain; the hosting server supplies it from its consumer registry.
-    consumerUrlsFor : (appName : string) => Array<string>;
+    // to drain; the hosting server supplies it from what the app registered.
+    consumerUrlsFor : (appName : string) => Promise<Array<string>>;
 
     /* Called once an app is really gone, which for one that drained is some
        minutes after the teardown returned. Whatever outlives the app - its

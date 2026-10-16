@@ -6,7 +6,7 @@ import {PushConsumer} from "../src/PushConsumer.js";
 
 const message = (jobId : string, workflowId : string = "workflow-1") : QueueMessage => ({ jobId, workflowId });
 
-const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array<{ workflowId : string, url : string }>) : Promise<{ server : Server, baseUrl : string }> =>
+const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array<Record<string, unknown>>) : Promise<{ server : Server, baseUrl : string }> =>
     new Promise(resolve => {
         const server = createServer((request, response) => {
             const chunks : Array<Buffer> = [];
@@ -34,7 +34,7 @@ const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array
 describe("PushConsumer", () => {
 
     let confirms : Array<QueueMessage>;
-    let registrations : Array<{ workflowId : string, url : string }>;
+    let registrations : Array<Record<string, unknown>>;
     let platform : Server;
     let consumer : PushConsumer;
 
@@ -120,6 +120,15 @@ describe("PushConsumer", () => {
 
         await vi.waitFor(() => expect(registrations).toEqual([
             { workflowId: "workflow-1", url: `http://localhost:${consumer.port}` },
+        ]));
+    });
+
+    it("sends the machine's definition along with its registration", async () => {
+        const definition = { workflowId: "workflow-1", startState: "start", dataSchema: [], states: [] };
+        consumer.subscribe("crm", "workflow-1", vi.fn(async () => {}), definition);
+
+        await vi.waitFor(() => expect(registrations).toEqual([
+            { appId: "crm", workflowId: "workflow-1", url: `http://localhost:${consumer.port}`, definition },
         ]));
     });
 

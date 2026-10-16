@@ -57,7 +57,7 @@ class StateMachine implements AppAware {
         this.auditor = auditor;
 
         this.consumer = ConsumerFactory.instance(queue)
-        this.consumer.subscribe(this.getAppId(), this.workflowId, jobId => this.progressJob(jobId));
+        this.consumer.subscribe(this.getAppId(), this.workflowId, jobId => this.progressJob(jobId), this.describe());
 
         void this.auditor.audit(this.getAppId(), "state-machine", this.workflowId, SystemActor.actor, ["INITIALIZE"],
             "State machine initialised", this.describe()).catch(() => {});

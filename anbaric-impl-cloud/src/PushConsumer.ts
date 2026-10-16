@@ -1,6 +1,6 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from "node:http";
 import {AddressInfo} from "node:net";
-import {Consumer, QueueMessage} from "anbaric-tsapi";
+import {Consumer, QueueMessage, WorkflowDefinition} from "anbaric-tsapi";
 import {CloudApiClient} from "./CloudApiClient.js";
 
 type ProcessJob = (jobId : string) => Promise<void>;
@@ -69,20 +69,24 @@ class PushConsumer implements Consumer {
         return JSON.stringify([appId || null, workflowId]);
     }
 
-    subscribe(appId : string | undefined, workflowId : string, processJob : ProcessJob) : void {
+    subscribe(appId : string | undefined, workflowId : string, processJob : ProcessJob, definition? : WorkflowDefinition) : void {
         this.subscribers.set(this.key(appId, workflowId), processJob);
         if (!this.server) {
             this.listening = this.listen();
             for (const signal of this.drainOnSignals) process.once(signal, () => void this.drainThenExit());
         }
-        void this.register(appId, workflowId);
+        void this.register(appId, workflowId, definition);
     }
 
-    private async register(appId : string | undefined, workflowId : string) : Promise<void> {
+    /* Tells the platform about the machine: where this consumer listens and
+       what the machine looks like. The platform routes work by the app, not
+       by this, so a registration that fails to land costs nothing but the
+       listing. */
+    private async register(appId : string | undefined, workflowId : string, definition? : WorkflowDefinition) : Promise<void> {
         try {
             await this.listening;
             const url = process.env.ANBARIC_CONSUMER_URL ?? `http://localhost:${this.boundPort}`;
-            await this.client.request("POST", "/consumers", { appId, workflowId, url });
+            await this.client.request("POST", "/consumers", { appId, workflowId, url, definition });
         } catch {
         }
     }

@@ -91,7 +91,7 @@ describe("platform end to end", () => {
         process.env.ANBARIC_CLOUD_URL = baseUrl;
         process.env.ANBARIC_CONSUMER_PORT = "0";
 
-        dispatcher = new Dispatcher(backingQueue, registry, 10);
+        dispatcher = new Dispatcher(backingQueue, server.consumerRoute, 10);
         dispatcher.start();
 
         persistence = new CloudJobPersistence(baseUrl);

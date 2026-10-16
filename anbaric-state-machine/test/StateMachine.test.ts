@@ -225,7 +225,7 @@ describe("StateMachine", () => {
         it("subscribes to the consumer with its workflow id", () => {
             machineWith([new State("start")]);
 
-            expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith("", WORKFLOW_ID, expect.any(Function));
+            expect(consumer.subscribe).toHaveBeenCalledExactlyOnceWith("", WORKFLOW_ID, expect.any(Function), expect.objectContaining({ workflowId: WORKFLOW_ID }));
         });
 
         it("audits its graph with the system actor on initialisation", () => {
@@ -265,7 +265,7 @@ describe("StateMachine", () => {
 
                 expect(machine.getAppId()).toBe("my-app");
                 expect(machine.workflowId).toBe("workflow-1");
-                expect(consumer.subscribe).toHaveBeenCalledWith("my-app", "workflow-1", expect.any(Function));
+                expect(consumer.subscribe).toHaveBeenCalledWith("my-app", "workflow-1", expect.any(Function), expect.objectContaining({ appId: "my-app" }));
                 expect(auditor.audit.mock.calls[0][0]).toBe("my-app");
                 expect(auditor.audit.mock.calls[0][6].appId).toBe("my-app");
             } finally {

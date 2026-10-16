@@ -38,7 +38,7 @@ const stubBuildLayer = () => ({
     teardown: vi.fn(async () => summary),
     regenerateDocs: vi.fn(async () => 0),
     cleanUp: vi.fn(async () => {}),
-    consumerUrlsFor: () => [],
+    consumerUrlsFor: async () => [],
     appRemoved: () => {},
 }) as unknown as BuildLayer & { resize : ReturnType<typeof vi.fn> };
 

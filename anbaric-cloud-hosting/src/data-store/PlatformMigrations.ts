@@ -305,6 +305,34 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
             ON entitlement_invites (COALESCE(email, ''), COALESCE(link_token, ''), COALESCE(app_id, ''), entitlement_id)`,
     ),
 
+    /* The state machines apps have registered, kept across platform restarts,
+       one row per version of each machine's definition. Machines seen before
+       this table existed are carried over from the audit trail their
+       initialisation wrote, as version 1 with no known hash, so the listing
+       is not empty until every app restarts. */
+    statements("011-state-machines",
+        `CREATE TABLE IF NOT EXISTS anbaric_system.state_machines (
+            app_id          TEXT,
+            workflow_id     TEXT NOT NULL,
+            url             TEXT,
+            version         INTEGER NOT NULL,
+            hash            TEXT NOT NULL,
+            definition      JSONB,
+            registered_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+            last_registered TIMESTAMPTZ NOT NULL DEFAULT now()
+        )`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS state_machines_version
+            ON anbaric_system.state_machines (COALESCE(app_id, ''), workflow_id, version)`,
+        `INSERT INTO anbaric_system.state_machines (app_id, workflow_id, version, hash, definition, registered_at, last_registered)
+         SELECT app_id, resource_id, 1, '', details, at, at FROM (
+             SELECT DISTINCT ON (COALESCE(app_id, ''), resource_id) app_id, resource_id, details, at
+             FROM anbaric_system.audit_records
+             WHERE resource_type = 'state-machine' AND 'INITIALIZE' = ANY (interaction)
+             ORDER BY COALESCE(app_id, ''), resource_id, at DESC
+         ) latest
+         ON CONFLICT DO NOTHING`,
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };
