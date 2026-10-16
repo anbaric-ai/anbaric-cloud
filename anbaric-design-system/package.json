@@ -39,6 +39,8 @@
     "./components/Toggle": "./components/Toggle/index.ts",
     "./components/SideNav": "./components/SideNav/index.ts",
     "./components/BuiltWithAnbaric": "./components/BuiltWithAnbaric/index.ts",
+    "./components/Accordion": "./components/Accordion/index.ts",
+    "./components/useMediaQuery": "./components/useMediaQuery.ts",
     "./components/*": "./components/*",
     "./shared/*": "./shared/*"
   },

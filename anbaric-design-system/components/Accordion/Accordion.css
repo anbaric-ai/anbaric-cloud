@@ -1,0 +1,80 @@
+/* =============================================================
+   Accordion — a stack of titled sections, each opened and closed on its own.
+   Flat like a Section: no surface of its own, so it sits inside a Card or on
+   the canvas. Depends on tokens.css.
+   ============================================================= */
+
+.ds-accordion {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ds-accordion__item {
+  border-bottom: 1px solid var(--color-background-shade-2);
+  min-width: 0;
+}
+
+.ds-accordion__item:last-child {
+  border-bottom: none;
+}
+
+/* The whole title row is the control, so the target is never just the chevron. */
+.ds-accordion__trigger {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-sm) 0;
+  font: inherit;
+  color: var(--color-foreground);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+}
+
+.ds-accordion__trigger:hover {
+  color: var(--color-primary);
+}
+
+.ds-accordion__trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ds-accordion__chevron {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-foreground-tint-2);
+  transition: transform 150ms ease;
+}
+
+.ds-accordion__item--open .ds-accordion__chevron {
+  transform: rotate(90deg);
+}
+
+.ds-accordion__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* An optional right-aligned slot on the title row (a count, a badge). */
+.ds-accordion__detail {
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-accordion__panel {
+  padding: 0 0 var(--space-md) calc(1.25rem + var(--space-sm));
+  min-width: 0;
+}

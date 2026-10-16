@@ -29,6 +29,7 @@ import type { PkSeries } from '../components/pk'
 import { Steps } from '../components/Steps'
 import { LoadingBar } from '../components/LoadingBar'
 import { Tabs } from '../components/Tabs'
+import { Accordion } from '../components/Accordion'
 import { RadioGroup } from '../components/RadioGroup'
 import { Toggle } from '../components/Toggle'
 import { SideNav } from '../components/SideNav'
@@ -501,6 +502,34 @@ function ComponentDemos() {
           <Toggle label="Notifications" />
           <Toggle label="Disabled" disabled />
         </div>
+      </Section>
+
+      <Section title="Accordion">
+        <p className="component-demo__body">
+          Sections that open and close on their own, so several can be open at once.
+        </p>
+        <Accordion
+          defaultOpen={['billing']}
+          items={[
+            {
+              id: 'billing',
+              title: 'Billing',
+              detail: '3',
+              content: <p className="component-demo__body">Invoices, payment methods and receipts.</p>,
+            },
+            {
+              id: 'members',
+              title: 'Members',
+              detail: '12',
+              content: <p className="component-demo__body">Who is on the account and what they may do.</p>,
+            },
+            {
+              id: 'api',
+              title: 'API access',
+              content: <p className="component-demo__body">Keys and their last use.</p>,
+            },
+          ]}
+        />
       </Section>
 
       <Section title="Tabs">

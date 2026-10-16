@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom'
 import * as ReactDOMClient from 'react-dom/client'
 import * as jsxRuntime from 'react/jsx-runtime'
 
+import * as Accordion from '@anbaric/design-system/components/Accordion'
 import * as Alert from '@anbaric/design-system/components/Alert'
 import * as Annotation from '@anbaric/design-system/components/Annotation'
 import * as Badge from '@anbaric/design-system/components/Badge'
@@ -22,6 +23,7 @@ import * as Steps from '@anbaric/design-system/components/Steps'
 import * as Tabs from '@anbaric/design-system/components/Tabs'
 import * as Toggle from '@anbaric/design-system/components/Toggle'
 import * as Tooltip from '@anbaric/design-system/components/Tooltip'
+import * as useMediaQuery from '@anbaric/design-system/components/useMediaQuery'
 
 /**
  * The host runtime handed to server-compiled plugin bundles: their react,
@@ -31,6 +33,7 @@ import * as Tooltip from '@anbaric/design-system/components/Tooltip'
  * left out to keep the dashboard bundle free of recharts.
  */
 const DesignSystem = {
+  ...Accordion,
   ...Alert,
   ...Annotation,
   ...Badge,
@@ -50,6 +53,7 @@ const DesignSystem = {
   ...Tabs,
   ...Toggle,
   ...Tooltip,
+  ...useMediaQuery,
 }
 
 declare global {
