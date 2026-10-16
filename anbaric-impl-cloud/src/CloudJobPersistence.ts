@@ -63,6 +63,10 @@ class CloudJobPersistence extends JobPersistence implements AppAware {
         await this.client.request("POST", `/jobs/${encodeURIComponent(id)}/kill`, {});
     }
 
+    protected async cancelInternal(id : string) : Promise<void> {
+        await this.client.request("POST", `/jobs/${encodeURIComponent(id)}/cancel`, {});
+    }
+
     protected async killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number> {
         const result = await this.client.request("POST", "/jobs/kill-old", { before: lastUpdatedBefore.toISOString() });
         return result.killed;

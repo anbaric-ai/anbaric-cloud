@@ -138,7 +138,18 @@ describe("PushConsumer", () => {
         const response = await push([message("job-1"), message("job-2")]);
 
         expect(response.status).toBe(202);
-        expect(await response.json()).toEqual({ accepted: ["job-1", "job-2"] });
+        expect(await response.json()).toEqual({ accepted: ["job-1", "job-2"], rejected: [] });
+    });
+
+    it("rejects messages for a workflow it has no subscriber for, and does not process or confirm them", async () => {
+        const processJob = vi.fn(async () => {});
+        consumer.subscribe(undefined, "workflow-1", processJob);
+
+        const response = await push([message("job-1"), message("job-2", "workflow-gone")]);
+
+        expect(await response.json()).toEqual({ accepted: ["job-1"], rejected: ["job-2"] });
+        await vi.waitFor(() => expect(confirms).toEqual([message("job-1")]));
+        expect(processJob).toHaveBeenCalledTimes(1);
     });
 
     it("processes each message with its workflow's subscriber and confirms it", async () => {

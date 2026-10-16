@@ -89,6 +89,12 @@ the job, at the address the platform itself gave the app when it placed it.
 Nothing in the app chooses or announces that address, and nothing is lost if
 the platform restarts: the route is the deployment.
 
+An app answers each push with what it **accepted** and what it **rejected**.
+It rejects a job for a state machine it no longer has - one removed in an
+update, say - and the platform then takes the job off the queue, kills it and
+marks its status **Cancelled**, with why on the audit trail, rather than
+offering it again for ever.
+
 When a state machine starts it also **registers** itself: its id, the app it
 belongs to and its definition. That registration is what the console's
 **State machines** page, `anbaric state-machines` and the MCP's

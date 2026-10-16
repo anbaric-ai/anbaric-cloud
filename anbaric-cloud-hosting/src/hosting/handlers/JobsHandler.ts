@@ -22,6 +22,12 @@ class JobsHandler implements RequestHandler {
             await this.persistence.kill(request.id, SystemActor.actor);
             return request.reply(204);
         }
+        if (request.id && request.subresource === "cancel") {
+            if (request.method !== "POST") return request.notFound();
+            const { reason } = (await request.body()) ?? {};
+            await this.persistence.cancel(request.id, SystemActor.actor, typeof reason === "string" && reason ? reason : "cancelled through the API");
+            return request.reply(204);
+        }
         if (request.id && request.subresource === "heartbeat") {
             if (request.method !== "POST") return request.notFound();
             const body = await request.body().catch(() => ({}));

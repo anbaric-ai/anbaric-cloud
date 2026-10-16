@@ -71,6 +71,13 @@ abstract class JobPersistence {
         await this.killInternal(id);
     }
 
+    /* Kills the job and marks it Cancelled, with why on the audit trail:
+       for a job nothing will ever process, as against one somebody stopped. */
+    async cancel(id : string, actor : Actor, reason : string) : Promise<void> {
+        await this.auditor.audit(currentAppId(), "job", id, actor, [JobPersistence.Interaction.KILL], `Job cancelled: ${reason}`, null);
+        await this.cancelInternal(id);
+    }
+
     async killOlderThan(lastUpdatedBefore : Date, actor : Actor) : Promise<number> {
         await this.auditor.audit(currentAppId(), "job", "*", actor, [JobPersistence.Interaction.KILL],
             `Jobs not updated since ${lastUpdatedBefore.toISOString()} killed`, null);
@@ -140,6 +147,7 @@ abstract class JobPersistence {
     protected abstract listInternal(pageSize? : number, page? : number, query? : JobPersistence.Query) : Promise<Array<Job>>;
     protected abstract heartbeatInternal(id : string, running : boolean) : Promise<void>;
     protected abstract killInternal(id : string) : Promise<void>;
+    protected abstract cancelInternal(id : string) : Promise<void>;
     protected abstract killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number>;
     protected abstract countByStateInternal() : Promise<Array<JobPersistence.StateCount>>;
 

@@ -376,6 +376,38 @@ describe("HostingServer round-trip via the cloud clients", () => {
         expect(response.status).toBe(400);
     });
 
+    it("cancels a job through the API, marking it killed and Cancelled", async () => {
+        await persistence.create(actor, makeJob("doomed"));
+
+        const response = await fetch(`${baseUrl}/api/v2/jobs/doomed/cancel`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ reason: "nobody wants it" }),
+        });
+
+        expect(response.status).toBe(204);
+        const cancelled = await persistence.retrieve("doomed", actor);
+        expect(cancelled.killed).toBe(true);
+        expect(cancelled.status).toBe(Job.Status.CANCELLED);
+    });
+
+    it("drops a rejected message from the queue and cancels its job", async () => {
+        const cancelled : Array<QueueMessage> = [];
+        const queue = new (class extends ConfirmableInMemoryQueue {
+            override async cancel(message : QueueMessage) : Promise<void> { cancelled.push(message); }
+        })();
+        const jobs = new InMemoryJobPersistence();
+        await jobs.create(actor, new Job("orphan", new Map(), "start", "gone-machine", "crm"));
+        const composed = new HostingServer(jobs, queue);
+
+        await composed.rejectedMessage({ jobId: "orphan", appId: "crm", workflowId: "gone-machine" });
+
+        expect(cancelled).toEqual([{ jobId: "orphan", appId: "crm", workflowId: "gone-machine" }]);
+        const job = await jobs.retrieve("orphan", actor);
+        expect(job.killed).toBe(true);
+        expect(job.status).toBe(Job.Status.CANCELLED);
+    });
+
     describe("consumer route", () => {
 
         const deployedLayer = (addresses : Record<string, string>) => ({

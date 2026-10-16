@@ -35,7 +35,7 @@ class TestQueue extends InMemoryQueue implements RemoteQueue {
 
 }
 
-const startStubConsumer = (received : Array<Array<QueueMessage>>, alwaysFails : boolean = false) :
+const startStubConsumer = (received : Array<Array<QueueMessage>>, alwaysFails : boolean = false, rejects : Array<string> = []) :
     Promise<{ server : Server, url : string }> =>
     new Promise(resolve => {
         const server = createServer((request, response) => {
@@ -44,11 +44,17 @@ const startStubConsumer = (received : Array<Array<QueueMessage>>, alwaysFails : 
             request.on("end", () => {
                 if (alwaysFails) {
                     response.statusCode = 500;
-                } else {
-                    received.push(JSON.parse(Buffer.concat(chunks).toString()).messages);
-                    response.statusCode = 202;
+                    response.end();
+                    return;
                 }
-                response.end();
+                const messages = JSON.parse(Buffer.concat(chunks).toString()).messages as Array<QueueMessage>;
+                received.push(messages);
+                response.statusCode = 202;
+                response.setHeader("content-type", "application/json");
+                response.end(JSON.stringify({
+                    accepted: messages.filter(message => ! rejects.includes(message.jobId)).map(message => message.jobId),
+                    rejected: messages.filter(message => rejects.includes(message.jobId)).map(message => message.jobId),
+                }));
             });
         });
         server.listen(0, () => resolve({
@@ -63,11 +69,14 @@ describe("Dispatcher", () => {
     let registry : ConsumerRegistry;
     let dispatcher : Dispatcher;
     let stubServers : Array<Server>;
+    let rejected : Array<QueueMessage>;
 
     beforeEach(() => {
         queue = new TestQueue();
         registry = new ConsumerRegistry();
-        dispatcher = new Dispatcher(queue, async (appId, workflowId) => registry.lookup(appId, workflowId), DISPATCH_INTERVAL_MS);
+        rejected = [];
+        dispatcher = new Dispatcher(queue, async (appId, workflowId) => registry.lookup(appId, workflowId), DISPATCH_INTERVAL_MS,
+            async message => { rejected.push(message); });
         stubServers = [];
     });
 
@@ -78,9 +87,9 @@ describe("Dispatcher", () => {
         }
     });
 
-    const registeredConsumer = async (workflowId : string, alwaysFails : boolean = false) => {
+    const registeredConsumer = async (workflowId : string, alwaysFails : boolean = false, rejects : Array<string> = []) => {
         const received : Array<Array<QueueMessage>> = [];
-        const stub = await startStubConsumer(received, alwaysFails);
+        const stub = await startStubConsumer(received, alwaysFails, rejects);
         stubServers.push(stub.server);
         registry.register(undefined, workflowId, stub.url);
         return received;
@@ -133,6 +142,17 @@ describe("Dispatcher", () => {
 
         expect(queue.cancelled).toEqual([]);
         expect(queue.confirmed).toEqual([]);
+        expect(queue.debounced).toEqual([]);
+    });
+
+    it("hands the messages a consumer rejects to the rejection handler, and only those", async () => {
+        await registeredConsumer("workflow-1", false, ["job-2"]);
+        await queue.enqueue("job-1", undefined, "workflow-1");
+        await queue.enqueue("job-2", undefined, "workflow-1");
+
+        dispatcher.start();
+
+        await vi.waitFor(() => expect(rejected).toEqual([{ jobId: "job-2", workflowId: "workflow-1" }]));
         expect(queue.debounced).toEqual([]);
     });
 

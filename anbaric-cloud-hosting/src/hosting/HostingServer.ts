@@ -1,4 +1,4 @@
-import {FileStorage, JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, PromptManager, SecretStore} from "anbaric-tsapi";
+import {FileStorage, JobPersistence, JobRunSchedulePersistence, JsonStore, Notifier, PromptManager, SecretStore, SystemActor} from "anbaric-tsapi";
 import {BuildLayer} from "../app-management/BuildLayer";
 import {AuditRecordStore} from "../auditing/AuditRecordStore";
 import {Authenticator} from "../auth/Authenticator";
@@ -6,7 +6,7 @@ import {CliAuthorizer} from "../auth/CliAuthorizer";
 import {TokenAuthenticator} from "../auth/TokenAuthenticator";
 import {RemoteQueue} from "../queuing/RemoteQueue";
 import {ConsumerRegistry} from "../queuing/ConsumerRegistry";
-import {ConsumerRoute} from "../queuing/Dispatcher";
+import {ConsumerRoute, RejectedMessage} from "../queuing/Dispatcher";
 import {InMemoryStateMachineStore} from "../data-store/InMemoryStateMachineStore";
 import {StateMachineStore} from "../data-store/StateMachineStore";
 import {AppProxyHandler} from "./handlers/AppProxyHandler";
@@ -71,6 +71,9 @@ class HostingServer {
        there is one, since the build layer decided where the app listens,
        and otherwise wherever its machine registered itself. */
     readonly consumerRoute : ConsumerRoute;
+    /* A message the app turned away is taken off the queue and its job
+       cancelled, since the app has no machine that will ever run it. */
+    readonly rejectedMessage : RejectedMessage;
 
     constructor(persistence : JobPersistence, queue : RemoteQueue,
                 registry : ConsumerRegistry = new ConsumerRegistry(),
@@ -103,6 +106,11 @@ class HostingServer {
                 if (deployed) return deployed;
             }
             return registry.lookup(appId, workflowId);
+        };
+        this.rejectedMessage = async message => {
+            await queue.cancel(message);
+            const where = message.appId ? `app "${message.appId}"` : "its app";
+            await persistence.cancel(message.jobId, SystemActor.actor, `${where} has no state machine "${message.workflowId}"`);
         };
 
         const pages = new PagesHandler();

@@ -29,7 +29,9 @@ const readBody = (request : IncomingMessage) : Promise<any> =>
 
 /* The app-side end of the platform's queue: the platform pushes batches of
    messages to this consumer's URL, and each is confirmed the moment the
-   consumer takes it on - from then on the job is the app's.
+   consumer takes it on - from then on the job is the app's. A message for a
+   machine this app does not have is answered as rejected, so the platform
+   can give the job up rather than offer it again for ever.
 
    A consumer can be told to drain, by the platform ahead of replacing the app
    or by a signal: it stops accepting pushes (they are refused unconfirmed, so
@@ -155,8 +157,10 @@ class PushConsumer implements Consumer {
                 return this.reply(response, 400, { error: "Expected a body of { messages : Array<QueueMessage> }" });
             }
             const messages = body.messages as Array<QueueMessage>;
-            this.reply(response, 202, { accepted: messages.map(message => message.jobId) });
-            void this.processAll(messages);
+            const taken = messages.filter(message => this.subscribers.has(this.key(message.appId, message.workflowId)));
+            const rejected = messages.filter(message => ! taken.includes(message));
+            this.reply(response, 202, { accepted: taken.map(message => message.jobId), rejected: rejected.map(message => message.jobId) });
+            void this.processAll(taken);
             return;
         }
 

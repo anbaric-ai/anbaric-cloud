@@ -183,6 +183,10 @@ class PostgresJobPersistence extends JobPersistence {
         await this.pool.query("UPDATE jobs SET killed = true, last_updated = now() WHERE id = $1", [id]);
     }
 
+    protected async cancelInternal(id : string) : Promise<void> {
+        await this.pool.query("UPDATE jobs SET killed = true, status = $2, last_updated = now() WHERE id = $1", [id, Job.Status.CANCELLED]);
+    }
+
     protected async killOlderThanInternal(lastUpdatedBefore : Date) : Promise<number> {
         const result = await this.pool.query(
             "UPDATE jobs SET killed = true, last_updated = now() WHERE last_updated < $1 AND killed = false",

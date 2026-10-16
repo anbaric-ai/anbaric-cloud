@@ -240,6 +240,16 @@ describe("InMemoryJobPersistence", () => {
             expect((await persistence.retrieve("job-1", actor)).killed).toBe(true);
         });
 
+        it("cancels a job: killed, and its status says so", async () => {
+            await persistence.create(actor, makeJob("job-1"));
+
+            await persistence.cancel("job-1", actor, "no machine");
+
+            const job = await persistence.retrieve("job-1", actor);
+            expect(job.killed).toBe(true);
+            expect(job.status).toBe(Job.Status.CANCELLED);
+        });
+
         it("kills jobs last updated before the cutoff, skipping already-killed ones", async () => {
             await persistence.create(actor, new Job("old", new Map(), "start", "wf", undefined, "system", new Date("2020-01-01"), new Date("2020-01-01")));
             await persistence.create(actor, new Job("recent", new Map(), "start", "wf", undefined, "system", new Date(), new Date()));

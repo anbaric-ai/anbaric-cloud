@@ -65,6 +65,9 @@ namespace Job {
         // A long-running step stopped heartbeating: the process running it
         // most likely died. Nothing acts on it; someone resumes it or not.
         STALLED: "Stalled",
+        // The platform gave up on the job: its app turned the work away,
+        // because it no longer has the state machine. Killed as well.
+        CANCELLED: "Cancelled",
     } as const;
 
     // How long a long-running step may go without a heartbeat before its job

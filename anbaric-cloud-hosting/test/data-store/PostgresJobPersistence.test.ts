@@ -120,6 +120,14 @@ describe("PostgresJobPersistence", () => {
         expect(query).toHaveBeenCalledWith("UPDATE jobs SET killed = true, last_updated = now() WHERE id = $1", ["job-1"]);
     });
 
+    it("cancels a job by id, killing it and setting its status", async () => {
+        const { pool, query } = mockPool();
+
+        await new PostgresJobPersistence(pool).cancel("job-1", actor, "no machine");
+
+        expect(query).toHaveBeenCalledWith("UPDATE jobs SET killed = true, status = $2, last_updated = now() WHERE id = $1", ["job-1", Job.Status.CANCELLED]);
+    });
+
     it("kills jobs older than a cutoff and returns the row count", async () => {
         const { pool, query } = mockPool();
         query.mockResolvedValueOnce({ rows: [], rowCount: 4 });
