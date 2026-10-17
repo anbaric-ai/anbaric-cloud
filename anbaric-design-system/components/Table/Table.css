@@ -1,0 +1,130 @@
+/* =============================================================
+   Table — rows on the canvas, parted by hairlines, with mono uppercase
+   headers. Below the breakpoint each row stacks into a block with its
+   headers as labels. Depends on tokens.css.
+   ============================================================= */
+
+.ds-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.ds-table__th {
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-xs);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-foreground-tint-2);
+  border-bottom: var(--border-hairline);
+  white-space: nowrap;
+}
+
+.ds-table__td {
+  padding: var(--space-sm);
+  vertical-align: middle;
+  border-bottom: var(--border-hairline);
+}
+
+.ds-table__th--right,
+.ds-table__td--right {
+  text-align: right;
+}
+
+.ds-table__td--mono {
+  font-family: var(--font-mono);
+}
+
+.ds-table__td--muted {
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-table__row--clickable {
+  cursor: pointer;
+}
+
+.ds-table__row--clickable:hover .ds-table__td {
+  background: color-mix(in srgb, var(--color-background-shade-1) 55%, transparent);
+}
+
+/* A selected row is told by a coral rule on its edge, not a wash. */
+.ds-table__row--selected .ds-table__td {
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+.ds-table__row--selected .ds-table__td:first-child {
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
+.ds-table__select {
+  width: 2rem;
+}
+
+.ds-table__empty {
+  padding: var(--space-lg) var(--space-sm);
+  color: var(--color-foreground-tint-2);
+}
+
+/* --- Stacked: one block per row ---------------------------------- */
+.ds-table-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-table-stack__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md) 0;
+  border-top: var(--border-hairline);
+}
+
+.ds-table-stack__row--selected {
+  box-shadow: inset 2px 0 0 var(--color-primary);
+  padding-left: var(--space-sm);
+}
+
+.ds-table-stack__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.ds-table-stack__lead > :first-child:not(input) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ds-table-stack__cell {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-size: var(--text-sm);
+}
+
+.ds-table-stack__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-table-stack__all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-tint-2);
+}

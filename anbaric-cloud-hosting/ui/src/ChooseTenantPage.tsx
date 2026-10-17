@@ -1,7 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 
+import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 
 import { PageShell } from './PageShell'
 
@@ -22,20 +24,20 @@ const row: CSSProperties = {
   alignItems: 'center',
   gap: 'var(--space-md)',
   width: '100%',
-  padding: 'var(--space-md)',
+  padding: 'var(--space-md) var(--space-sm)',
   textAlign: 'left',
   font: 'inherit',
   color: 'var(--color-foreground)',
   background: 'transparent',
   border: 'none',
-  borderRadius: 'var(--radius-element)',
+  borderTop: 'var(--border-hairline)',
   cursor: 'pointer',
 }
 
 const name: CSSProperties = {
-  fontFamily: 'var(--font-title)',
-  fontSize: '1rem',
-  lineHeight: 1.1,
+  fontWeight: 'var(--font-weight-medium)' as CSSProperties['fontWeight'],
+  fontSize: 'var(--text-md)',
+  lineHeight: 1.2,
 }
 
 const choices: CSSProperties = {
@@ -46,6 +48,7 @@ const choices: CSSProperties = {
 
 const choice: CSSProperties = {
   ...row,
+  borderTop: 'none',
   flexDirection: 'column',
   alignItems: 'flex-start',
   gap: 'var(--space-sm)',
@@ -73,7 +76,7 @@ const newcomer = (tenants: ChoosableTenant[]) =>
   tenants.length === 1 && tenants[0].personal && tenants[0].status === 'none'
 
 const signOut = (
-  <p style={{ ...muted, fontSize: '0.8rem', marginTop: 'var(--space-md)' }}>
+  <p style={{ ...muted, fontSize: 'var(--text-sm)', marginTop: 'var(--space-md)' }}>
     Not you? <a href="/logout" style={{ color: 'inherit' }}>Sign out</a>.
   </p>
 )
@@ -119,7 +122,7 @@ function ChooseTenantPage() {
   if (failed) {
     return (
       <PageShell title="Choose a tenant">
-        <Card><p style={{ margin: 0, ...muted }}>Couldn't load your tenants. Try refreshing.</p></Card>
+        <Alert variant="danger" title="Couldn't load your tenants">Try refreshing the page.</Alert>
       </PageShell>
     )
   }
@@ -130,7 +133,7 @@ function ChooseTenantPage() {
   if (!tenants) {
     return (
       <PageShell title="Anbaric" quiet logoHeight="9rem">
-        <p style={{ margin: 0, textAlign: 'center', ...muted }}>Loading…</p>
+        <Skeleton lines={3} />
       </PageShell>
     )
   }
@@ -149,8 +152,8 @@ function ChooseTenantPage() {
             Anbaric account using the email address you just signed in with{email ? <>: <strong>{email}</strong></> : null}.
             Their invitation will bring you straight to the app.
           </p>
-          <p style={{ margin: 'var(--space-md) 0 0', fontSize: '0.85rem' }}>
-            <button type="button" style={{ ...row, width: 'auto', padding: 0, ...muted, textDecoration: 'underline' }} onClick={() => setWaitingToBeInvited(false)}>
+          <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)' }}>
+            <button type="button" style={{ ...row, borderTop: 'none', width: 'auto', padding: 0, ...muted, textDecoration: 'underline' }} onClick={() => setWaitingToBeInvited(false)}>
               Actually, I want to build apps
             </button>
           </p>
@@ -165,20 +168,20 @@ function ChooseTenantPage() {
       <PageShell title="Anbaric" quiet logoHeight="9rem" width="40rem">
         <p style={{ ...muted, margin: '0 0 var(--space-md)' }}>Are you here to…</p>
         <div style={choices}>
-          <Card>
+          <Card interactive>
             <button type="button" style={choice} disabled={busy !== undefined} onClick={() => void choose(tenants[0])}>
               <Icon name="construction" />
-              <span style={{ ...name, fontSize: '1.15rem' }}>Build apps</span>
-              <span style={{ fontSize: '0.85rem', ...muted }}>
+              <span style={{ ...name, fontSize: 'var(--text-lg)' }}>Build apps</span>
+              <span style={{ fontSize: 'var(--text-sm)', ...muted }}>
                 Set up your own Anbaric environment and deploy your first app.
               </span>
             </button>
           </Card>
-          <Card>
+          <Card interactive>
             <button type="button" style={choice} disabled={busy !== undefined} onClick={() => setWaitingToBeInvited(true)}>
               <Icon name="mail" />
-              <span style={{ ...name, fontSize: '1.15rem' }}>Use someone else's app</span>
-              <span style={{ fontSize: '0.85rem', ...muted }}>
+              <span style={{ ...name, fontSize: 'var(--text-lg)' }}>Use someone else's app</span>
+              <span style={{ fontSize: 'var(--text-sm)', ...muted }}>
                 Someone is trying to give me access to their app.
               </span>
             </button>
@@ -191,8 +194,7 @@ function ChooseTenantPage() {
 
   return (
     <PageShell title="Choose a tenant">
-      <Card>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', borderBottom: 'var(--border-hairline)' }}>
           {tenants.map((tenant) => (
             <button
               key={tenant.slug ?? 'personal'}
@@ -202,15 +204,14 @@ function ChooseTenantPage() {
             >
               <span style={{ flex: '1 1 auto', minWidth: 0 }}>
                 <span style={{ display: 'block', ...name }}>{tenant.name}</span>
-                <span style={{ display: 'block', fontSize: '0.8rem', ...muted }}>{explain(tenant)}</span>
+                <span style={{ display: 'block', fontSize: 'var(--text-sm)', ...muted }}>{explain(tenant)}</span>
               </span>
-              {tenant.personal ? <Badge tone="neutral">Personal</Badge> : null}
+              {tenant.personal ? <Badge tone="outline">Personal</Badge> : null}
               {tenant.status === 'active' ? null : <Badge tone="warning">Setup</Badge>}
             </button>
           ))}
-        </div>
-      </Card>
-      <p style={{ ...muted, fontSize: '0.8rem', marginTop: 'var(--space-md)' }}>
+      </div>
+      <p style={{ ...muted, fontSize: 'var(--text-sm)', marginTop: 'var(--space-md)' }}>
         You can switch tenant any time from your account menu.
         {' '}Not you? <a href="/logout" style={{ color: 'inherit' }}>Sign out</a>.
       </p>

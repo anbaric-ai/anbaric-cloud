@@ -1,0 +1,62 @@
+/* =============================================================
+   EmptyState — what a list says when there is nothing in it: a mark, a
+   title in the headline treatment, a line of body and one action. Quiet,
+   centred, on the canvas. Depends on tokens.css.
+   ============================================================= */
+
+.ds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+}
+
+.ds-empty__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--space-xs);
+  border: var(--border-hairline);
+  border-radius: 50%;
+  color: var(--color-foreground-tint-2);
+  background: var(--surface-card);
+}
+
+.ds-empty__mark .material-symbols-rounded {
+  font-size: 1.4rem;
+}
+
+/* A number, when the emptiness has one: a large, light figure. */
+.ds-empty__figure {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-light);
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-empty__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-title);
+  font-size: var(--text-lg);
+  line-height: var(--title-line-height);
+  text-transform: var(--title-transform);
+  letter-spacing: var(--title-letter-spacing);
+  color: var(--color-foreground);
+}
+
+.ds-empty__body {
+  max-width: 36rem;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-empty__action {
+  margin-top: var(--space-sm);
+}

@@ -24,23 +24,10 @@ const PATIENCE_MS = 45_000
 
 const PATIENCE_LIMIT_MS = 10 * 60_000
 
-const heading: CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--font-title)',
-  fontSize: '1.15rem',
-  textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
-}
-
-const lead: CSSProperties = {
-  margin: 'var(--space-xs) 0 var(--space-lg)',
-  color: 'var(--color-foreground-tint-2)',
-  fontSize: '0.9rem',
-}
-
 const note: CSSProperties = {
   margin: 'var(--space-lg) 0 0',
   color: 'var(--color-foreground-tint-2)',
-  fontSize: '0.85rem',
+  fontSize: 'var(--text-sm)',
   fontVariantNumeric: 'tabular-nums',
 }
 
@@ -74,10 +61,7 @@ function ProvisioningPage({ message, failed = false, stages = [], stage }: Props
   const patient = Date.now() - startedAt > PATIENCE_LIMIT_MS
 
   return (
-    <Card>
-      <h2 style={heading}>{failed ? 'We hit a snag' : 'Setting up your Anbaric environment'}</h2>
-      <p style={lead}>{message}</p>
-
+    <Card title={failed ? 'We hit a snag' : 'Setting up your Anbaric environment'} subtitle={message}>
       {failed ? null : <LoadingBar variant="plain" messages={[]} />}
 
       {failed || stages.length === 0 ? null : (

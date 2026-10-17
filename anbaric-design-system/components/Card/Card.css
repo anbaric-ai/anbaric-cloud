@@ -1,16 +1,14 @@
 /* =============================================================
-   Card — a glass surface container that owns its spacing and corners.
+   Card — a flat surface container that owns its spacing and corners.
 
    • Medium padding and medium gaps between its children; the card takes the
      container radius and every direct child the element radius, so children sit
      concentric inside it.
-   • Sits at elevation level 1.
-   • Glass surface: a translucent white radial gradient over a background blur.
-   • Framed by a 1px border — a REAL element (.ds-card-border) rendered before,
-     and sitting genuinely behind, the card surface (.ds-card): one pixel larger
-     on every side and masked to its outermost pixel. Being a genuine sibling
-     (not a pseudo-element), it degrades to a plain 1px border if CSS masking is
-     unsupported, instead of bleeding through.
+   • Solid white on the canvas, framed by a hairline. No shadow at rest: what
+     separates a card from the page is its edge, not a float. An interactive
+     card (one that is a link or a button) may lift to elevation 1 on hover.
+   • An optional head: a title on the left and actions on the right, so pages
+     stop hand-rolling that row.
 
    Depends on tokens.css.
    ============================================================= */
@@ -22,43 +20,67 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  min-width: 0;
   padding: var(--space-md);
+  border: var(--border-hairline);
   border-radius: var(--radius-container);
-  background: var(--surface-glass);
-  box-shadow: var(--elevation-1);
-  backdrop-filter: blur(12px);
+  background: var(--surface-card);
+  box-shadow: var(--elevation-0);
 }
 
 .ds-card > * {
   border-radius: var(--radius-element);
 }
 
-/* The Card component: wraps the surface, with the border element behind it. */
+.ds-card--interactive {
+  transition: box-shadow 130ms ease, border-color 130ms ease;
+}
+
+.ds-card--interactive:hover {
+  border-color: var(--color-background-shade-2);
+  box-shadow: var(--elevation-1);
+}
+
+/* The Card component: wraps the surface so a card can be a flex item that
+   still shrinks below its content. */
 .ds-card-root {
   position: relative;
-  isolation: isolate;
   display: flex;
+  min-width: 0;
 }
 
 .ds-card-root > .ds-card {
   flex: 1 1 auto;
 }
 
-/* The 1px frame: a layer one pixel larger on every side (so 2px wider and
-   taller), masked so only its outermost pixel ring is visible. */
-.ds-card-border {
-  position: absolute;
-  inset: -1px;
-  z-index: -1;
-  padding: 1px;
-  border-radius: calc(var(--radius-container) + 1px);
-  background-image: var(--_card-frame-gradient);
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask-composite: exclude;
+.ds-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.ds-card__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--font-weight-title);
+  font-size: var(--text-lg);
+  line-height: var(--title-line-height);
+  text-transform: var(--title-transform);
+  letter-spacing: var(--title-letter-spacing);
+  color: var(--color-foreground);
+}
+
+.ds-card__subtitle {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 0 0 auto;
 }

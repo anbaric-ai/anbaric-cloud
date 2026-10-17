@@ -1,0 +1,78 @@
+/* =============================================================
+   Field — a label, a control and a line beneath it, as one piece. The
+   control inside takes the system's field look whether or not it sits in a
+   Form. Depends on tokens.css.
+   ============================================================= */
+
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.ds-field__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-field__required {
+  margin-left: 0.2rem;
+  color: var(--color-primary);
+}
+
+.ds-field input:not([type='checkbox']):not([type='radio']),
+.ds-field select,
+.ds-field textarea {
+  min-height: var(--control-height);
+  padding: var(--space-xs) var(--space-sm);
+  font: inherit;
+  color: var(--color-foreground);
+  background: var(--surface-card);
+  border: var(--border-control);
+  border-radius: var(--radius-element);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.ds-field textarea {
+  min-height: calc(var(--control-height) * 2);
+  resize: vertical;
+}
+
+.ds-field input::placeholder,
+.ds-field textarea::placeholder {
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-field input:focus,
+.ds-field select:focus,
+.ds-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.ds-field input:disabled,
+.ds-field select:disabled,
+.ds-field textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ds-field--invalid input,
+.ds-field--invalid select,
+.ds-field--invalid textarea {
+  border-color: var(--color-failure);
+}
+
+.ds-field__hint {
+  font-size: var(--text-xs);
+  color: var(--color-foreground-tint-2);
+}
+
+.ds-field__error {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-failure);
+}

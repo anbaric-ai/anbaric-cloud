@@ -4,7 +4,9 @@ import { Badge } from '@anbaric/design-system/components/Badge'
 import { Button } from '@anbaric/design-system/components/Button'
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Card } from '@anbaric/design-system/components/Card'
+import { Field } from '@anbaric/design-system/components/Field'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 
 import { PageShell } from './PageShell'
 import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
@@ -54,15 +56,10 @@ const returnedFromCheckout = () => new URLSearchParams(window.location.search).g
 
 const lowerFirst = (sentence: string) => sentence.charAt(0).toLowerCase() + sentence.slice(1)
 
-const price: CSSProperties = { fontFamily: 'var(--font-title)', fontSize: '2.25rem', margin: 0, lineHeight: 1 }
-const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: '0.95rem' }
+const price: CSSProperties = { fontFamily: 'var(--font-title)', fontWeight: 'var(--font-weight-title)' as CSSProperties['fontWeight'], fontSize: 'var(--text-2xl)', letterSpacing: 'var(--title-letter-spacing-large)', margin: 0, lineHeight: 1 }
+const perMonth: CSSProperties = { color: 'var(--color-foreground-tint-2)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-weight-regular)' as CSSProperties['fontWeight'], letterSpacing: 0 }
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
-const subtle: CSSProperties = { ...muted, fontSize: '0.8rem', marginTop: 'var(--space-md)' }
-const heading: CSSProperties = {
-  margin: '0 0 var(--space-lg)',
-  fontFamily: 'var(--font-title)',
-  textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
-}
+const subtle: CSSProperties = { ...muted, fontSize: 'var(--text-xs)', marginTop: 'var(--space-md)' }
 
 function SubscribePage({ requestId }: { requestId?: string }) {
   const [data, setData] = useState<Status | undefined>(undefined)
@@ -209,32 +206,29 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   if (redirecting) {
     return (
       <PageShell title="One moment">
-        <Card>
-          <p style={{ margin: '0 0 var(--space-md)', ...muted }}>Taking you to secure checkout…</p>
-          <LoadingBar variant="plain" messages={[]} />
-        </Card>
+        <p style={{ margin: '0 0 var(--space-md)', ...muted }}>Taking you to secure checkout…</p>
+        <LoadingBar variant="plain" messages={[]} />
       </PageShell>
     )
   }
 
   if (!data) {
     if (failedLoads >= INITIAL_FAIL_LIMIT) {
-      return <PageShell title="Get started"><Card><p style={{ margin: 0, ...muted }}>Couldn't load your subscription. Try refreshing.</p></Card></PageShell>
+      return <PageShell title="Get started"><Alert variant="danger" title="Couldn't load your subscription">Try refreshing the page.</Alert></PageShell>
     }
-    return <PageShell title="Get started"><Card><p style={{ margin: 0, ...muted }}>Loading…</p></Card></PageShell>
+    return <PageShell title="Get started"><Skeleton lines={4} /></PageShell>
   }
 
   if (data.status === 'active') {
     return (
       <PageShell title="You're all set">
-        <Card>
-          <h2 style={heading}>Your environment is ready</h2>
+        <Card title="Your environment is ready">
           <p style={{ margin: 0 }}>
             {requestId
               ? 'Return to your terminal — the CLI will continue automatically.'
               : 'You can head back to your terminal and deploy.'}
           </p>
-          <div style={{ marginTop: 'var(--space-lg)' }}>
+          <div>
             <Button variant="primary" loading={entering} disabled={entering} onClick={() => void enterConsole()}>
               Go to your console
             </Button>
@@ -273,16 +267,14 @@ function SubscribePage({ requestId }: { requestId?: string }) {
     return (
       <PageShell title="Setting things up" quiet logoHeight="9rem" width="44rem">
         <ProvisioningPage failed message="Something went wrong while we were building your environment. Your subscription is fine and you will not be charged again — we can simply run it through once more." />
-        <Card>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
-            <p style={{ margin: 0, flex: '1 1 16rem' }}>
-              {retryError ?? 'Most failures are temporary. If this one is not, get in touch and we will sort it out.'}
-            </p>
-            <Button variant="primary" loading={retrying} disabled={retrying} onClick={() => void retry()}>
-              Try again
-            </Button>
-          </div>
-        </Card>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
+          <p style={{ margin: 0, flex: '1 1 16rem' }}>
+            {retryError ?? 'Most failures are temporary. If this one is not, get in touch and we will sort it out.'}
+          </p>
+          <Button variant="primary" loading={retrying} disabled={retrying} onClick={() => void retry()}>
+            Try again
+          </Button>
+        </div>
       </PageShell>
     )
   }
@@ -308,7 +300,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--font-title)' }}>Anbaric Cloud</h2>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-title)', fontWeight: 'var(--font-weight-title)' as CSSProperties['fontWeight'], fontSize: 'var(--text-lg)', textTransform: 'var(--title-transform)' as CSSProperties['textTransform'], letterSpacing: 'var(--title-letter-spacing)' }}>Anbaric Cloud</h2>
             {promo ? (
               <>
                 <Badge tone="neutral"><s>First month free</s></Badge>
@@ -324,7 +316,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
             {data.perApp.display}
             <span style={perMonth}> per app, per month*</span>
           </p>
-          <p style={{ margin: 'var(--space-md) 0 0', fontSize: '1.05rem' }}>The last mile for enterprise vibe-coding.</p>
+          <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-md)' }}>The last mile for enterprise vibe-coding.</p>
           <p style={{ margin: 'var(--space-md) 0 0', ...muted }}>
             You'll be billed on the 1st of each month for the days each app has been running.
             Prices exclude {tax}, which is added at checkout for your location.
@@ -339,20 +331,16 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       <p style={subtle}>
         {promo ? `* Free hosting covers up to ${data.freeApps} apps. Beyond those, ${lowerFirst(data.perApp.footnote)}.` : `* ${data.perApp.footnote}.`}
       </p>
-      <Card>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
-          <div style={{ flex: '1 1 16rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ ...muted, fontSize: '0.8rem' }}>{promo ? 'Have a different promo code?' : 'Have a promo code?'}</span>
-            <input value={promoCode} onChange={(event) => setPromoCode(event.target.value)} placeholder="PROMO-CODE"
-                   style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
-                   onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
-          </div>
-          <Button variant="ghost" loading={redeeming} disabled={busy || !promoCode.trim()} onClick={() => void redeem()}>
-            Redeem
-          </Button>
-        </div>
-        {promoError ? <p style={{ margin: 'var(--space-sm) 0 0', color: 'var(--color-failure)', fontSize: '0.85rem' }}>{promoError}</p> : null}
-      </Card>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
+        <Field label={promo ? 'Have a different promo code?' : 'Have a promo code?'} error={promoError}>
+          <input value={promoCode} onChange={(event) => setPromoCode(event.target.value)} placeholder="PROMO-CODE"
+                 style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}
+                 onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }} />
+        </Field>
+        <Button variant="secondary" loading={redeeming} disabled={busy || !promoCode.trim()} onClick={() => void redeem()}>
+          Redeem
+        </Button>
+      </div>
     </PageShell>
   )
 }

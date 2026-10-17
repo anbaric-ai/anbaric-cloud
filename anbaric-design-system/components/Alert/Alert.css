@@ -8,9 +8,10 @@
   align-items: flex-start;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
+  border: var(--border-hairline);
+  border-left: 4px solid var(--ds-alert-color);
   border-radius: var(--radius-element);
-  border-left: 3px solid var(--ds-alert-color);
-  background: color-mix(in srgb, var(--ds-alert-color) 10%, var(--color-background));
+  background: var(--surface-card);
   color: var(--color-foreground);
 }
 
@@ -46,12 +47,12 @@
 
 .ds-alert__title {
   margin: 0;
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
 }
 
 .ds-alert__body {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   color: var(--color-foreground-tint-1);
 }
 
@@ -72,5 +73,5 @@
 
 .ds-alert__dismiss:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }

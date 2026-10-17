@@ -1,6 +1,5 @@
 import { type CSSProperties, type ReactNode } from 'react'
 
-import { Card } from '@anbaric/design-system/components/Card'
 import { Section } from '@anbaric/design-system/components/Section'
 
 type Step = { title: string; body: ReactNode; command?: string }
@@ -40,20 +39,22 @@ const number: CSSProperties = {
   width: '1.5rem',
   height: '1.5rem',
   borderRadius: '50%',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: 'var(--color-primary)',
-  background: 'color-mix(in srgb, var(--color-primary) 14%, var(--color-background))',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--text-xs)',
+  fontWeight: 'var(--font-weight-medium)' as CSSProperties['fontWeight'],
+  color: 'var(--color-foreground-tint-1)',
+  border: 'var(--border-hairline)',
+  background: 'var(--surface-card)',
 }
 
-const stepTitle: CSSProperties = { margin: 0, fontFamily: 'var(--font-title)', fontSize: '0.95rem', lineHeight: 1.2 }
+const stepTitle: CSSProperties = { margin: 0, fontWeight: 'var(--font-weight-medium)' as CSSProperties['fontWeight'], fontSize: 'var(--text-md)', lineHeight: 1.2 }
 
 const command: CSSProperties = {
   margin: 'var(--space-sm) 0 0',
   padding: 'var(--space-sm) var(--space-md)',
   overflowX: 'auto',
   fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-  fontSize: '0.8rem',
+  fontSize: 'var(--text-xs)',
   lineHeight: 1.5,
   color: 'var(--color-foreground)',
   background: 'var(--color-background-shade-1)',
@@ -151,26 +152,26 @@ function GettingStartedPage() {
       <div style={grid}>
         {PATHS.map((path) => (
           <Section key={path.title} title={path.title}>
-            <Card>
-              <p style={{ margin: '0 0 var(--space-md)', fontSize: '0.9rem', ...muted }}>{path.lead}</p>
+            <div>
+              <p style={{ margin: '0 0 var(--space-md)', fontSize: 'var(--text-sm)', ...muted }}>{path.lead}</p>
               <ol style={steps}>
                 {path.steps.map((each, index) => (
                   <li key={each.title} style={step}>
                     <span style={number} aria-hidden="true">{index + 1}</span>
                     <div style={{ minWidth: 0 }}>
                       <h3 style={stepTitle}>{each.title}</h3>
-                      <p style={{ margin: 'var(--space-xs) 0 0', fontSize: '0.85rem', ...muted }}>{each.body}</p>
+                      <p style={{ margin: 'var(--space-xs) 0 0', fontSize: 'var(--text-sm)', ...muted }}>{each.body}</p>
                       {each.command ? <pre style={command}>{each.command}</pre> : null}
                     </div>
                   </li>
                 ))}
               </ol>
-            </Card>
+            </div>
           </Section>
         ))}
       </div>
 
-      <p style={{ margin: 0, fontSize: '0.85rem', ...muted }}>
+      <p style={{ margin: 0, fontSize: 'var(--text-sm)', ...muted }}>
         The same guide lives at{' '}
         <a href="https://anbaric.ai/getting-started" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
           anbaric.ai/getting-started

@@ -1,7 +1,7 @@
 import './Button.css'
 import { type ButtonHTMLAttributes, type ReactNode } from 'react'
 
-export type ButtonVariant = 'primary' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
@@ -13,10 +13,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Button — the primary action component. Variants (primary / secondary / ghost
- * / danger), sizes, a loading state, and optional start/end icons. Lifts on
- * hover, presses on click, sweeps a sheen, and shows a chunky focus ring — all
- * token-driven, and respectful of `prefers-reduced-motion`.
+ * Button — the action component. Variants: primary (ink), secondary (white,
+ * bordered - the action beside a primary), ghost (text only, coral) and
+ * danger. A loading state, optional start/end icons. Flat: hover and press
+ * are told by colour, focus by the shared ring.
  */
 export function Button({
   variant = 'primary',

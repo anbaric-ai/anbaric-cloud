@@ -2,8 +2,12 @@ import { useEffect, useState, type CSSProperties } from 'react'
 
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
-import { Card } from '@anbaric/design-system/components/Card'
+import { Button } from '@anbaric/design-system/components/Button'
+import { EmptyState } from '@anbaric/design-system/components/EmptyState'
+import { Field } from '@anbaric/design-system/components/Field'
 import { Modal } from '@anbaric/design-system/components/Modal'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
+import { Table } from '@anbaric/design-system/components/Table'
 
 const PAGE_SIZE = 50
 
@@ -29,63 +33,25 @@ const interactionTone = (interaction: string) =>
       ? 'danger'
       : interaction === 'CHANGE_STATE'
         ? 'primary'
-        : interaction === 'READ' || interaction === 'LIST'
-          ? 'neutral'
-          : 'neutral'
-
-const cell: CSSProperties = {
-  textAlign: 'left',
-  verticalAlign: 'top',
-  padding: 'calc(var(--space-sm) / 2) var(--space-sm)',
-  borderBottom: '1px solid color-mix(in srgb, var(--color-grey) 12%, transparent)',
-}
-
-const headerCell: CSSProperties = {
-  ...cell,
-  fontSize: '0.72rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: 'var(--color-foreground-tint-2)',
-}
+        : 'neutral'
 
 const mono: CSSProperties = {
   fontFamily: 'var(--font-mono)',
-  fontSize: '0.78rem',
+  fontSize: 'var(--text-xs)',
 }
 
-const filterInput: CSSProperties = {
-  font: 'inherit',
-  padding: 'var(--space-sm)',
-  border: '1px solid var(--color-background-shade-2)',
-  borderRadius: 'var(--radius-element)',
-  background: 'var(--color-background)',
-  color: 'var(--color-foreground)',
-  minWidth: '10rem',
+const filters: CSSProperties = {
+  display: 'flex',
+  gap: 'var(--space-md)',
+  flexWrap: 'wrap',
+  alignItems: 'flex-end',
 }
 
-const pageButton: CSSProperties = {
-  font: 'inherit',
-  padding: 'var(--space-sm) var(--space-md)',
-  border: '1px solid var(--color-background-shade-2)',
-  borderRadius: 'var(--radius-element)',
-  background: 'var(--color-background)',
-  color: 'var(--color-foreground)',
-  cursor: 'pointer',
-}
-
-const detailsLink: CSSProperties = {
-  font: 'inherit',
-  padding: 0,
-  border: 'none',
-  background: 'none',
-  color: 'var(--color-primary)',
-  fontWeight: 600,
-  cursor: 'pointer',
-}
+const filter: CSSProperties = { flex: '1 1 10rem' }
 
 const detailsPre: CSSProperties = {
   fontFamily: 'var(--font-mono)',
-  fontSize: '0.8rem',
+  fontSize: 'var(--text-xs)',
   margin: 0,
   padding: 'var(--space-md)',
   maxHeight: '60vh',
@@ -149,167 +115,131 @@ function AuditPage() {
 
   return (
     <>
-      <Card>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            void load(0)
-          }}
-          style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}
-        >
-          <select
-            style={filterInput}
-            value={resourceType}
-            onChange={(event) => setResourceType(event.target.value)}
-          >
-            <option value="">Any resource</option>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void load(0)
+        }}
+        style={filters}
+      >
+        <Field label="Resource">
+          <select value={resourceType} onChange={(event) => setResourceType(event.target.value)} style={filter}>
+            <option value="">Any</option>
             {RESOURCE_TYPES.map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
             ))}
           </select>
-          <input
-            style={filterInput}
-            placeholder="Resource id"
-            value={resourceId}
-            onChange={(event) => setResourceId(event.target.value)}
-          />
-          <input
-            style={filterInput}
-            placeholder="Actor"
-            value={actorId}
-            onChange={(event) => setActorId(event.target.value)}
-          />
-          <select
-            style={filterInput}
-            value={interaction}
-            onChange={(event) => setInteraction(event.target.value)}
-          >
-            <option value="">Any interaction</option>
+        </Field>
+        <Field label="Resource id">
+          <input placeholder="Any" value={resourceId} onChange={(event) => setResourceId(event.target.value)} style={filter} />
+        </Field>
+        <Field label="Actor">
+          <input placeholder="Any" value={actorId} onChange={(event) => setActorId(event.target.value)} style={filter} />
+        </Field>
+        <Field label="Interaction">
+          <select value={interaction} onChange={(event) => setInteraction(event.target.value)} style={filter}>
+            <option value="">Any</option>
             {INTERACTIONS.map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
             ))}
           </select>
-          <input
-            style={filterInput}
-            placeholder="Description contains…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <button
-            type="submit"
-            style={{
-              font: 'inherit',
-              fontWeight: 600,
-              padding: 'var(--space-sm) var(--space-md)',
-              border: 'none',
-              borderRadius: 'var(--radius-element)',
-              background: 'var(--gradient-ink)',
-              color: 'var(--color-background)',
-              cursor: 'pointer',
-            }}
-          >
-            Filter
-          </button>
-        </form>
-      </Card>
+        </Field>
+        <Field label="Description">
+          <input placeholder="Contains…" value={search} onChange={(event) => setSearch(event.target.value)} style={filter} />
+        </Field>
+        <Button type="submit" variant="secondary">
+          Filter
+        </Button>
+      </form>
+
       {failed ? (
         <Alert variant="danger" title="Could not load the audit trail">
           The platform rejected the request — try reloading the page.
         </Alert>
       ) : null}
-      {records && records.length === 0 ? (
-        <p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>
-          No audit records match.
-        </p>
+
+      {!records ? (
+        <Skeleton lines={6} />
       ) : (
-        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <table style={{ width: '100%', minWidth: '48rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={headerCell}>When</th>
-                <th style={headerCell}>Resource</th>
-                <th style={headerCell}>Actor</th>
-                <th style={headerCell}>Interaction</th>
-                <th style={headerCell}>Description</th>
-                <th style={headerCell}>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(records ?? []).map((record) => (
-                <tr key={record.id}>
-                  <td style={{ ...cell, whiteSpace: 'nowrap' }}>{formatDate(record.at)}</td>
-                  <td style={{ ...cell, ...mono }}>
-                    <Badge tone="neutral">{record.resourceType}</Badge>{' '}
-                    {record.resourceId}
-                  </td>
-                  <td style={cell}>
-                    <Badge tone={actorTone(record.actorType)} dot>
-                      {record.actorId}
+        <Table
+          label="Audit trail"
+          rows={records}
+          rowKey={(record) => record.id}
+          empty={<EmptyState icon="history" title="No audit records match">Loosen the filters above to see more.</EmptyState>}
+          columns={[
+            { id: 'when', header: 'When', muted: true, cell: (record) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(record.at)}</span> },
+            {
+              id: 'resource',
+              header: 'Resource',
+              primary: true,
+              cell: (record) => (
+                <span style={{ display: 'inline-flex', gap: 'var(--space-xs)', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Badge tone="outline">{record.resourceType}</Badge>
+                  <span style={mono}>{record.resourceId}</span>
+                </span>
+              ),
+            },
+            {
+              id: 'actor',
+              header: 'Actor',
+              cell: (record) => (
+                <Badge tone={actorTone(record.actorType)} dot>
+                  {record.actorId}
+                </Badge>
+              ),
+            },
+            {
+              id: 'interaction',
+              header: 'Interaction',
+              cell: (record) => (
+                <span style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+                  {record.interaction.map((each) => (
+                    <Badge key={each} tone={interactionTone(each)}>
+                      {each}
                     </Badge>
-                  </td>
-                  <td style={cell}>
-                    <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-                      {record.interaction.map((interaction) => (
-                        <Badge key={interaction} tone={interactionTone(interaction)}>
-                          {interaction}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={cell}>{record.description}</td>
-                  <td style={{ ...cell, whiteSpace: 'nowrap' }}>
-                    {record.details == null ? (
-                      <span style={{ color: 'var(--color-foreground-tint-2)' }}>—</span>
-                    ) : (
-                      <button type="button" style={detailsLink} onClick={() => setSelected(record)}>
-                        View
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ))}
+                </span>
+              ),
+            },
+            { id: 'description', header: 'Description', cell: (record) => record.description },
+            {
+              id: 'details',
+              header: '',
+              align: 'right',
+              cell: (record) =>
+                record.details == null ? null : (
+                  <Button variant="ghost" onClick={() => setSelected(record)}>
+                    View
+                  </Button>
+                ),
+            },
+          ]}
+        />
       )}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--space-md)',
-        }}
-      >
-        <button type="button" style={pageButton} disabled={page === 0} onClick={() => void load(page - 1)}>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)' }}>
+        <Button variant="secondary" disabled={page === 0} onClick={() => void load(page - 1)}>
           ← Newer
-        </button>
+        </Button>
         <span style={{ ...mono, color: 'var(--color-foreground-tint-2)' }}>Page {page + 1}</span>
-        <button
-          type="button"
-          style={pageButton}
-          disabled={(records?.length ?? 0) < PAGE_SIZE}
-          onClick={() => void load(page + 1)}
-        >
+        <Button variant="secondary" disabled={(records?.length ?? 0) < PAGE_SIZE} onClick={() => void load(page + 1)}>
           Older →
-        </button>
+        </Button>
       </div>
-      <Modal
-        open={selected != null}
-        onClose={() => setSelected(undefined)}
-        title="Audit details"
-      >
+
+      <Modal open={selected != null} onClose={() => setSelected(undefined)} title="Audit details">
         {selected ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Badge tone="neutral">{selected.resourceType}</Badge>
+              <Badge tone="outline">{selected.resourceType}</Badge>
               <span style={mono}>{selected.resourceId}</span>
-              {selected.interaction.map((interaction) => (
-                <Badge key={interaction} tone={interactionTone(interaction)}>
-                  {interaction}
+              {selected.interaction.map((each) => (
+                <Badge key={each} tone={interactionTone(each)}>
+                  {each}
                 </Badge>
               ))}
             </div>

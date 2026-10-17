@@ -1,15 +1,14 @@
 /* =============================================================
    Drawer — a large Card docked to the right edge, sliding in over a fully
-   transparent curtain. Native <dialog> for modality. Depends on tokens.css.
+   transparent curtain, lifted by its shadow. Native <dialog> for modality.
+   Depends on tokens.css.
    ============================================================= */
 
 .ds-drawer {
   width: min(92vw, 28rem);
   max-width: 92vw;
   /* The dialog box IS the card's footprint: margins float it off the edges
-     and the radius matches the Card, so the backdrop blur below hugs the
-     panel exactly. The blur must live on the dialog itself — inside the top
-     layer, a child's backdrop-filter cannot see the page behind the dialog. */
+     and the radius matches the Card, so the shadow hugs the panel exactly. */
   height: calc(100vh - 2 * var(--space-md));
   height: calc(100dvh - 2 * var(--space-md));
   max-height: calc(100vh - 2 * var(--space-md));
@@ -19,7 +18,7 @@
   border: none;
   border-radius: var(--radius-container);
   background: transparent;
-  backdrop-filter: blur(12px);
+  box-shadow: var(--elevation-3);
   overflow: visible;
   /* Closed/exit state. The timing is symmetric, so close is the exact reverse
      of open: translate & scale over 400ms, opacity 200ms after a 100ms delay. */
@@ -86,7 +85,7 @@
 
 .ds-drawer__close:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 @media (prefers-reduced-motion: reduce) {

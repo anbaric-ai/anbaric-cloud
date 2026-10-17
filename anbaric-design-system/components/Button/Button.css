@@ -1,7 +1,7 @@
 /* =============================================================
-   Button — the main ink gradient as its fill. On hover the surface
-   embosses upward (no height change); on click it depresses. All
-   transitions are quick and subtle. Depends on tokens.css.
+   Button — a flat fill in the ink, one shade lighter on hover and the full
+   ink on press. No gradient, no emboss: the state is told by colour alone,
+   and focus by the shared ring. Depends on tokens.css.
    ============================================================= */
 
 .ds-button {
@@ -9,62 +9,90 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-xs);
+  min-height: var(--control-height);
+  padding: calc(var(--space-xs) + 2px) var(--space-md);
   font: inherit;
-  font-weight: var(--font-weight-semibold);
-  line-height: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
   white-space: nowrap;
   color: var(--color-background);
-  background: var(--gradient-ink);
-  border: 1px solid color-mix(in srgb, var(--color-foreground) 18%, transparent);
+  background: var(--color-foreground);
+  border: 1px solid transparent;
   border-radius: var(--radius-element);
   cursor: pointer;
   transition:
-    box-shadow 130ms ease,
-    filter 130ms ease;
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-/* Hover: a subtle emboss upward (no height change). */
 .ds-button:hover:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0.5px rgba(255, 255, 255, 0.18),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(13, 8, 87, 0.07);
+  background: var(--color-foreground-tint-1);
 }
 
-/* Click: depress — implied by inset shadows, not by moving the button. */
 .ds-button:active:not(:disabled) {
-  box-shadow:
-    inset 0 2px 3px rgba(0, 0, 0, 0.18),
-    inset 0 -1px 0.5px rgba(255, 255, 255, 0.12);
+  background: var(--color-foreground);
 }
 
 .ds-button:focus-visible {
-  outline: 3px solid var(--color-primary-tint);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .ds-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 /* --- Variants -------------------------------------------------- */
 .ds-button--primary {
   color: var(--color-background);
-  background: var(--gradient-ink);
+  background: var(--color-foreground);
 }
 
+/* The second action beside a primary: white, held by a control border. */
+.ds-button--secondary {
+  color: var(--color-foreground);
+  background: var(--surface-card);
+  border-color: var(--color-background-shade-2);
+}
+
+.ds-button--secondary:hover:not(:disabled) {
+  background: var(--color-background-shade-1);
+  border-color: var(--color-background-shade-2);
+}
+
+.ds-button--secondary:active:not(:disabled) {
+  background: var(--color-background-shade-2);
+}
+
+/* Text only, in coral: for the quiet action in a row, or inside a table. */
 .ds-button--ghost {
-  /* The shade variant keeps coral text readable on light surfaces. */
   color: var(--color-primary-shade);
   background: transparent;
-  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  border-color: transparent;
+}
+
+.ds-button--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.ds-button--ghost:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
 .ds-button--danger {
   color: var(--color-background);
+  background: var(--color-failure);
+}
+
+.ds-button--danger:hover:not(:disabled) {
+  background: var(--color-failure-shade);
+}
+
+.ds-button--danger:active:not(:disabled) {
   background: var(--color-failure);
 }
 
@@ -80,13 +108,12 @@
 
 .ds-button__spinner {
   position: absolute;
-  z-index: 2;
-  width: 1.1em;
-  height: 1.1em;
+  width: 1em;
+  height: 1em;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
-  animation: ds-button-spin 0.6s linear infinite;
+  animation: ds-button-spin 700ms linear infinite;
 }
 
 @keyframes ds-button-spin {
@@ -97,14 +124,16 @@
 
 .ds-button__icon {
   display: inline-flex;
-  flex: none;
+  font-size: 1.1em;
+  line-height: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ds-button {
     transition: none;
   }
+
   .ds-button__spinner {
-    animation-duration: 1.2s;
+    animation-duration: 1.5s;
   }
 }

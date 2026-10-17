@@ -1,6 +1,6 @@
 /* =============================================================
-   SideNav — a left navigation panel at elevation level 3, on the same glass
-   surface as the cards. Collapses to an icons-only rail. Depends on tokens.css.
+   SideNav — a left navigation panel on the same flat surface as the cards,
+   framed by a hairline. Collapses to an icons-only rail. Depends on tokens.css.
    ============================================================= */
 
 .ds-sidenav {
@@ -9,13 +9,11 @@
   gap: var(--space-md);
   width: 14rem;
   padding: var(--space-md);
-  background: var(--surface-glass);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--color-background-shade-2);
+  background: var(--surface-card);
+  border: var(--border-hairline);
   border-radius: var(--radius-container);
-  /* A quiet rail: calm chrome beside the content, held by its border and a
-     subtle lift rather than a heavy float. */
-  box-shadow: var(--elevation-1);
+  /* A quiet rail: calm chrome beside the content, held by its edge alone. */
+  box-shadow: var(--elevation-0);
   transition: width 200ms ease;
 }
 
@@ -65,7 +63,7 @@
 
 .ds-sidenav__toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 .ds-sidenav__list {
@@ -99,22 +97,22 @@
   color: var(--color-foreground);
 }
 
+/* The current place is told in ink on a quiet shade, so coral stays the
+   colour of actions alone. */
 .ds-sidenav__item--active {
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-background));
-  font-weight: 600;
+  color: var(--color-foreground);
+  background: var(--color-background-shade-1);
+  font-weight: var(--font-weight-medium);
 }
 
-/* Hovering the current item deepens the primary tint (not the bg shade).
-   Specificity matches the generic hover rule and wins by source order. */
 .ds-sidenav__item--active:hover:not(:disabled) {
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-background));
+  color: var(--color-foreground);
+  background: var(--color-background-shade-2);
 }
 
 .ds-sidenav__item:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 .ds-sidenav__item:disabled,
