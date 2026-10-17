@@ -40,6 +40,10 @@
     "./components/SideNav": "./components/SideNav/index.ts",
     "./components/BuiltWithAnbaric": "./components/BuiltWithAnbaric/index.ts",
     "./components/Accordion": "./components/Accordion/index.ts",
+    "./components/Table": "./components/Table/index.ts",
+    "./components/Field": "./components/Field/index.ts",
+    "./components/EmptyState": "./components/EmptyState/index.ts",
+    "./components/Skeleton": "./components/Skeleton/index.ts",
     "./components/useMediaQuery": "./components/useMediaQuery.ts",
     "./components/*": "./components/*",
     "./shared/*": "./shared/*"

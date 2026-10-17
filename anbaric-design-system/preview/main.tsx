@@ -30,6 +30,10 @@ import { Steps } from '../components/Steps'
 import { LoadingBar } from '../components/LoadingBar'
 import { Tabs } from '../components/Tabs'
 import { Accordion } from '../components/Accordion'
+import { Table } from '../components/Table'
+import { Field } from '../components/Field'
+import { EmptyState } from '../components/EmptyState'
+import { Skeleton } from '../components/Skeleton'
 import { RadioGroup } from '../components/RadioGroup'
 import { Toggle } from '../components/Toggle'
 import { SideNav } from '../components/SideNav'
@@ -532,6 +536,75 @@ function ComponentDemos() {
             },
           ]}
         />
+      </Section>
+
+      <Section title="Table">
+        <p className="component-demo__body">
+          Rows on the canvas parted by hairlines, mono headers, an optional
+          selection column, and a stacked form below 40rem led by the primary
+          column. Narrow the window to see it fold.
+        </p>
+        <Table
+          label="Deployed apps"
+          rowKey={(app) => app.name}
+          onSelect={() => {}}
+          columns={[
+            { id: 'name', header: 'App', primary: true, cell: (app) => <strong>{app.name}</strong> },
+            { id: 'status', header: 'Status', cell: (app) => <Badge tone={app.live ? 'success' : 'neutral'} dot>{app.live ? 'Live' : 'Stopped'}</Badge> },
+            { id: 'size', header: 'Size', mono: true, cell: (app) => app.size },
+            { id: 'deployed', header: 'Deployed', muted: true, cell: (app) => app.deployed, hideWhenStacked: true },
+            { id: 'jobs', header: 'Jobs', align: 'right', mono: true, cell: (app) => app.jobs },
+          ]}
+          rows={[
+            { name: 'crm', live: true, size: 'small', deployed: '2 days ago', jobs: 1284 },
+            { name: 'shop', live: true, size: 'large', deployed: 'yesterday', jobs: 97 },
+            { name: 'menu-watch', live: false, size: 'small', deployed: '3 weeks ago', jobs: 0 },
+          ]}
+        />
+      </Section>
+
+      <Section title="Field">
+        <p className="component-demo__body">
+          A label, a control and a line beneath, as one piece. Works outside a
+          Form, with the same field look.
+        </p>
+        <div style={{ ...row, alignItems: 'flex-start' }}>
+          <Field label="App name" hint="Lower-case letters, digits and hyphens" required>
+            <input placeholder="crm" />
+          </Field>
+          <Field label="Size">
+            <select><option>small</option><option>large</option></select>
+          </Field>
+          <Field label="Email" error="That is not an email address">
+            <input defaultValue="not-an-email" />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Empty state">
+        <p className="component-demo__body">
+          What a list says when there is nothing in it: a mark or a figure, a
+          title, a line and one action.
+        </p>
+        <EmptyState icon="rocket_launch" title="No apps yet" action={<Button>Deploy an app</Button>}>
+          Deploy from a terminal with the Anbaric CLI, or let an agent do it through the MCP.
+        </EmptyState>
+        <EmptyState figure="0" title="No jobs today">
+          Jobs appear here as state machines start them.
+        </EmptyState>
+      </Section>
+
+      <Section title="Skeleton">
+        <p className="component-demo__body">
+          The shape of what is loading, so a page keeps its layout while the
+          data arrives.
+        </p>
+        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
+          <Skeleton width="2.4rem" height="2.4rem" round />
+          <div style={{ flex: 1 }}>
+            <Skeleton lines={3} height="0.9rem" />
+          </div>
+        </div>
       </Section>
 
       <Section title="Tabs">

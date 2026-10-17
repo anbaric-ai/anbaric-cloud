@@ -1,0 +1,48 @@
+/* =============================================================
+   Skeleton — the shape of what is loading, in a quiet shimmer. Depends on
+   tokens.css.
+   ============================================================= */
+
+.ds-skeleton {
+  display: block;
+  width: 100%;
+  height: 1em;
+  border-radius: var(--radius-element);
+  background: linear-gradient(
+    90deg,
+    var(--color-background-shade-1) 0%,
+    color-mix(in srgb, var(--color-background-shade-1) 45%, var(--surface-card)) 50%,
+    var(--color-background-shade-1) 100%
+  );
+  background-size: 200% 100%;
+  animation: ds-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.ds-skeleton--round {
+  border-radius: 50%;
+}
+
+.ds-skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ds-skeleton-text .ds-skeleton:last-child {
+  width: 60%;
+}
+
+@keyframes ds-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-skeleton {
+    animation: none;
+  }
+}
