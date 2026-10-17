@@ -104,6 +104,16 @@
   min-width: 0;
 }
 
+.ds-table-stack__lead > input + * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ds-table-stack__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .ds-table-stack__cell {
   display: grid;
   grid-template-columns: 7rem 1fr;

@@ -122,8 +122,8 @@ function AuditPage() {
         }}
         style={filters}
       >
-        <Field label="Resource">
-          <select value={resourceType} onChange={(event) => setResourceType(event.target.value)} style={filter}>
+        <Field label="Resource" style={filter}>
+          <select value={resourceType} onChange={(event) => setResourceType(event.target.value)}>
             <option value="">Any</option>
             {RESOURCE_TYPES.map((value) => (
               <option key={value} value={value}>
@@ -132,14 +132,14 @@ function AuditPage() {
             ))}
           </select>
         </Field>
-        <Field label="Resource id">
-          <input placeholder="Any" value={resourceId} onChange={(event) => setResourceId(event.target.value)} style={filter} />
+        <Field label="Resource id" style={filter}>
+          <input placeholder="Any" value={resourceId} onChange={(event) => setResourceId(event.target.value)} />
         </Field>
-        <Field label="Actor">
-          <input placeholder="Any" value={actorId} onChange={(event) => setActorId(event.target.value)} style={filter} />
+        <Field label="Actor" style={filter}>
+          <input placeholder="Any" value={actorId} onChange={(event) => setActorId(event.target.value)} />
         </Field>
-        <Field label="Interaction">
-          <select value={interaction} onChange={(event) => setInteraction(event.target.value)} style={filter}>
+        <Field label="Interaction" style={filter}>
+          <select value={interaction} onChange={(event) => setInteraction(event.target.value)}>
             <option value="">Any</option>
             {INTERACTIONS.map((value) => (
               <option key={value} value={value}>
@@ -148,8 +148,8 @@ function AuditPage() {
             ))}
           </select>
         </Field>
-        <Field label="Description">
-          <input placeholder="Contains…" value={search} onChange={(event) => setSearch(event.target.value)} style={filter} />
+        <Field label="Description" style={filter}>
+          <input placeholder="Contains…" value={search} onChange={(event) => setSearch(event.target.value)} />
         </Field>
         <Button type="submit" variant="secondary">
           Filter

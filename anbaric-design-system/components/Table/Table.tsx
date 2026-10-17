@@ -19,6 +19,10 @@ export interface TableColumn<Row> {
   primary?: boolean
   /** Left out of the stacked form, for what a phone can do without. */
   hideWhenStacked?: boolean
+  /** Holds the row's controls - a menu, a button. Stacked, it sits at the end
+      of the lead line rather than becoming a labelled line of its own. A
+      column with an empty header is taken as one. */
+  actions?: boolean
 }
 
 export interface TableProps<Row> {
@@ -96,7 +100,9 @@ export function Table<Row>({
 
   if (stacked) {
     const primary = columns.find((column) => column.primary) ?? columns[0]
-    const rest = columns.filter((column) => column !== primary && !column.hideWhenStacked)
+    const isActions = (column: TableColumn<Row>) => column.actions || column.header === ''
+    const actions = columns.filter((column) => column !== primary && isActions(column) && !column.hideWhenStacked)
+    const rest = columns.filter((column) => column !== primary && !isActions(column) && !column.hideWhenStacked)
     return (
       <div className={['ds-table-stack', className].filter(Boolean).join(' ')} role="table" aria-label={label}>
         {selecting && selectableKeys.length > 0 ? (
@@ -116,6 +122,11 @@ export function Table<Row>({
               <div className="ds-table-stack__lead">
                 {selecting ? selectBox(row) : null}
                 <div>{primary.cell(row)}</div>
+                {actions.map((column) => (
+                  <div key={column.id} className="ds-table-stack__actions" onClick={(event) => event.stopPropagation()}>
+                    {column.cell(row)}
+                  </div>
+                ))}
               </div>
               {rest.map((column) => (
                 <div key={column.id} className="ds-table-stack__cell">

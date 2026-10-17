@@ -1,5 +1,5 @@
 import './Field.css'
-import { useId, type ReactNode } from 'react'
+import { useId, type CSSProperties, type ReactNode } from 'react'
 
 export interface FieldProps {
   label: ReactNode
@@ -13,6 +13,7 @@ export interface FieldProps {
   /** The control: an input, select or textarea, or anything that takes `id`. */
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }
 
 /**
@@ -21,11 +22,11 @@ export interface FieldProps {
  * whether or not the field sits in a Form. The label is tied to the control
  * by id, so clicking it focuses the control.
  */
-export function Field({ label, hint, error, required = false, htmlFor, children, className }: FieldProps) {
+export function Field({ label, hint, error, required = false, htmlFor, children, className, style }: FieldProps) {
   const made = useId()
   const id = htmlFor ?? `ds-field-${made.replace(/:/g, '')}`
   return (
-    <div className={['ds-field', error && 'ds-field--invalid', className].filter(Boolean).join(' ')}>
+    <div className={['ds-field', error && 'ds-field--invalid', className].filter(Boolean).join(' ')} style={style}>
       <label className="ds-field__label" htmlFor={id}>
         {label}
         {required ? <span className="ds-field__required" aria-hidden="true">*</span> : null}
