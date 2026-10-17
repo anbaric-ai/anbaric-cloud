@@ -8,7 +8,7 @@
 .ds-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
 /* Title + rule are grouped so they sit tight together, with the medium gap
@@ -49,5 +49,5 @@
   width: 100%;
   margin: 0;
   border: none;
-  border-top: 1px solid var(--color-background-shade-2);
+  border-top: var(--border-hairline);
 }
