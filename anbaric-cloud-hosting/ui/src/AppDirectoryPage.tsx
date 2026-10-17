@@ -1,8 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 
+import { Alert } from '@anbaric/design-system/components/Alert'
 import { AvatarMenu } from '@anbaric/design-system/components/AvatarMenu'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Card } from '@anbaric/design-system/components/Card'
+import { EmptyState } from '@anbaric/design-system/components/EmptyState'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 
 import logo from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 
@@ -44,8 +47,17 @@ const tile: CSSProperties = {
 
 const appTitle: CSSProperties = {
   fontFamily: 'var(--font-title)',
-  fontSize: '1.125rem',
+  fontSize: 'var(--text-lg)',
   lineHeight: 1.1,
+  margin: 0,
+}
+
+const pageTitle: CSSProperties = {
+  fontFamily: 'var(--font-title)',
+  fontWeight: 'var(--font-weight-title)' as CSSProperties['fontWeight'],
+  fontSize: 'var(--text-xl)',
+  textTransform: 'var(--title-transform)' as CSSProperties['textTransform'],
+  letterSpacing: 'var(--title-letter-spacing-large)',
   margin: 0,
 }
 
@@ -88,18 +100,18 @@ function AppDirectoryPage() {
         <img src={logo} alt="Anbaric" style={{ height: '1.75rem' }} />
       </header>
 
-      <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '1.5rem', margin: 0 }}>Your apps</h1>
+      <h1 style={pageTitle}>Your apps</h1>
 
       {failed ? (
-        <Card><p style={{ margin: 0, ...muted }}>Couldn't load your apps. Try refreshing.</p></Card>
+        <Alert variant="danger" title="Couldn't load your apps">Try refreshing the page.</Alert>
       ) : !apps ? (
-        <Card><p style={{ margin: 0, ...muted }}>Loading…</p></Card>
+        <div style={grid}>
+          {[0, 1, 2].map((each) => <Skeleton key={each} height="5.5rem" />)}
+        </div>
       ) : apps.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, ...muted }}>
-            You don't have access to any apps yet. Whoever invited you can give you access.
-          </p>
-        </Card>
+        <EmptyState icon="apps" title="No apps yet">
+          You don't have access to any apps yet. Whoever invited you can give you access.
+        </EmptyState>
       ) : (
         <div style={grid}>
           {apps.map((app) => {
@@ -111,11 +123,11 @@ function AppDirectoryPage() {
                 style={{ ...tile, opacity: running ? 1 : 0.6, pointerEvents: running ? 'auto' : 'none' }}
                 aria-disabled={running ? undefined : true}
               >
-                <Card>
+                <Card interactive={running}>
                   <div style={{ display: 'flex', alignItems: 'start', gap: 'var(--space-sm)' }}>
                     <span style={{ flex: '1 1 auto', minWidth: 0 }}>
                       <h2 style={appTitle}>{readable(app.appName)}</h2>
-                      <span style={{ display: 'block', fontSize: '0.8rem', ...muted }}>{app.appName}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)', ...muted }}>{app.appName}</span>
                     </span>
                     <Sym name={running ? 'arrow_outward' : 'pause_circle'} />
                   </div>

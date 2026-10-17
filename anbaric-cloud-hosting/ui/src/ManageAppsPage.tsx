@@ -3,9 +3,12 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Badge } from '@anbaric/design-system/components/Badge'
 import { Button } from '@anbaric/design-system/components/Button'
-import { Card } from '@anbaric/design-system/components/Card'
+import { EmptyState } from '@anbaric/design-system/components/EmptyState'
+import { Field } from '@anbaric/design-system/components/Field'
 import { Modal } from '@anbaric/design-system/components/Modal'
 import { RadioGroup } from '@anbaric/design-system/components/RadioGroup'
+import { Section } from '@anbaric/design-system/components/Section'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 import { Toggle } from '@anbaric/design-system/components/Toggle'
 import { Tooltip } from '@anbaric/design-system/components/Tooltip'
 
@@ -30,7 +33,7 @@ type Pricing = { small: string; large: string; zeroDowntime?: string }
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
-const rows: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }
+const rows: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }
 
 const row: CSSProperties = {
   display: 'flex',
@@ -43,30 +46,11 @@ const actions: CSSProperties = {
   display: 'flex',
   gap: 'var(--space-sm)',
   alignItems: 'center',
-  marginLeft: 'auto',
-}
-
-const appTitle: CSSProperties = {
-  fontFamily: 'var(--font-title)',
-  fontSize: '1.125rem',
-  lineHeight: 1.1,
-  margin: 0,
-}
-
-const field: CSSProperties = {
-  font: 'inherit',
-  color: 'var(--color-foreground)',
-  background: 'var(--color-background)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-element)',
-  padding: 'var(--space-xs) var(--space-sm)',
-  minWidth: '8rem',
-  flex: '1 1 8rem',
 }
 
 const addressForm: CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'flex-end',
   gap: 'var(--space-sm)',
   flexWrap: 'wrap',
 }
@@ -76,16 +60,14 @@ const sizeRow: CSSProperties = {
   alignItems: 'center',
   flexWrap: 'wrap',
   gap: 'var(--space-md)',
-  marginTop: 'var(--space-md)',
-  paddingTop: 'var(--space-md)',
-  borderTop: '1px solid var(--color-background-shade-1)',
 }
 
 const sizeLabel: CSSProperties = {
   fontFamily: 'var(--font-mono)',
-  fontSize: '0.7rem',
+  fontSize: 'var(--text-xs)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
+  minWidth: '5rem',
   ...muted,
 }
 
@@ -97,7 +79,7 @@ const infoIcon: CSSProperties = {
   height: '1.1rem',
   borderRadius: '50%',
   border: '1px solid var(--color-foreground-tint-2)',
-  fontSize: '0.7rem',
+  fontSize: 'var(--text-xs)',
   fontFamily: 'var(--font-mono)',
   cursor: 'help',
   ...muted,
@@ -253,7 +235,7 @@ function ManageAppsPage() {
   }
 
   if (!apps) {
-    return <Card><p style={{ margin: 0, ...muted }}>{problem ?? 'Loading…'}</p></Card>
+    return problem ? <Alert variant="danger">{problem}</Alert> : <Skeleton lines={5} />
   }
 
   const unchanged = wanted.trim().toLowerCase() === (changing?.subdomain ?? '')
@@ -264,36 +246,35 @@ function ManageAppsPage() {
       {problem ? <Alert variant="danger">{problem}</Alert> : null}
 
       {apps.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, ...muted }}>
-            Nothing is deployed yet. Deploy an app with <code>anbaric app deploy</code>.
-          </p>
-        </Card>
+        <EmptyState icon="rocket_launch" title="Nothing is deployed yet">
+          Deploy an app with <code>anbaric app deploy</code>.
+        </EmptyState>
       ) : null}
 
       {apps.map((app) => (
-        <Card key={app.appName}>
-          <div style={row}>
-            <span style={{ minWidth: 0 }}>
-              <h2 style={appTitle}>{app.appName}</h2>
-              <span style={{ display: 'block', fontSize: '0.8rem', ...muted }}>
-                {app.subdomain
-                  ? <a href={appUrl(app)} style={{ color: 'inherit' }}>{app.subdomain}.{user?.appHostSuffix}</a>
-                  : addressable ? 'No address yet' : `/app/${app.appName}`}
-              </span>
-            </span>
-
-            <Badge tone={tone(app.status)}>{app.status}</Badge>
-
+        <Section
+          key={app.appName}
+          title={app.appName}
+          actions={
             <span style={actions}>
+              <Badge tone={tone(app.status)}>{app.status}</Badge>
               {addressable ? (
-                <Button variant="ghost" disabled={busy !== undefined} onClick={() => openChange(app)}>
+                <Button variant="secondary" disabled={busy !== undefined} onClick={() => openChange(app)}>
                   Change URL
                 </Button>
               ) : null}
-              <Button variant="danger" disabled={busy !== undefined} onClick={() => setRemoving(app)}>
+              <Button variant="ghost" disabled={busy !== undefined} onClick={() => setRemoving(app)}>
                 Tear down
               </Button>
+            </span>
+          }
+        >
+          <div style={row}>
+            <span style={sizeLabel}>Address</span>
+            <span style={{ fontSize: 'var(--text-sm)', ...muted }}>
+              {app.subdomain
+                ? <a href={appUrl(app)} style={{ color: 'inherit' }}>{app.subdomain}.{user?.appHostSuffix}</a>
+                : addressable ? 'No address yet' : `/app/${app.appName}`}
             </span>
           </div>
 
@@ -331,11 +312,11 @@ function ManageAppsPage() {
           ) : null}
 
           {app.draining ? (
-            <p style={{ margin: 'var(--space-sm) 0 0', fontSize: '0.8rem', ...muted }}>
+            <p style={{ margin: 0, fontSize: 'var(--text-sm)', ...muted }}>
               Draining: {app.draining.inFlight} step(s) still in flight.
             </p>
           ) : null}
-        </Card>
+        </Section>
       ))}
 
       <Modal
@@ -350,23 +331,20 @@ function ManageAppsPage() {
             void saveAddress()
           }}
         >
-          <input
-            style={field}
-            value={wanted}
-            autoFocus
-            disabled={busy !== undefined}
-            aria-label="Address"
-            onChange={(event) => setWanted(event.target.value)}
-          />
-          <span style={{ ...muted, whiteSpace: 'nowrap' }}>.{user?.appHostSuffix}</span>
+          <Field label="Address" error={addressProblem}>
+            <input
+              value={wanted}
+              autoFocus
+              disabled={busy !== undefined}
+              onChange={(event) => setWanted(event.target.value)}
+            />
+          </Field>
+          <span style={{ ...muted, whiteSpace: 'nowrap', paddingBottom: 'var(--space-sm)' }}>.{user?.appHostSuffix}</span>
           <Button type="submit" disabled={busy !== undefined || !wanted.trim() || unchanged}>
             {busy === changing?.appName ? 'Saving…' : 'Save'}
           </Button>
         </form>
-        {addressProblem ? (
-          <p style={{ margin: 'var(--space-md) 0 0', color: 'var(--color-failure)', fontSize: '0.85rem' }}>{addressProblem}</p>
-        ) : null}
-        <p style={{ ...muted, fontSize: '0.8rem', margin: 'var(--space-md) 0 0' }}>
+        <p style={{ ...muted, fontSize: 'var(--text-sm)', margin: 'var(--space-md) 0 0' }}>
           One label under {user?.appHostSuffix}, unique across every tenant, so the one you ask for may already be
           taken. Links to the old address stop working as soon as you save.
         </p>
@@ -378,7 +356,7 @@ function ManageAppsPage() {
         title={resizing?.to === 'large' ? `Make ${resizing?.app.appName ?? ''} large?` : `Make ${resizing?.app.appName ?? ''} small?`}
         footer={
           <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" onClick={() => setResizing(undefined)}>Leave it</Button>
+            <Button variant="secondary" onClick={() => setResizing(undefined)}>Leave it</Button>
             <Button variant="primary" onClick={() => void resize()}>
               {resizing?.to === 'large' ? `Switch to large · ${priceOf('large')}/mo` : `Switch to small · ${priceOf('small')}/mo`}
             </Button>
@@ -390,7 +368,7 @@ function ManageAppsPage() {
             ? `${LARGE_EXPLAINED} It costs ${priceOf('large')} a month instead of ${priceOf('small')}, charged by the day from today, and is never covered by the free allowance.`
             : `A small instance costs ${priceOf('small')} a month instead of ${priceOf('large')}, charged by the day from today.`}
         </p>
-        <p style={{ margin: 'var(--space-md) 0 0', fontSize: '0.85rem', ...muted }}>
+        <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app is restarted on the new instance. Anything it has in hand is finished first.
         </p>
       </Modal>
@@ -401,7 +379,7 @@ function ManageAppsPage() {
         title={`Tear down ${removing?.appName ?? ''}?`}
         footer={
           <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" onClick={() => setRemoving(undefined)}>Keep it</Button>
+            <Button variant="secondary" onClick={() => setRemoving(undefined)}>Keep it</Button>
             <Button variant="danger" onClick={() => removing && void tearDown(removing)}>Tear down</Button>
           </div>
         }

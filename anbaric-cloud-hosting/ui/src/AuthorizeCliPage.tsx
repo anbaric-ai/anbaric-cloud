@@ -1,18 +1,14 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 
-import { Card } from '@anbaric/design-system/components/Card'
-import { Form } from '@anbaric/design-system/components/Form'
 import { Alert } from '@anbaric/design-system/components/Alert'
+import { Card } from '@anbaric/design-system/components/Card'
+import { Field } from '@anbaric/design-system/components/Field'
+import { Form } from '@anbaric/design-system/components/Form'
+import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 
 import { PageShell } from './PageShell'
 import { FOLLOW_NOTHING, signedOut, signInAgain } from './session'
 import { SubscribePage } from './SubscribePage'
-
-const field: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 'var(--space-sm)',
-}
 
 function AuthorizeCliPage({ requestId }: { requestId: string }) {
   const [state, setState] = useState<'form' | 'done' | 'failed'>('form')
@@ -34,7 +30,7 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
   if (gate === 'loading') {
     return (
       <PageShell title="Authorize CLI">
-        <Card><p style={{ margin: 0, color: 'var(--color-foreground-tint-2)' }}>Loading…</p></Card>
+        <Skeleton lines={3} />
       </PageShell>
     )
   }
@@ -68,22 +64,16 @@ function AuthorizeCliPage({ requestId }: { requestId: string }) {
           close this tab and return to your terminal.
         </Alert>
       ) : (
-        <Card>
-          <p style={{ margin: 0 }}>
-            A CLI is asking to be authorized against this platform as you.
-            Give it a name you'll recognise — you can revoke it any time from
-            the manage keys page.
-          </p>
+        <Card title="Authorize this CLI" subtitle="A CLI is asking to be authorized against this platform as you. Give it a name you'll recognise — you can revoke it any time from the manage keys page.">
           <Form onSubmit={approve}>
-            <label style={field}>
-              Client name
+            <Field label="Client name" required>
               <input
                 name="clientName"
                 required
                 data-warning="Give this CLI a name"
                 placeholder="e.g. Work laptop"
               />
-            </label>
+            </Field>
             <button type="submit">Authorize</button>
           </Form>
           {state === 'failed' ? (
