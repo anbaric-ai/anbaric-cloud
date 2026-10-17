@@ -61,9 +61,12 @@ return `true` in your app; only the global grant also satisfies every other app.
 
 ## Granting
 
-Apps can't grant. An administrator opens **Entitlements** in the console, picks
-the user, the entitlement and its scope, and adds a note; the same page revokes
-grants and creates global entitlements. Every grant records who made it.
+Apps can't grant. An owner or admin does it from the console's **Users** page:
+open a user and tick what they hold in each app, select several users and
+grant to all of them at once, or turn to the page's **Entitlements** tab,
+which lists each entitlement per app with who holds it, to grant one to many
+people or revoke it. Global entitlements are defined on that tab too. Every
+grant records who made it.
 
 ## Invitations and invite links
 

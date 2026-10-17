@@ -71,7 +71,7 @@ if (! await hasEntitlement(request, "export")) {                     // per requ
 }
 ```
 
-Administrators grant and revoke them from the console's **Entitlements** page;
+Administrators grant and revoke them from the console's **Users** page;
 locally every check passes. See [Entitlements](../features/entitlements.md).
 
 ## Design tips
