@@ -44,10 +44,10 @@
   --color-foreground-tint-1: #3a3a46;
   --color-foreground-tint-2: #6f6f7c;
 
-  /* --- Colour: Background — Frost White --------------------- */
-  /* Clean, faintly-cool neutrals (the blue cast removed) so the noise texture
-     and content carry the surface, not a tint. */
-  --color-background: #f7f8fa;
+  /* --- Colour: Background — White ---------------------------- */
+  /* A white canvas, with the shades as faintly-cool neutrals for rules, fills
+     and controls, so the grain and the content carry the surface, not a tint. */
+  --color-background: #ffffff;
   --color-background-shade-1: #eaebef;
   --color-background-shade-2: #d6d8de;
 
@@ -136,7 +136,7 @@
      container radius must equal that padding plus the element radius —
      hence container = medium + element. The element radius is its own token,
      kept tight (5px) for crisp, modern corners; the container follows. */
-  --radius-element: 0.5rem;
+  --radius-element: 0.3125rem;
   --radius-container: calc(var(--space-md) + var(--radius-element));
 
   /* --- Elevation ------------------------------------------- */
