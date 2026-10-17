@@ -15,7 +15,8 @@ export interface ModalProps {
 /**
  * Modal — a blocking dialog at elevation 4, on the native <dialog> element:
  * top layer, focus trap, Escape and a dimmed backdrop come for free. Closes on
- * Escape, backdrop click, or the close button.
+ * Escape, backdrop click, or the close button. Below 40rem it fills the
+ * screen, with the body scrolling between a fixed head and footer.
  */
 export function Modal({
   open,
