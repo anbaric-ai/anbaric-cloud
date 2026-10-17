@@ -11,7 +11,7 @@
 .ds-tabs__list {
   display: flex;
   gap: var(--space-sm);
-  border-bottom: 1px solid var(--color-background-shade-2);
+  border-bottom: var(--border-hairline);
 }
 
 .ds-tabs__tab {
@@ -32,14 +32,14 @@
 }
 
 .ds-tabs__tab--active {
-  color: var(--color-primary);
+  color: var(--color-foreground);
   border-bottom-color: var(--color-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
 }
 
 .ds-tabs__tab:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 .ds-tabs__panel[hidden] {

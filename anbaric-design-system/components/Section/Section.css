@@ -30,10 +30,10 @@
   margin: 0;
   font-family: var(--font-title);
   font-weight: var(--font-weight-title);
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
   line-height: var(--title-line-height);
   text-transform: var(--title-transform);
-  letter-spacing: 0.01em;
+  letter-spacing: var(--title-letter-spacing);
   color: var(--color-foreground);
 }
 

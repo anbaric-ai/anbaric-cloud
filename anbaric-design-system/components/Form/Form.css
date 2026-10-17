@@ -22,12 +22,14 @@
 .ds-form input,
 .ds-form select,
 .ds-form textarea {
-  padding: var(--space-sm);
+  min-height: var(--control-height);
+  padding: var(--space-xs) var(--space-sm);
   font: inherit;
   color: var(--color-foreground);
-  background: var(--color-background);
-  border: 2px solid var(--color-foreground-tint-2);
+  background: var(--surface-card);
+  border: var(--border-control);
   border-radius: var(--radius-element);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .ds-form input::placeholder,
@@ -35,14 +37,13 @@
   color: var(--color-foreground-tint-2);
 }
 
-/* Chunky focus border, kept the same overall size via padding compensation. */
+/* Focus is a ring outside the field; the border and padding never change. */
 .ds-form input:focus,
 .ds-form select:focus,
 .ds-form textarea:focus {
   outline: none;
-  border-width: 4px;
   border-color: var(--color-primary);
-  padding: calc(var(--space-sm) - 2px);
+  box-shadow: var(--focus-ring);
 }
 
 .ds-form [aria-invalid="true"],
@@ -69,23 +70,29 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* A bare button in a form looks like the primary Button, so the two never
+   disagree on what an action looks like. */
 .ds-form button {
   align-self: flex-start;
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--control-height);
+  padding: calc(var(--space-xs) + 2px) var(--space-md);
   font: inherit;
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--color-background);
-  background: var(--color-primary);
-  border: 2px solid transparent;
+  background: var(--color-foreground);
+  border: 1px solid transparent;
   border-radius: var(--radius-element);
   cursor: pointer;
 }
 
+.ds-form button:hover:not(:disabled) {
+  background: var(--color-foreground-tint-1);
+}
+
 .ds-form button:focus-visible {
   outline: none;
-  border-width: 4px;
-  border-color: var(--color-foreground);
-  padding: calc(var(--space-sm) - 2px) calc(var(--space-md) - 2px);
+  box-shadow: var(--focus-ring);
 }
 
 .ds-form button:disabled {
@@ -111,6 +118,7 @@
   background: var(--color-success);
 }
 
-.ds-form--complete button:focus-visible {
-  border-color: var(--color-success-shade);
+.ds-form--complete button:hover:not(:disabled) {
+  background: var(--color-success-shade);
+  color: var(--color-background);
 }

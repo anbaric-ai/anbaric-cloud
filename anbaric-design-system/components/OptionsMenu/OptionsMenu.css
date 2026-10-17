@@ -18,17 +18,21 @@
   padding: var(--space-sm);
   font: inherit;
   line-height: 1;
-  color: var(--color-foreground);
-  background: var(--color-background);
-  border: 1px solid var(--color-background-shade-2);
+  color: var(--color-foreground-tint-1);
+  background: var(--surface-card);
+  border: var(--border-control);
   border-radius: var(--radius-element);
   cursor: pointer;
 }
 
+.ds-options__trigger:hover {
+  color: var(--color-foreground);
+  background: var(--color-background-shade-1);
+}
+
 .ds-options__trigger:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 /* Popover menu in the top layer; top/left/right are set in JS. */
@@ -38,8 +42,8 @@
   margin: 0;
   padding: var(--space-sm);
   list-style: none;
-  background: var(--color-background);
-  border: 1px solid var(--color-background-shade-2);
+  background: var(--surface-card);
+  border: var(--border-hairline);
   border-radius: var(--radius-container);
   box-shadow: var(--elevation-2);
 }

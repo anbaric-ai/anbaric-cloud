@@ -33,7 +33,7 @@
 
 .ds-radio:has(.ds-radio__input:focus-visible) {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 /* Native input hidden but still focusable / interactive. */

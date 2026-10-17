@@ -357,9 +357,10 @@ function ComponentDemos() {
     <>
       <Section title="Card">
         <p className="component-demo__body">
-          A glass surface with a 1px frame behind it. Its direct children each
-          take the element radius — concentric inside the card's container
-          radius.
+          A flat white surface framed by a hairline, with no shadow at rest.
+          Its direct children each take the element radius — concentric inside
+          the card's container radius. A title, subtitle and actions can sit
+          in its head.
         </p>
         <Card>
           <p className="component-demo__body">
@@ -402,12 +403,13 @@ function ComponentDemos() {
 
       <Section title="Button">
         <p className="component-demo__body">
-          The main ink gradient as the fill, with a plain border. Hover embosses
-          the surface up (no jump) and a click presses it in. Variants, icons,
-          and a loading state.
+          A flat fill in the ink: one shade lighter on hover, the full ink on
+          press, the shared ring on focus. Secondary is the action beside a
+          primary; ghost is text only. Icons and a loading state.
         </p>
         <div style={row}>
           <Button>Primary</Button>
+          <Button variant="secondary">Secondary</Button>
           <Button variant="ghost">Ghost</Button>
           <Button variant="danger">Danger</Button>
         </div>
@@ -688,9 +690,13 @@ function ComponentDemos() {
       </Section>
 
       <Section title="Badge">
-        <p className="component-demo__body">Small status labels and tags.</p>
+        <p className="component-demo__body">
+          Small status labels and tags. Outline is for information rather than
+          status.
+        </p>
         <div style={row}>
           <Badge>Neutral</Badge>
+          <Badge tone="outline">Pending</Badge>
           <Badge tone="primary">workflow</Badge>
           <Badge tone="success" dot>
             Live
@@ -956,7 +962,8 @@ function Foundations() {
         title="Gradients"
         lead={
           <>
-            The main ink gradient, a radial glow, and a pale haze.{' '}
+            The main ink gradient and a radial glow, for a focal point; the
+            page haze is now flat.{' '}
             <GuidanceLink anchor="guidance-gradients" />
           </>
         }
@@ -1162,28 +1169,29 @@ function Guidance() {
         <div className="guidance-grid">
           <GuidanceCard title="How to use it">
             <p className="component-demo__body">
-              Three blends, each with a role. The pale
-              <code> --gradient-primary-haze</code> is the page backdrop. The
-              radial <code> --gradient-primary-glow</code> is bolder — for a hero
-              area or a single feature surface — and the vertical
-              {' '}<code>--gradient-ink</code> is the main gradient: the ink
-              pair, carried by buttons.
+              Two blends with a role, and one retired. The radial
+              <code> --gradient-primary-glow</code> is for a hero area or a
+              single feature surface, and the vertical
+              {' '}<code>--gradient-ink</code> is the ink pair, for a brand
+              moment. <code>--gradient-primary-haze</code> still exists but
+              resolves to the flat canvas: the page is one quiet surface now,
+              and buttons are a flat ink.
             </p>
           </GuidanceCard>
           <GuidanceCard title="Why">
             <p className="component-demo__body">
-              The haze gives every page a quiet sense of depth that the glass
-              cards then blur through, tying the whole surface together. The
-              stronger gradients add brand energy exactly where you want a focal
-              point — and nowhere else.
+              A flat canvas and flat cards let the content carry the page; the
+              grain is all the texture it needs. The stronger gradients add
+              brand energy exactly where you want a focal point — and nowhere
+              else.
             </p>
           </GuidanceCard>
           <GuidanceCard title="Best practices">
             <p className="component-demo__body">
               Don't set long-form text directly over a gradient — legibility
-              first. Use the haze for large areas and keep the bold blends rare,
-              one focal point per view. A faint fixed noise over the haze stops
-              large fills from banding.
+              first. Keep the bold blends rare, one focal point per view, and
+              never on a reading surface. A faint fixed noise over the canvas
+              stops large fills from banding.
             </p>
           </GuidanceCard>
         </div>

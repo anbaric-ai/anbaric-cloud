@@ -62,7 +62,7 @@
 
 .ds-avatar-menu__trigger:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  box-shadow: var(--focus-ring);
 }
 
 /* --- Popover panel; left/bottom are set in JS. Slightly narrower than the
@@ -73,8 +73,8 @@
   width: 13rem;
   margin: 0;
   padding: var(--space-sm);
-  background: var(--color-background);
-  border: 1px solid var(--color-background-shade-2);
+  background: var(--surface-card);
+  border: var(--border-hairline);
   /* Concentric with the 2rem foot-avatar: its radius (1rem) plus the padding. */
   --_menu-radius: calc(1rem + var(--space-sm));
   border-radius: var(--_menu-radius);
