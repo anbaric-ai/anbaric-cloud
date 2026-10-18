@@ -1,8 +1,24 @@
+import {lookup} from "node:dns/promises";
 import {IncomingHttpHeaders, OutgoingHttpHeaders, request as httpRequest} from "node:http";
 import {BuildLayer} from "../../app-management/BuildLayer";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 import {DEPLOYING, FAILED, NOT_RUNNING} from "../pages/ErrorPage";
+
+/* Every address an app's name resolves to, in the order the resolver gives
+   them; an address literal resolves to itself. */
+type Resolve = (host : string) => Promise<Array<string>>;
+
+const resolveAll : Resolve = async host =>
+    (await lookup(host, { all: true, verbatim: true })).map(found => found.address);
+
+/* A connection that never reached the app: the address has gone, or nothing
+   listens there yet. Another address may. Anything after the first byte is
+   the app's answer, not a routing failure. */
+const UNREACHED = new Set(["ECONNREFUSED", "EHOSTUNREACH", "ENETUNREACH", "ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"]);
+
+const unreached = (error : unknown) : boolean =>
+    typeof error === "object" && error !== null && UNREACHED.has(String((error as { code? : unknown }).code));
 
 /* Headers that describe a single hop and must not be forwarded across the
    proxy in either direction. */
@@ -18,6 +34,9 @@ const HOP_BY_HOP = new Set([
    Set-Cookie and Location - so sessions and redirects work from app-served
    HTML. */
 class AppProxyHandler implements RequestHandler {
+
+    /* How a name becomes addresses; a test points it at addresses of its own. */
+    static resolve : Resolve = resolveAll;
 
     constructor(private buildLayer : BuildLayer) {}
 
@@ -54,12 +73,30 @@ class AppProxyHandler implements RequestHandler {
 
         const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.rawBody();
 
-        /* Once the app's response has started, whatever ends it ends the
-           request: a browser that closed the tab mid-stream, or an app that
-           dropped the connection. Neither is a failure of the platform's,
-           and there is nothing left to say to the client, so the upstream is
-           let go and the request is over. Only a failure before the first
-           byte is an error worth answering. */
+        /* During a rolling deploy the app's name resolves to the task on its
+           way out as readily as the one coming in, and for a few seconds to
+           an address that nothing answers on. Each address is tried in turn,
+           and only when none can be reached is the request a failure. */
+        const addresses = await AppProxyHandler.resolve(app.appHost).catch(() => [app.appHost]);
+        let lastFailure : unknown;
+        for (const address of addresses.length > 0 ? addresses : [app.appHost]) {
+            try {
+                return await this.forward(request, app.appPort, address, appPath, prefix, body);
+            } catch (error) {
+                if (! unreached(error) || request.rawResponse.headersSent) throw error;
+                lastFailure = error;
+            }
+        }
+        throw lastFailure;
+    }
+
+    /* Once the app's response has started, whatever ends it ends the
+       request: a browser that closed the tab mid-stream, or an app that
+       dropped the connection. Neither is a failure of the platform's,
+       and there is nothing left to say to the client, so the upstream is
+       let go and the request is over. Only a failure before the first
+       byte is an error worth answering. */
+    private async forward(request : Request, port : number, address : string, appPath : string, prefix : string, body : Buffer | undefined) : Promise<void> {
         await new Promise<void>((resolve, reject) => {
             const client = request.rawResponse;
             const settle = (error : unknown) => {
@@ -69,8 +106,8 @@ class AppProxyHandler implements RequestHandler {
             };
 
             const upstream = httpRequest({
-                host: app.appHost,
-                port: app.appPort,
+                host: address,
+                port,
                 method: request.method,
                 path: `${appPath}${request.url.search}`,
                 headers: this.forwardHeaders(request, prefix),

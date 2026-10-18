@@ -256,14 +256,16 @@ abstract class BaseBuildLayer implements BuildLayer {
         const manifest = JSON.parse(await readFile(join(appDir, "package.json"), "utf8"));
         await this.linkWorkspacePackages(appDir, manifest);
 
-        /* The version being replaced finishes its work first; the build above
-           ran while it carried on, so the drain is the only pause it sees. A
-           layer that can roll in place keeps it up past that, still serving,
-           until the new version has taken over. */
-        if (deployment.replaces) {
+        /* The version being replaced finishes its work first, then stops, and
+           the new one starts in its place: that gap is the downtime an
+           ordinary deploy has. A layer that can roll in place does neither
+           here. The old version carries on, pushes and all, through the whole
+           build; the roll itself retires it only once the new one is healthy,
+           and the stop signal it gets then is what drains it. */
+        if (deployment.replaces && ! this.rollsInPlace(deployment)) {
             if (deployment.replaces.status === "running") await this.drain(deployment, deployment.replaces);
             if (!this.isCurrent(deployment)) return;
-            if (! this.rollsInPlace(deployment)) await this.stop(deployment.replaces);
+            await this.stop(deployment.replaces);
         }
 
         if (!this.isCurrent(deployment)) return;

@@ -9,6 +9,14 @@ import {AdminServer} from "./AdminServer";
    and its admin port stops answering `ping`. */
 const TSX = process.env.ANBARIC_TSX_BIN ?? "/anbaric/node_modules/.bin/tsx";
 
+/* When the platform retires this task, its address is taken out of the app's
+   name first and the stop signal follows at once; but a name's record lives
+   ten seconds in resolvers, so for that long requests still arrive here. The
+   signal is held for a little longer than that before it reaches the app, so
+   the app answers them. Bounded well inside the two minutes a task has to
+   stop, with the app's own drain after it. */
+const STOP_GRACE_MS = Number(process.env.ANBARIC_STOP_GRACE_MS ?? 12_000);
+
 /* A host can name a module to load before the app's own entry point, which is
    how it registers implementations an app picks up through the factories -
    anything the app should be able to use without knowing it is there. It runs
@@ -28,7 +36,14 @@ const main = async () => {
 
     const app = spawn(TSX, [...preloadArgs(), entryPoint], { stdio: "inherit" });
 
-    const shutdown = (signal : NodeJS.Signals) => app.kill(signal);
+    let stopping = false;
+    const shutdown = (signal : NodeJS.Signals) => {
+        if (stopping) return;
+        stopping = true;
+        const grace = signal === "SIGTERM" ? STOP_GRACE_MS : 0;
+        if (grace > 0) console.log(`[anbaric-admin] stopping in ${grace / 1000}s, answering until then`);
+        setTimeout(() => app.kill(signal), grace).unref();
+    };
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 

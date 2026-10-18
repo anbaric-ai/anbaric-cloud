@@ -323,10 +323,15 @@ class FargateBuildLayer extends BaseBuildLayer {
         const existing = (Services ?? []).find((service : { Name : string }) => service.Name === appName);
         if (existing) return existing.Arn;
 
+        /* With a custom health check ECS reports each task's container health
+           to Cloud Map, so the name only resolves to tasks that are answering;
+           without one a task is in DNS from the moment it starts, before the
+           app in it listens. */
         const created = await this.aws.serviceDiscovery.send(new CreateDiscoveryServiceCommand({
             Name: appName,
             NamespaceId: this.options.namespaceId,
             DnsConfig: { DnsRecords: [{ Type: "A", TTL: 10 }], RoutingPolicy: "MULTIVALUE" },
+            HealthCheckCustomConfig: { FailureThreshold: 1 },
         }));
         return created.Service.Arn;
     }

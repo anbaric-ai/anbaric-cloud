@@ -6,10 +6,10 @@ import {CloudApiClient} from "./CloudApiClient.js";
 type ProcessJob = (jobId : string) => Promise<void>;
 
 /* How long a consumer told to stop by a signal keeps the process alive for
-   the work it has in hand. Under the platform's own drain the signal only
-   arrives once the work is done; on its own it is bounded by the 120 seconds a
-   Fargate task is given to stop, with a little kept back for the exit. */
-const DRAIN_ON_SIGNAL_MS = 110_000;
+   the work it has in hand. It is bounded by the 120 seconds a Fargate task is
+   given to stop, less the grace the launcher holds the signal for and a
+   little kept back for the exit. */
+const DRAIN_ON_SIGNAL_MS = 100_000;
 const IDLE_POLL_MS = 250;
 
 const readBody = (request : IncomingMessage) : Promise<any> =>

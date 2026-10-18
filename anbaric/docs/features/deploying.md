@@ -66,12 +66,16 @@ anbaric jobs watch <job-id>     # follow a job as it progresses
   started, which is before the app inside it is listening, so there is a gap
   of the app's boot time in which it does not answer. **Zero-downtime
   deploys**, switched on per app on the Manage apps page for $10/£10 a month,
-  hold the old version until the new one is answering, so the app is served
-  throughout; the switch-over is a few seconds in which a request may reach
-  either version.
-  Jobs are unaffected either way: the old version stops taking steps when it
-  is drained and the new version takes them when it is up. The setting takes
-  effect from the next deploy and is off by default. Anbaric Cloud only.
+  are different all the way through: the old version is not drained for the
+  build, it keeps serving and keeps taking steps while the new one builds and
+  starts; it is retired only once the new one is answering, and keeps
+  answering for a few seconds more while the app's name stops pointing at
+  it, finishing the steps it has in hand before it goes. A request in the
+  switch-over may reach either version; one that reaches an address on its
+  way out is retried on the other.
+  Without the setting, jobs pause from the drain until the new version is up.
+  The setting takes effect from the next deploy and is off by default. Anbaric
+  Cloud only.
 
 ## Updating and tearing down
 

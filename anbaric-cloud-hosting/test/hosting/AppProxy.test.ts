@@ -5,6 +5,7 @@ import {InMemoryJobPersistence, InMemoryQueue} from "anbaric-state-machine";
 import {QueueMessage} from "anbaric-tsapi";
 import {BuildLayer} from "../../src/app-management/BuildLayer";
 import {HostingServer} from "../../src/hosting/HostingServer";
+import {AppProxyHandler} from "../../src/hosting/handlers/AppProxyHandler";
 import {RemoteQueue} from "../../src/queuing/RemoteQueue";
 
 class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
@@ -149,6 +150,30 @@ describe("app proxy through the hosting server", () => {
             expect((await fetch(`${started.baseUrl}/app/myapp/events`, { signal: AbortSignal.timeout(2000) })).status).toBe(200);
         });
 
+    });
+
+    it("tries the next address when the first refuses the connection, as during a roll", async () => {
+        received = [];
+        upstream = createServer((request, response) => {
+            received.push({ url: request.url!, headers: request.headers });
+            response.end("reached");
+        });
+        await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
+        const port = (upstream.address() as AddressInfo).port;
+        const resolving = AppProxyHandler.resolve;
+        AppProxyHandler.resolve = async () => ["::1", "127.0.0.1"];
+        try {
+            const started = await serve(runningApp("myapp", "myapp.apps.internal", port));
+            server = started.server;
+
+            const response = await fetch(`${started.baseUrl}/app/myapp/hello`);
+
+            expect(response.status).toBe(200);
+            expect(await response.text()).toBe("reached");
+            expect(received.map(each => each.url)).toEqual(["/hello"]);
+        } finally {
+            AppProxyHandler.resolve = resolving;
+        }
     });
 
     it("passes the app's redirect through instead of following it", async () => {
