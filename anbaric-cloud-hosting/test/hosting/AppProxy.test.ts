@@ -87,6 +87,44 @@ describe("app proxy through the hosting server", () => {
         expect(await response.text()).toBe("prefix=/app/myapp cookie=s=1");
     });
 
+    it("keeps the platform's identity cookie from the app, and lets the tenant session through", async () => {
+        const port = await startUpstream();
+        const started = await serve(runningApp("myapp", "127.0.0.1", port));
+        server = started.server;
+
+        await fetch(`${started.baseUrl}/app/myapp/`, {
+            headers: { cookie: "anbaric_central_session=id-token; anbaric_session=signed; anbaric_tenant=acme; theirs=1" },
+        });
+
+        expect(received[0].headers.cookie).toBe("anbaric_session=signed; theirs=1");
+    });
+
+    it("sends no cookie header at all when only the platform's cookies were sent", async () => {
+        const port = await startUpstream();
+        const started = await serve(runningApp("myapp", "127.0.0.1", port));
+        server = started.server;
+
+        await fetch(`${started.baseUrl}/app/myapp/`, { headers: { cookie: "anbaric_central_session=id-token" } });
+
+        expect(received[0].headers.cookie).toBeUndefined();
+    });
+
+    it("drops an app's attempt to set one of the platform's cookies, keeping its own", async () => {
+        received = [];
+        upstream = createServer((request, response) => {
+            received.push({ url: request.url!, headers: request.headers });
+            response.writeHead(200, { "set-cookie": ["anbaric_central_session=planted; Domain=cloud.example; Path=/", "sid=abc; Path=/", "anbaric_session=planted; Path=/"] });
+            response.end("ok");
+        });
+        await new Promise<void>(resolve => upstream.listen(0, resolve));
+        const started = await serve(runningApp("myapp", "127.0.0.1", (upstream.address() as AddressInfo).port));
+        server = started.server;
+
+        const response = await fetch(`${started.baseUrl}/app/myapp/`);
+
+        expect(response.headers.getSetCookie()).toEqual(["sid=abc; Path=/"]);
+    });
+
     it("passes the app's Set-Cookie back to the client", async () => {
         const port = await startUpstream();
         const started = await serve(runningApp("myapp", "127.0.0.1", port));

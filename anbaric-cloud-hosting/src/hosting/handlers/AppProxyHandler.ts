@@ -1,6 +1,7 @@
 import {lookup} from "node:dns/promises";
 import {IncomingHttpHeaders, OutgoingHttpHeaders, request as httpRequest} from "node:http";
 import {BuildLayer} from "../../app-management/BuildLayer";
+import {IDENTITY_COOKIE, SESSION_COOKIE} from "../../auth/Authenticator";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 import {DEPLOYING, FAILED, NOT_RUNNING} from "../pages/ErrorPage";
@@ -19,6 +20,24 @@ const UNREACHED = new Set(["ECONNREFUSED", "EHOSTUNREACH", "ENETUNREACH", "ECONN
 
 const unreached = (error : unknown) : boolean =>
     typeof error === "object" && error !== null && UNREACHED.has(String((error as { code? : unknown }).code));
+
+/* The cookies that are the platform's, never an app's. The central identity
+   cookie is the person's proof of who they are at every tenant on the domain;
+   handed to an app it would let that app's operator be them anywhere they are
+   a member, so it stops here. The tenant cookie is central's own. An app
+   keeps the tenant session, which is what it resolves a user from and which
+   is good only on this platform. On the way back no app may set any of them:
+   a domain-wide cookie planted by an app would be a session of the app's
+   choosing. */
+const KEPT_FROM_APPS = new Set([IDENTITY_COOKIE, "anbaric_tenant"]);
+const RESERVED_COOKIES = new Set([SESSION_COOKIE, IDENTITY_COOKIE, "anbaric_tenant"]);
+
+const cookieName = (pair : string) : string => pair.slice(0, pair.indexOf("=") < 0 ? pair.length : pair.indexOf("=")).trim();
+
+const withoutPlatformCookies = (cookie : string) : string | undefined => {
+    const kept = cookie.split(";").map(pair => pair.trim()).filter(pair => pair && ! KEPT_FROM_APPS.has(cookieName(pair)));
+    return kept.length > 0 ? kept.join("; ") : undefined;
+};
 
 /* Headers that describe a single hop and must not be forwarded across the
    proxy in either direction. */
@@ -132,6 +151,9 @@ class AppProxyHandler implements RequestHandler {
     private forwardHeaders(request : Request, prefix : string) : OutgoingHttpHeaders {
         const headers = this.passThrough(request.raw.headers);
         delete headers.host;
+        const cookie = headers.cookie === undefined ? undefined : withoutPlatformCookies(String(headers.cookie));
+        if (cookie === undefined) delete headers.cookie;
+        else headers.cookie = cookie;
         headers["x-forwarded-prefix"] = prefix;
         headers["x-forwarded-host"] = request.raw.headers.host;
         headers["x-forwarded-proto"] = "https";
@@ -142,6 +164,11 @@ class AppProxyHandler implements RequestHandler {
         const kept : OutgoingHttpHeaders = {};
         for (const [name, value] of Object.entries(headers)) {
             if (value === undefined || HOP_BY_HOP.has(name)) continue;
+            if (name === "set-cookie") {
+                const allowed = (Array.isArray(value) ? value : [String(value)]).filter(set => ! RESERVED_COOKIES.has(cookieName(set)));
+                if (allowed.length > 0) kept[name] = allowed;
+                continue;
+            }
             kept[name] = value;
         }
         return kept;
