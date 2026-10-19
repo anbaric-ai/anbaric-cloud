@@ -86,6 +86,20 @@ dependencies to `^<version>`. To release: bump the root version, then
 `npm run release` (versions → build → tests → `npm publish --workspaces`, which
 skips the private Auth0 package). Never edit workspace versions by hand.
 
+**Choose the version by semver.** Every release publishes to npm and a published version can never
+be retracted, so the number has to say what the release is:
+
+- **Patch** (`1.78.0` → `1.78.1`): a bug fix, a security fix, a performance or copy change, a docs or
+  style-guide change that ships in a package. Nothing a consumer has to learn about.
+- **Minor** (`1.78.0` → `1.79.0`): something new that is backwards compatible - a feature, an added
+  endpoint, a new component or an optional parameter, a new environment variable with a default.
+- **Major** (`1.x` → `2.0.0`): a breaking change to a public interface in `tsapi`, `anbaric`,
+  `anbaric-impl-cloud` or `anbaric-data-store`, a removed or renamed endpoint or environment variable, a
+  migration that cannot be rolled back. Only with Chris's say-so.
+
+One release carries one kind of change where it can; a fix that rides along with a feature takes the
+feature's minor. When in doubt between patch and minor, ask which the consumer would notice.
+
 Publishing must pass `--tag latest` explicitly, which `npm run release` does. A stray `2.0.0` was
 once published to eight of the packages; it is past npm's unpublish window, so it stays the highest
 version for ever, and npm refuses to move the `latest` tag *implicitly* onto a lower version. Without
