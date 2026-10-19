@@ -277,6 +277,15 @@ abstract class BaseBuildLayer implements BuildLayer {
         }
     }
 
+    /* A rolling deploy keeps the old version answering at the app's address
+       until the new one has taken over, so while it builds the app is still
+       there to serve; an ordinary deploy stops the old version first, so it
+       is not. */
+    private serving(deployment : Deployment) : boolean {
+        if (deployment.status === "running") return true;
+        return deployment.status === "building" && this.rollsInPlace(deployment) && deployment.replaces?.status === "running";
+    }
+
     protected isCurrent(deployment : Deployment) : boolean {
         return this.deployments.get(deployment.appName) === deployment && deployment.status === "building";
     }
@@ -369,6 +378,7 @@ abstract class BaseBuildLayer implements BuildLayer {
         return {
             appName: deployment.appName,
             status: deployment.status,
+            serving: this.serving(deployment),
             appPort: deployment.appPort,
             appHost: deployment.appHost,
             size: deployment.size,

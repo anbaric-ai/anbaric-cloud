@@ -214,6 +214,20 @@ describe("FargateBuildLayer", () => {
         expect(status.log.at(-1)).toContain("rolled over");
     });
 
+    it("reports a zero-downtime redeploy as serving while it builds, and an ordinary one as not", async () => {
+        await deployFixture();
+        existingEcsService = true;
+        const fixtureDir = join(workDir, "fixture");
+
+        buildLayer.deploy("crm", APP_PORT, await packFixture(fixtureDir), { zeroDowntime: true });
+        expect(buildLayer.status("crm")).toMatchObject({ status: "building", serving: true });
+        await vi.waitFor(() => expect(buildLayer.status("crm")?.status).toBe("running"));
+
+        buildLayer.deploy("crm", APP_PORT, await packFixture(fixtureDir));
+        expect(buildLayer.status("crm")).toMatchObject({ status: "building", serving: false });
+        await vi.waitFor(() => expect(["running", "failed"]).toContain(buildLayer.status("crm")?.status));
+    });
+
     /* ECS retires the old task once the new one is healthy, and without a
        health check that is the moment the container starts, before the app
        in it listens - so the check is what makes the roll zero-downtime. */
@@ -356,7 +370,7 @@ describe("FargateBuildLayer", () => {
         await restarted.ensureHydrated();
 
         expect(restarted.list()).toEqual([
-            { appName: "crm", status: "running", appPort: 4000, appHost: "crm.anbaric-test.local", size: "large" },
+            { appName: "crm", status: "running", serving: true, appPort: 4000, appHost: "crm.anbaric-test.local", size: "large" },
         ]);
     });
 

@@ -47,9 +47,9 @@ const runningApp = (appName : string) : BuildLayer => ({
     ensureHydrated: async () => {},
     deploy: () => { throw new Error("not deployable in this test"); },
     status: (name) => name === appName
-        ? { appName, status: "running", appPort: 1, appHost: "localhost", size: "small", log: [] }
+        ? { appName, status: "running", serving: true, appPort: 1, appHost: "localhost", size: "small", log: [] }
         : undefined,
-    list: () => [{ appName, status: "running", appPort: 1, appHost: "localhost", size: "small" }],
+    list: () => [{ appName, status: "running", serving: true, appPort: 1, appHost: "localhost", size: "small" }],
     resize: async () => undefined,
     ping: async () => true,
     logs: async function* () {},

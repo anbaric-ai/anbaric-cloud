@@ -80,12 +80,14 @@ class AppProxyHandler implements RequestHandler {
         const app = this.buildLayer.status(appName);
         if (! app) return request.notFound();
 
-        /* An app is torn down while its replacement builds, so a visitor who
-           arrives mid-deploy would otherwise be told the app does not exist.
-           It does; it is just between versions, and saying so - with a page
-           that comes back on its own - is the difference between a blip and an
-           outage as far as anyone watching is concerned. */
-        if (app.status !== "running") {
+        /* An ordinary deploy stops the old version while its replacement
+           builds, so a visitor who arrives mid-deploy would otherwise be told
+           the app does not exist. It does; it is just between versions, and
+           saying so - with a page that comes back on its own - is the
+           difference between a blip and an outage as far as anyone watching
+           is concerned. A rolling deploy keeps the old version answering, so
+           there it is simply served. */
+        if (! app.serving) {
             return request.replyProblem(
                 app.status === "building" ? DEPLOYING : app.status === "failed" ? FAILED : NOT_RUNNING);
         }

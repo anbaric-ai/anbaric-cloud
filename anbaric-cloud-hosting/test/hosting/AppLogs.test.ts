@@ -26,7 +26,7 @@ const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({
     ensureHydrated: async () => {},
     deploy: () => { throw new Error("not deployable in this test"); },
     status: (name) => name === appName
-        ? { appName, status: "running", appPort: 1, appHost: "localhost", size: "small", log: [] }
+        ? { appName, status: "running", serving: true, appPort: 1, appHost: "localhost", size: "small", log: [] }
         : undefined,
     list: () => [],
     resize: async () => undefined,

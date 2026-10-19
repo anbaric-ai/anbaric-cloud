@@ -25,11 +25,11 @@ class ConfirmableInMemoryQueue extends InMemoryQueue implements RemoteQueue {
 
 }
 
-const runningApp = (appName : string, appHost : string, appPort : number) : BuildLayer => ({
+const runningApp = (appName : string, appHost : string, appPort : number, status : "running" | "building" = "running", serving = true) : BuildLayer => ({
     ensureHydrated: async () => {},
     deploy: () => { throw new Error("not deployable in this test"); },
     status: (name) => name === appName
-        ? { appName, status: "running", appPort, appHost, size: "small", log: [] }
+        ? { appName, status, serving, appPort, appHost, size: "small", log: [] }
         : undefined,
     list: () => [],
     resize: async () => undefined,
@@ -212,6 +212,28 @@ describe("app proxy through the hosting server", () => {
         } finally {
             AppProxyHandler.resolve = resolving;
         }
+    });
+
+    it("keeps serving an app that is building when its old version is still up, as on a rolling deploy", async () => {
+        const port = await startUpstream();
+        const started = await serve(runningApp("myapp", "127.0.0.1", port, "building", true));
+        server = started.server;
+
+        const response = await fetch(`${started.baseUrl}/app/myapp/hello`);
+
+        expect(response.status).toBe(200);
+        expect(received.map(each => each.url)).toEqual(["/hello"]);
+    });
+
+    it("shows the deploying page for an app that is building with nothing up behind it", async () => {
+        const port = await startUpstream();
+        const started = await serve(runningApp("myapp", "127.0.0.1", port, "building", false));
+        server = started.server;
+
+        const response = await fetch(`${started.baseUrl}/app/myapp/hello`);
+
+        expect(response.status).not.toBe(200);
+        expect(received).toEqual([]);
     });
 
     it("passes the app's redirect through instead of following it", async () => {

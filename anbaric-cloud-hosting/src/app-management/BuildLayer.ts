@@ -21,6 +21,10 @@ const isAppSize = (value : unknown) : value is AppSize =>
 type DeploymentSummary = {
     appName : string,
     status : DeploymentStatus,
+    /* Whether something answers at the app's address right now. A running app
+       does; so does one that is building when the version it replaces is
+       being kept up for a rolling deploy. */
+    serving : boolean,
     appPort : number,
     appHost : string,
     size : AppSize,
