@@ -63,8 +63,11 @@ ${page.retryAfter ? `<meta http-equiv="refresh" content="${page.retryAfter}">` :
     border: 1px solid ${TOKENS.edge};
     border-radius: 1.125rem;
     padding: 2rem;
+    text-align: center;
   }
-  .logo { display: block; height: 3rem; width: auto; margin: 0 0 1.5rem }
+  /* The lockup as the page shell shows it on a page standing alone: large
+     and centred, since on its own it is the whole top of the screen. */
+  .logo { display: block; height: 5rem; width: auto; max-width: 100%; margin: 0 auto 1.5rem }
   h1 { margin: 0 0 0.5rem; font-size: 1.4rem; line-height: 1.25; text-transform: uppercase }
   p { margin: 0; color: ${TOKENS.muted}; font-size: 0.95rem; line-height: 1.6 }
   .waiting { margin-top: 1.5rem; font-size: 0.85rem; color: ${TOKENS.muted} }
