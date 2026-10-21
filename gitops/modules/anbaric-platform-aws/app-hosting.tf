@@ -247,6 +247,29 @@ resource "aws_iam_role_policy" "platform_sends_notifications" {
   })
 }
 
+# The console's traffic report: the platform writes a line per pageview to its
+# own log and reads them back with a Logs Insights query over that log alone.
+resource "aws_iam_role_policy" "platform_reads_traffic" {
+  name = "read-traffic"
+  role = aws_iam_role.platform_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:StartQuery"]
+        Resource = [aws_cloudwatch_log_group.platform.arn, "${aws_cloudwatch_log_group.platform.arn}:*"]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:GetQueryResults", "logs:StopQuery"]
+        Resource = "*"
+      },
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "platform_deploys_apps" {
   name = "deploy-apps"
   role = aws_iam_role.platform_task.id

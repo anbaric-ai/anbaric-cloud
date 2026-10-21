@@ -47,6 +47,9 @@ import {SecretsHandler} from "./handlers/SecretsHandler";
 import {FilesHandler} from "./handlers/FilesHandler";
 import {StateMachinesHandler} from "./handlers/StateMachinesHandler";
 import {PluginsHandler} from "./handlers/PluginsHandler";
+import {ReportsHandler} from "./handlers/ReportsHandler";
+import {TrafficRecorder} from "../reporting/TrafficRecorder";
+import {TrafficReport} from "../reporting/TrafficReport";
 import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
 import {TenantRoutingMiddleware} from "./middleware/TenantRoutingMiddleware";
@@ -100,7 +103,9 @@ class HostingServer {
                 appSettings? : AppSettingsStore,
                 skills? : SkillStore,
                 operatorKey? : string,
-                stateMachineStore : StateMachineStore = new InMemoryStateMachineStore()) {
+                stateMachineStore : StateMachineStore = new InMemoryStateMachineStore(),
+                trafficRecorder? : TrafficRecorder,
+                trafficReport? : TrafficReport) {
         this.consumerRoute = async (appId, workflowId) => {
             if (appId && buildLayer) {
                 await buildLayer.ensureHydrated();
@@ -158,7 +163,7 @@ class HostingServer {
             publicRouter.register("authorize-cli", new AuthorizeCliHandler(cliAuthorizer, pages, tenant));
             publicRouter.registerApi("keys", new KeysHandler(cliAuthorizer));
         }
-        const appProxy = buildLayer ? new AppProxyHandler(buildLayer) : undefined;
+        const appProxy = buildLayer ? new AppProxyHandler(buildLayer, trafficRecorder) : undefined;
         if (buildLayer && appProxy) {
             // So a deploy can ask the running version to drain: an app with a
             // registered machine is asked at its deployment's address, which
@@ -172,6 +177,7 @@ class HostingServer {
             buildLayer.appRemoved = appName => void subdomains?.release(appName);
             publicRouter.registerApi("apps", new AppsHandler(buildLayer, tenant, subdomains, appSettings));
             publicRouter.register("app", appProxy);
+            publicRouter.registerApi("reports", new ReportsHandler(trafficReport));
 
             // The directory a person who is not a builder sees instead of the
             // console, so it only exists where entitlements decide access.

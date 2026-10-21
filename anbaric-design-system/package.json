@@ -27,6 +27,7 @@
     "./components/Form": "./components/Form/index.ts",
     "./components/Slider": "./components/Slider/index.ts",
     "./components/Graph": "./components/Graph/index.ts",
+    "./components/ColumnChart": "./components/ColumnChart/index.ts",
     "./components/Tooltip": "./components/Tooltip/index.ts",
     "./components/OptionsMenu": "./components/OptionsMenu/index.ts",
     "./components/ConcentrationCurve": "./components/ConcentrationCurve/index.ts",

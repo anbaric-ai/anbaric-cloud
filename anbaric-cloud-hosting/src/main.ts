@@ -41,6 +41,8 @@ import {PluginLoader} from "./plugins/PluginLoader";
 import {UsageReporter} from "./usage/UsageReporter";
 import {HttpSubdomains} from "./subdomains/HttpSubdomains";
 import {CentralBilling} from "./billing/CentralBilling";
+import {LoggedTrafficRecorder} from "./reporting/LoggedTrafficRecorder";
+import {CloudWatchTrafficReport} from "./reporting/CloudWatchTrafficReport";
 
 new FatalErrors().install();
 
@@ -151,6 +153,12 @@ const fileStorageFor = (appId : string) : FileStorage =>
         ? new S3FileStorage(s3, filesBucket, appId ? `${appId}/` : "")
         : new LocalFileSystemStorage(join(process.env.ANBARIC_FILE_STORAGE_PATH ?? join(tmpdir(), "anbaric", "files"), appId));
 
+/* Each pageview is a line in the platform's own log, and the report reads
+   the log back, so traffic is kept exactly as long as the log is. Only the
+   hosted platform's log can be queried; elsewhere nothing is recorded. */
+const trafficReport = process.env.ANBARIC_BUILD_LAYER === "fargate" ? new CloudWatchTrafficReport() : undefined;
+const trafficRecorder = trafficReport ? new LoggedTrafficRecorder(process.env.ANBARIC_SESSION_SIGNING_SECRET ?? "") : undefined;
+
 const jobs = new PostgresJobPersistence(pool);
 const auditRecords = new PostgresAuditRecordStore(pool);
 const server = new HostingServer(jobs, queue, registry, buildLayer,
@@ -161,7 +169,7 @@ const server = new HostingServer(jobs, queue, registry, buildLayer,
     (appId) => new PostgresPromptManager(pool, appId), fileStorageFor, subdomains, billing, appSettings, new PostgresSkillStore(pool),
     // The control plane's key, which the operators hold, is what writes a managed skill.
     process.env.ANBARIC_CLI_KEY_LOOKUP_SECRET || undefined,
-    new PostgresStateMachineStore(pool));
+    new PostgresStateMachineStore(pool), trafficRecorder, trafficReport);
 const port = await server.listen(hostingPort);
 const internal = await server.listenInternal(internalPort);
 

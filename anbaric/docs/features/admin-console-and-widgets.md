@@ -71,6 +71,11 @@ builder writes guidance - when to use it and what to do - that the Anbaric MCP
 offers to every agent working on the tenant as a tool of its own. See
 [Skills](skills.md).
 
+## Traffic
+
+The **Traffic** page shows each app's pageviews and visitors per hour, counted
+without cookies and kept for 30 days. See [Traffic](traffic.md).
+
 ## Turning plugins on
 
 `ANBARIC_PLUGINS` is a comma-separated list of plugin modules. Setting it

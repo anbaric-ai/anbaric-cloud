@@ -9,6 +9,7 @@ import * as Annotation from '@anbaric/design-system/components/Annotation'
 import * as Badge from '@anbaric/design-system/components/Badge'
 import * as Button from '@anbaric/design-system/components/Button'
 import * as Card from '@anbaric/design-system/components/Card'
+import * as ColumnChart from '@anbaric/design-system/components/ColumnChart'
 import * as Drawer from '@anbaric/design-system/components/Drawer'
 import * as EmptyState from '@anbaric/design-system/components/EmptyState'
 import * as Field from '@anbaric/design-system/components/Field'
@@ -33,8 +34,9 @@ import * as useMediaQuery from '@anbaric/design-system/components/useMediaQuery'
  * The host runtime handed to server-compiled plugin bundles: their react,
  * react-dom and design-system imports resolve to these exact instances, so
  * plugin components render with the dashboard's React and styling. Chart
- * components (Graph, ConcentrationCurve, ExposureBars) are deliberately
- * left out to keep the dashboard bundle free of recharts.
+ * components built on recharts (Graph, ConcentrationCurve, ExposureBars) are
+ * deliberately left out to keep the dashboard bundle free of it; ColumnChart
+ * is plain CSS and is in.
  */
 const DesignSystem = {
   ...Accordion,
@@ -43,6 +45,7 @@ const DesignSystem = {
   ...Badge,
   ...Button,
   ...Card,
+  ...ColumnChart,
   ...Drawer,
   ...EmptyState,
   ...Field,

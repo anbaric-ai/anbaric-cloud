@@ -2,6 +2,7 @@ import {lookup} from "node:dns/promises";
 import {IncomingHttpHeaders, OutgoingHttpHeaders, request as httpRequest} from "node:http";
 import {BuildLayer} from "../../app-management/BuildLayer";
 import {IDENTITY_COOKIE, SESSION_COOKIE} from "../../auth/Authenticator";
+import {isPageview, TrafficRecorder} from "../../reporting/TrafficRecorder";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
 import {DEPLOYING, FAILED, NOT_RUNNING} from "../pages/ErrorPage";
@@ -55,13 +56,13 @@ const HOP_BY_HOP = new Set([
    and surfaced as X-Forwarded-Prefix so the app can rebuild public URLs.
    Request and response headers pass through both ways - notably cookies,
    Set-Cookie and Location - so sessions and redirects work from app-served
-   HTML. */
+   HTML. Every page an app serves is told to the traffic recorder. */
 class AppProxyHandler implements RequestHandler {
 
     /* How a name becomes addresses; a test points it at addresses of its own. */
     static resolve : Resolve = resolveAll;
 
-    constructor(private buildLayer : BuildLayer) {}
+    constructor(private buildLayer : BuildLayer, private traffic? : TrafficRecorder) {}
 
     async handle(request : Request) : Promise<void> {
         const appName = request.id;
@@ -106,7 +107,7 @@ class AppProxyHandler implements RequestHandler {
         let lastFailure : unknown;
         for (const address of addresses.length > 0 ? addresses : [app.appHost]) {
             try {
-                return await this.forward(request, app.appPort, address, appPath, prefix, body);
+                return await this.forward(request, appName, app.appPort, address, appPath, prefix, body);
             } catch (error) {
                 if (! unreached(error) || request.rawResponse.headersSent) throw error;
                 lastFailure = error;
@@ -121,7 +122,7 @@ class AppProxyHandler implements RequestHandler {
        and there is nothing left to say to the client, so the upstream is
        let go and the request is over. Only a failure before the first
        byte is an error worth answering. */
-    private async forward(request : Request, port : number, address : string, appPath : string, prefix : string, body : Buffer | undefined) : Promise<void> {
+    private async forward(request : Request, appName : string, port : number, address : string, appPath : string, prefix : string, body : Buffer | undefined) : Promise<void> {
         await new Promise<void>((resolve, reject) => {
             const client = request.rawResponse;
             const settle = (error : unknown) => {
@@ -138,6 +139,7 @@ class AppProxyHandler implements RequestHandler {
                 headers: this.forwardHeaders(request, prefix),
             }, response => {
                 client.writeHead(response.statusCode ?? 502, this.passThrough(response.headers));
+                if (this.traffic && isPageview(request, response.statusCode ?? 502, response.headers)) this.record(request, appName);
                 response.pipe(client);
                 response.on("end", resolve);
                 response.on("error", settle);
@@ -152,6 +154,14 @@ class AppProxyHandler implements RequestHandler {
             if (body && body.length > 0) upstream.write(body);
             upstream.end();
         });
+    }
+
+    private record(request : Request, appName : string) : void {
+        try {
+            this.traffic!.pageview(request, appName);
+        } catch (error) {
+            console.warn(`[reports] could not record a pageview of "${appName}": ${error instanceof Error ? error.message : error}`);
+        }
     }
 
     private forwardHeaders(request : Request, prefix : string) : OutgoingHttpHeaders {

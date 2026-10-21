@@ -30,6 +30,7 @@ What the framework gives you, one capability at a time.
 - [Entitlements](features/entitlements.md) — what a user has been granted, checked per request
 - [Public apps](features/public-apps.md) — apps anyone can open without signing in
 - [Skills](features/skills.md) — guidance your builders write for the agents working on your tenant
+- [Traffic](features/traffic.md) — pageviews and visitors per app per hour, in the console
 - [Prompts](features/prompts.md) — versioned model instructions and schemas, saved at startup
 - [Serving a web UI](features/serving-a-web-ui.md) — putting your data on a page
 - [The admin console and widgets](features/admin-console-and-widgets.md) — dashboards and plugins

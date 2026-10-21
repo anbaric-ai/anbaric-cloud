@@ -20,6 +20,7 @@ import { Badge } from '../components/Badge'
 import { Form } from '../components/Form'
 import { Slider } from '../components/Slider'
 import { Graph } from '../components/Graph'
+import { ColumnChart } from '../components/ColumnChart'
 import { Tooltip } from '../components/Tooltip'
 import { OptionsMenu } from '../components/OptionsMenu'
 import { ConcentrationCurve } from '../components/ConcentrationCurve'
@@ -815,6 +816,17 @@ function ComponentDemos() {
           container.
         </p>
         <Graph data={[4, 7, 5, 9, 6, 11, 8, 13]} aria-label="Example trend line" />
+      </Section>
+
+      <Section title="ColumnChart">
+        <p className="component-demo__body">
+          A count per period, such as pageviews per hour, as columns on a
+          baseline. Plain CSS with no charting library, so plugins can use it.
+        </p>
+        <ColumnChart data={[2, 0, 1, 4, 9, 14, 11, 16, 12, 7, 5, 3]} aria-label="Example pageviews per hour" />
+        <div style={{ marginTop: 'var(--space-md)' }}>
+          <ColumnChart tone="muted" height={48} data={[1, 0, 1, 2, 4, 6, 5, 7, 5, 3, 2, 1]} aria-label="Example visitors per hour" />
+        </div>
       </Section>
     </>
   )
