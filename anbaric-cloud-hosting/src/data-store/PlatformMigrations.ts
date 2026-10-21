@@ -333,6 +333,11 @@ const PLATFORM_MIGRATIONS : Array<Migration> = [
          ON CONFLICT DO NOTHING`,
     ),
 
+    // An app anyone may open without signing in.
+    statements("012-public-apps",
+        "ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS public BOOLEAN NOT NULL DEFAULT false",
+    ),
+
 ];
 
 export { PLATFORM_MIGRATIONS };

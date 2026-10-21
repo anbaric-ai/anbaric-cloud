@@ -6,7 +6,9 @@ import {appAddress} from "../../app-management/appAddress";
 import {redactEmails} from "../../app-management/redactEmails";
 import {RequestHandler} from "../RequestHandler";
 import {Subdomains} from "../../subdomains/Subdomains";
-import {AppSettingsStore} from "../../data-store/AppSettingsStore";
+import {AppSettings, AppSettingsStore} from "../../data-store/AppSettingsStore";
+
+type Switch = "zeroDowntime" | "public";
 
 class AppsHandler implements RequestHandler {
 
@@ -37,7 +39,10 @@ class AppsHandler implements RequestHandler {
                 if (request.id) return this.handleSize(request, request.id);
                 break;
             case "zero-downtime":
-                if (request.id) return this.handleZeroDowntime(request, request.id);
+                if (request.id) return this.handleSwitch(request, request.id, "zeroDowntime");
+                break;
+            case "public":
+                if (request.id) return this.handleSwitch(request, request.id, "public");
                 break;
             case undefined:
                 if (request.id) return this.handleApp(request, request.id);
@@ -48,28 +53,30 @@ class AppsHandler implements RequestHandler {
 
     private changesApps(request : Request) : boolean {
         if (request.subresource === "deploy" || request.subresource === "docs") return true;
-        if (["subdomain", "size", "zero-downtime"].includes(request.subresource ?? "")) return request.method === "PUT";
+        if (["subdomain", "size", "zero-downtime", "public"].includes(request.subresource ?? "")) return request.method === "PUT";
         return request.subresource === undefined && request.method === "DELETE";
     }
 
-    /* Whether the app's deploys keep the old version up until the new one
-       answers. A builder's choice, priced per app per month as the console
-       says; it takes effect from the next deploy and restarts nothing now. */
-    private async handleZeroDowntime(request : Request, appName : string) : Promise<void> {
+    /* A builder's on-or-off choice for an app, each priced per app per month
+       as the console says. Zero-downtime keeps the old version up until the
+       new one answers, from the next deploy; public lets anyone open the app
+       without signing in, within seconds. Neither restarts anything now. */
+    private async handleSwitch(request : Request, appName : string, setting : Switch) : Promise<void> {
         if (request.method !== "PUT") return request.notFound();
-        if (! this.settings) return request.reply(409, { error: "This platform does not offer zero-downtime deploys" });
+        if (! this.settings) return request.reply(409, { error: "This platform does not keep app settings" });
         if (! this.buildLayer.status(appName)) return request.reply(404, { error: `No app named "${appName}"` });
 
         const body = await request.body() as { on? : unknown } | undefined;
         if (typeof body?.on !== "boolean") return request.reply(400, { error: "Expected a body of { on : boolean }" });
 
-        const settings = await this.settings.set(appName, { zeroDowntime: body.on });
-        return request.reply(200, { appName, zeroDowntime: settings.zeroDowntime });
+        const settings = await this.settings.set(appName, { [setting]: body.on });
+        return request.reply(200, { appName, [setting]: settings[setting] });
     }
 
-    private async zeroDowntimeOf(appName : string) : Promise<boolean | undefined> {
-        if (! this.settings) return undefined;
-        return (await this.settings.get(appName)).zeroDowntime;
+    private async switchesOf(appName : string) : Promise<Partial<Pick<AppSettings, Switch>>> {
+        if (! this.settings) return {};
+        const { zeroDowntime, public: open } = await this.settings.get(appName);
+        return { zeroDowntime, public: open };
     }
 
     /* How big the app's instance is, which is a builder's to change and costs
@@ -134,7 +141,7 @@ class AppsHandler implements RequestHandler {
                 const tarball = await request.rawBody();
                 if (tarball.length === 0) return request.reply(400, { error: "Expected a gzipped tarball body" });
 
-                const summary = this.buildLayer.deploy(appName, appPort, tarball, { zeroDowntime: await this.zeroDowntimeOf(appName) });
+                const summary = this.buildLayer.deploy(appName, appPort, tarball, { zeroDowntime: (await this.switchesOf(appName)).zeroDowntime });
 
                 /* An address is asked for alongside the build rather than
                    after it: allocation is idempotent, so a redeploy costs
@@ -158,8 +165,7 @@ class AppsHandler implements RequestHandler {
                 if (!status) return request.reply(404, { error: `No app named "${appName}"` });
                 const live = await this.buildLayer.ping(appName);
                 const subdomain = await this.addressOf(appName);
-                const zeroDowntime = await this.zeroDowntimeOf(appName);
-                return request.reply(200, { ...status, live, subdomain, url: appAddress(appName, subdomain), zeroDowntime });
+                return request.reply(200, { ...status, live, subdomain, url: appAddress(appName, subdomain), ...await this.switchesOf(appName) });
             }
             case "DELETE": {
                 const outcome = await this.buildLayer.teardown(appName);
@@ -221,8 +227,10 @@ class AppsHandler implements RequestHandler {
                 const settings = new Map((await this.settings?.list() ?? []).map(each => [each.appName, each]));
                 return request.reply(200, this.buildLayer.list().map(app => {
                     const subdomain = addresses.get(app.appName);
-                    const zeroDowntime = this.settings ? settings.get(app.appName)?.zeroDowntime ?? false : undefined;
-                    return { ...app, subdomain, url: appAddress(app.appName, subdomain), zeroDowntime };
+                    const switches = this.settings
+                        ? { zeroDowntime: settings.get(app.appName)?.zeroDowntime ?? false, public: settings.get(app.appName)?.public ?? false }
+                        : {};
+                    return { ...app, subdomain, url: appAddress(app.appName, subdomain), ...switches };
                 }));
             }
         }

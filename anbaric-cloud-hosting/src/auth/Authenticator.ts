@@ -18,6 +18,14 @@ abstract class Authenticator {
     abstract authenticate(session : string | undefined, request : IncomingMessage,
                           response : ServerResponse) : Promise<[User, Tenant] | undefined>;
 
+    /* Who a session belongs to, without sending anyone to a login when it
+       proves nothing: a public app serves the person it can recognise and
+       anyone else anonymously. An authenticator that cannot tell quietly
+       recognises no one. */
+    async identify(_session : string | undefined, _request : IncomingMessage) : Promise<[User, Tenant] | undefined> {
+        return undefined;
+    }
+
     async authorize(_user : User, _request : IncomingMessage, _response : ServerResponse) : Promise<boolean> {
         return true;
     }

@@ -4,7 +4,10 @@ import {AppSettings, AppSettingsStore, DEFAULT_SETTINGS} from "./AppSettingsStor
 const rowToSettings = (row : any) : AppSettings => ({
     appName: row.app_name,
     zeroDowntime: row.zero_downtime,
+    public: row.public,
 });
+
+const COLUMNS = "app_name, zero_downtime, public";
 
 class PostgresAppSettingsStore implements AppSettingsStore {
 
@@ -12,22 +15,22 @@ class PostgresAppSettingsStore implements AppSettingsStore {
 
     async get(appName : string) : Promise<AppSettings> {
         const result = await this.pool.query(
-            "SELECT app_name, zero_downtime FROM app_settings WHERE app_name = $1", [appName]);
+            `SELECT ${COLUMNS} FROM app_settings WHERE app_name = $1`, [appName]);
         return result.rows[0] ? rowToSettings(result.rows[0]) : { appName, ...DEFAULT_SETTINGS };
     }
 
     async set(appName : string, settings : Partial<Omit<AppSettings, "appName">>) : Promise<AppSettings> {
         const merged = { ...(await this.get(appName)), ...settings };
         const result = await this.pool.query(
-            `INSERT INTO app_settings (app_name, zero_downtime) VALUES ($1, $2)
-             ON CONFLICT (app_name) DO UPDATE SET zero_downtime = EXCLUDED.zero_downtime, updated_at = now()
-             RETURNING app_name, zero_downtime`,
-            [appName, merged.zeroDowntime]);
+            `INSERT INTO app_settings (${COLUMNS}) VALUES ($1, $2, $3)
+             ON CONFLICT (app_name) DO UPDATE SET zero_downtime = EXCLUDED.zero_downtime, public = EXCLUDED.public, updated_at = now()
+             RETURNING ${COLUMNS}`,
+            [appName, merged.zeroDowntime, merged.public]);
         return rowToSettings(result.rows[0]);
     }
 
     async list() : Promise<Array<AppSettings>> {
-        const result = await this.pool.query("SELECT app_name, zero_downtime FROM app_settings ORDER BY app_name");
+        const result = await this.pool.query(`SELECT ${COLUMNS} FROM app_settings ORDER BY app_name`);
         return result.rows.map(rowToSettings);
     }
 

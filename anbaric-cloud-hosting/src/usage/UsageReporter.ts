@@ -1,9 +1,9 @@
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
 /* How many apps are running, how many of those are on a large instance, and
-   how many have zero-downtime deploys turned on. Counted afresh each report,
-   and allowed to look something up on the way. */
-type AppCounts = { apps : number, large : number, zeroDowntime? : number };
+   how many have zero-downtime deploys or public access turned on. Counted
+   afresh each report, and allowed to look something up on the way. */
+type AppCounts = { apps : number, large : number, zeroDowntime? : number, public? : number };
 type CountApps = () => AppCounts | Promise<AppCounts>;
 
 const REPORT_INTERVAL_MS = 60 * 60_000;
@@ -50,9 +50,9 @@ class UsageReporter {
         }
     }
 
-    private async counted() : Promise<{ apps : number, largeApps : number, zeroDowntimeApps : number }> {
-        const { apps, large, zeroDowntime } = await this.countApps();
-        return { apps, largeApps: large, zeroDowntimeApps: zeroDowntime ?? 0 };
+    private async counted() : Promise<{ apps : number, largeApps : number, zeroDowntimeApps : number, publicApps : number }> {
+        const { apps, large, zeroDowntime, public: open } = await this.countApps();
+        return { apps, largeApps: large, zeroDowntimeApps: zeroDowntime ?? 0, publicApps: open ?? 0 };
     }
 
     // The day in UTC, so every tenant's day starts at the same moment however

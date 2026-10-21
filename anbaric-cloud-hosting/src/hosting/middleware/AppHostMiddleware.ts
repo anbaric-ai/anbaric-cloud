@@ -21,7 +21,7 @@ const APP_HOST_HEADER = "x-anbaric-app-host";
    provider would be handed to the app, which knows nothing about it. The list
    is deliberately tiny, and it is the same bargain the path form already makes
    by reserving /api and /app. */
-const PLATFORM_PATHS = new Set(["/login", "/callback", "/logout", "/favicon.ico"]);
+const PLATFORM_PATHS : ReadonlySet<string> = new Set(["/login", "/callback", "/logout", "/favicon.ico"]);
 
 class AppHostMiddleware implements Middleware {
 
@@ -38,4 +38,4 @@ class AppHostMiddleware implements Middleware {
 
 }
 
-export { AppHostMiddleware, APP_HOST_HEADER };
+export { AppHostMiddleware, APP_HOST_HEADER, PLATFORM_PATHS };

@@ -179,11 +179,14 @@ if (buildLayer && process.env.ANBARIC_TENANT && process.env.ANBARIC_CLI_KEY_LOOK
         process.env.ANBARIC_TENANT,
         async () => {
             const live = buildLayer.list().filter(app => app.status === "running" || app.status === "draining");
-            const zeroDowntime = new Set((await appSettings.list()).filter(each => each.zeroDowntime).map(each => each.appName));
+            const settings = await appSettings.list();
+            const zeroDowntime = new Set(settings.filter(each => each.zeroDowntime).map(each => each.appName));
+            const open = new Set(settings.filter(each => each.public).map(each => each.appName));
             return {
                 apps: live.length,
                 large: live.filter(app => app.size === "large").length,
                 zeroDowntime: live.filter(app => zeroDowntime.has(app.appName)).length,
+                public: live.filter(app => open.has(app.appName)).length,
             };
         },
     ).start();

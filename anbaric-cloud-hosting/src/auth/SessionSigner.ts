@@ -82,8 +82,11 @@ class SessionSigner {
     }
 
     // Sets (or, for a still-valid session, refreshes) the session cookie.
-    issue(response : ServerResponse, user : User, tenant? : Tenant) : void {
-        this.setCookies(response, [`${SESSION_COOKIE}=${this.mint(user, tenant)}; ${this.attributes(this.ttlSeconds)}`, ...this.hostOnlyExpiry()]);
+    // Answers the session it set, for anything later in the request that carries it on.
+    issue(response : ServerResponse, user : User, tenant? : Tenant) : string {
+        const session = this.mint(user, tenant);
+        this.setCookies(response, [`${SESSION_COOKIE}=${session}; ${this.attributes(this.ttlSeconds)}`, ...this.hostOnlyExpiry()]);
+        return session;
     }
 
     // Expires the session cookie; the attributes must match issue() or the

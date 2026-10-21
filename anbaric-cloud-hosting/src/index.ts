@@ -61,6 +61,8 @@ export * from "./hosting/middleware/AuthenticationMiddleware";
 export * from "./hosting/middleware/SessionMiddleware";
 export * from "./hosting/middleware/TenantRoutingMiddleware";
 export * from "./hosting/middleware/AppHostMiddleware";
+export * from "./hosting/middleware/AppSignInMiddleware";
+export * from "./hosting/PublicApps";
 export * from "./app-management/appHostname";
 export * from "./hosting/handlers/AppProxyHandler";
 export * from "./hosting/handlers/AppsHandler";

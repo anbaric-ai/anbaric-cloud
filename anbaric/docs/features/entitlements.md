@@ -42,12 +42,14 @@ server.on("request", async (request, response) => {
 
 A request with no session, or one the platform can't resolve, is simply not
 entitled - `hasEntitlement` returns `false` rather than throwing.
+That is what a [public app](public-apps.md) sees for an anonymous visitor.
 
 ## Global entitlements
 
 Some entitlements aren't about one app. A **global entitlement** belongs to no
 app and is created in the console, never by `registerEntitlement`. Every tenant
-starts with one, `access`.
+starts with one, `access`. A [public app](public-apps.md) needs no `access`:
+anyone can open it.
 
 A grant can be scoped too. Granting a user `access` **for your app** and
 granting them `access` **globally** both make `hasEntitlement(request, "access")`

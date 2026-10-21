@@ -25,11 +25,12 @@ type ManagedApp = {
   draining?: { inFlight: number; since: number }
   // Absent on a platform that does not offer it.
   zeroDowntime?: boolean
+  public?: boolean
 }
 
 // What each size, and each extra, costs a month, as the control plane quotes
 // it in the tenant's currency. Absent on a platform with no control plane.
-type Pricing = { small: string; large: string; zeroDowntime?: string }
+type Pricing = { small: string; large: string; zeroDowntime?: string; public?: string }
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
@@ -89,6 +90,9 @@ const LARGE_EXPLAINED = 'A large instance gets faster compute and 2× the RAM.'
 const ZERO_DOWNTIME_EXPLAINED =
   'A deploy brings the new version up beside the old one and only then lets the old one go, so the app never stops answering. Without it, the old version is stopped before the new one starts.'
 
+const PUBLIC_EXPLAINED =
+  'Anyone with the address can open the app without signing in, and needs no access entitlement. Members are still recognised, so other entitlements apply.'
+
 const tone = (status: string) =>
   status === 'running' ? 'success' : status === 'failed' ? 'danger' : status === 'building' ? 'primary' : 'neutral'
 
@@ -106,6 +110,7 @@ function ManageAppsPage() {
   const [addressProblem, setAddressProblem] = useState<string | undefined>(undefined)
   const [resizing, setResizing] = useState<{ app: ManagedApp; to: AppSize } | undefined>(undefined)
   const [removing, setRemoving] = useState<ManagedApp | undefined>(undefined)
+  const [opening, setOpening] = useState<ManagedApp | undefined>(undefined)
 
   const load = async () => {
     try {
@@ -126,9 +131,14 @@ function ManageAppsPage() {
     // Only a platform with a control plane has prices, or sizes worth offering.
     void fetch('/api/v2/billing/summary')
       .then((response) => (response.ok ? response.json() : undefined))
-      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string }; perZeroDowntime?: { display: string } }) => {
+      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string }; perZeroDowntime?: { display: string }; perPublicApp?: { display: string } }) => {
         if (summary?.perApp && summary.perLargeApp) {
-          setPricing({ small: summary.perApp.display, large: summary.perLargeApp.display, zeroDowntime: summary.perZeroDowntime?.display })
+          setPricing({
+            small: summary.perApp.display,
+            large: summary.perLargeApp.display,
+            zeroDowntime: summary.perZeroDowntime?.display,
+            public: summary.perPublicApp?.display,
+          })
         }
       })
       .catch(() => {})
@@ -194,23 +204,26 @@ function ManageAppsPage() {
     }
   }
 
-  // Takes effect from the app's next deploy; nothing restarts now.
-  const setZeroDowntime = async (app: ManagedApp, on: boolean) => {
+  /* Zero-downtime takes effect from the app's next deploy; public within a
+     few seconds. Nothing restarts either way. */
+  const setSwitch = async (app: ManagedApp, setting: 'zero-downtime' | 'public', on: boolean) => {
+    const failure = setting === 'public' ? 'Could not change whether that app is public' : 'Could not change zero-downtime deploys for that app'
     setBusy(app.appName)
     setProblem(undefined)
+    setOpening(undefined)
     try {
-      const response = await fetch(`/api/v2/apps/${encodeURIComponent(app.appName)}/zero-downtime`, {
+      const response = await fetch(`/api/v2/apps/${encodeURIComponent(app.appName)}/${setting}`, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ on }),
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        throw new Error(body?.error ?? 'Could not change zero-downtime deploys for that app')
+        throw new Error(body?.error ?? failure)
       }
       await load()
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'Could not change zero-downtime deploys for that app')
+      setProblem(error instanceof Error ? error.message : failure)
     } finally {
       setBusy(undefined)
     }
@@ -302,11 +315,26 @@ function ManageAppsPage() {
               <Toggle
                 checked={app.zeroDowntime}
                 disabled={busy !== undefined}
-                onChange={(on) => void setZeroDowntime(app, on)}
+                onChange={(on) => void setSwitch(app, 'zero-downtime', on)}
                 label={`Zero-downtime deploys · ${pricing.zeroDowntime ?? '$10 / £10'}/mo`}
               />
               <Tooltip label={ZERO_DOWNTIME_EXPLAINED}>
                 <span style={infoIcon} tabIndex={0} aria-label={ZERO_DOWNTIME_EXPLAINED}>i</span>
+              </Tooltip>
+            </div>
+          ) : null}
+
+          {pricing && app.public !== undefined ? (
+            <div style={sizeRow}>
+              <span style={sizeLabel}>Access</span>
+              <Toggle
+                checked={app.public}
+                disabled={busy !== undefined}
+                onChange={(on) => (on ? setOpening(app) : void setSwitch(app, 'public', false))}
+                label={`Public · ${pricing.public ?? '$100 / £100'}/mo`}
+              />
+              <Tooltip label={PUBLIC_EXPLAINED}>
+                <span style={infoIcon} tabIndex={0} aria-label={PUBLIC_EXPLAINED}>i</span>
               </Tooltip>
             </div>
           ) : null}
@@ -370,6 +398,29 @@ function ManageAppsPage() {
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app is restarted on the new instance. Anything it has in hand is finished first.
+        </p>
+      </Modal>
+
+      <Modal
+        open={opening !== undefined}
+        onClose={() => setOpening(undefined)}
+        title={`Make ${opening?.appName ?? ''} public?`}
+        footer={
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
+            <Button variant="secondary" onClick={() => setOpening(undefined)}>Keep it private</Button>
+            <Button variant="primary" onClick={() => opening && void setSwitch(opening, 'public', true)}>
+              Make public · {pricing?.public ?? '$100 / £100'}/mo
+            </Button>
+          </div>
+        }
+      >
+        <p style={{ marginTop: 0 }}>
+          {PUBLIC_EXPLAINED} It costs {pricing?.public ?? '$100 / £100'} a month, charged by the day from today, and is
+          never covered by the free allowance.
+        </p>
+        <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
+          The app itself decides what an anonymous visitor may see and do. A member can sign in from it by following
+          a link to <code>/login</code> on the app's own address.
         </p>
       </Modal>
 

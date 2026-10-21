@@ -9,6 +9,9 @@ import {Request} from "../Request";
 
 type OpenRequestPredicate = (request : Request) => boolean;
 
+/* Whether the request is for an app anyone may open without signing in. */
+type PublicAppPredicate = (request : Request) => Promise<boolean>;
+
 const DIRECTORY_REFRESH_MS = 60 * 60 * 1000;
 
 /* Decorates the request with its authenticated user and tenant - bearer
@@ -18,7 +21,12 @@ const DIRECTORY_REFRESH_MS = 60 * 60 * 1000;
    expiry; a fresh authenticator login mints one. Requests matching the open
    predicate (ping, the one-time CLI key poll) pass through untouched, as does
    everything when no authenticator is configured. Browser-session users are
-   recorded in the tenant's user directory, at most once an hour each. */
+   recorded in the tenant's user directory, at most once an hour each.
+
+   A request for a public app is never sent to a login and never refused for
+   want of membership: a member is recognised, quietly, from either cookie,
+   and anyone else - a stranger, or someone signed in who belongs to another
+   tenant - goes on as an anonymous visitor with no user at all. */
 class AuthenticationMiddleware implements Middleware {
 
     private recorded = new Map<string, number>();
@@ -37,7 +45,8 @@ class AuthenticationMiddleware implements Middleware {
                 private sessionSigner : SessionSigner = new SessionSigner(),
                 private userDirectory? : UserDirectory,
                 private memberships? : MembershipService,
-                private operatorKey? : string) {}
+                private operatorKey? : string,
+                private isPublicApp : PublicAppPredicate = async () => false) {}
 
     async apply(request : Request) : Promise<boolean> {
         if (this.isOpen(request)) return true;
@@ -58,15 +67,24 @@ class AuthenticationMiddleware implements Middleware {
             return this.authorized(request);
         }
 
+        const publicApp = await this.isPublicApp(request);
+
         if (this.sessionSigner.configured) {
             const session = this.sessionSigner.verify(request.session);
             if (session) {
                 [request.user, request.tenant] = session;
+                if (publicApp) return this.welcomed(request);
                 if (! await this.admitted(request)) return false;
-                this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
+                request.session = this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
                 await this.remember(request.user!);
                 return this.authorized(request);
             }
+        }
+
+        if (publicApp) {
+            const recognised = await this.authenticator?.identify(request.identity ?? request.session, request.raw);
+            if (recognised) [request.user, request.tenant] = recognised;
+            return this.welcomed(request);
         }
 
         // A state-changing request with no valid session, bound for an
@@ -91,7 +109,7 @@ class AuthenticationMiddleware implements Middleware {
         [request.user, request.tenant] = authenticated;
         if (! await this.admitted(request)) return false;
         if (this.sessionSigner.configured && !request.handled) {
-            this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
+            request.session = this.sessionSigner.issue(request.rawResponse, request.user!, request.tenant);
         }
         await this.remember(request.user!);
         return this.authorized(request);
@@ -115,6 +133,34 @@ class AuthenticationMiddleware implements Middleware {
         if (request.user.tenantRole) return true;
         if (! request.handled) request.reply(403, { error: "You are not a member of this tenant" });
         return false;
+    }
+
+    /* A public app's visitor: a member keeps who they are, with a fresh
+       session; anyone else is let in as no one, and nothing that says who
+       they are elsewhere goes further. */
+    private async welcomed(request : Request) : Promise<boolean> {
+        if (request.user && await this.isMember(request)) {
+            if (this.sessionSigner.configured) request.session = this.sessionSigner.issue(request.rawResponse, request.user, request.tenant);
+            await this.remember(request.user);
+            return true;
+        }
+
+        request.user = undefined;
+        request.tenant = undefined;
+        request.session = undefined;
+        return true;
+    }
+
+    private async isMember(request : Request) : Promise<boolean> {
+        if (! this.memberships || ! request.user) return true;
+
+        try {
+            request.user.tenantRole = await this.memberships.roleFor(request.user.id);
+            return Boolean(request.user.tenantRole);
+        } catch (error) {
+            console.error(`[membership] could not resolve a role for "${request.user.id}":`, error);
+            return false;
+        }
     }
 
     private async remember(user : User) : Promise<void> {
@@ -158,4 +204,4 @@ class AuthenticationMiddleware implements Middleware {
 }
 
 export { AuthenticationMiddleware };
-export type { OpenRequestPredicate };
+export type { OpenRequestPredicate, PublicAppPredicate };

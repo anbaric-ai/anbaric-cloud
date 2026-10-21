@@ -51,6 +51,8 @@ import {AuthenticationMiddleware} from "./middleware/AuthenticationMiddleware";
 import {SessionMiddleware} from "./middleware/SessionMiddleware";
 import {TenantRoutingMiddleware} from "./middleware/TenantRoutingMiddleware";
 import {AppHostMiddleware} from "./middleware/AppHostMiddleware";
+import {AppSignInMiddleware} from "./middleware/AppSignInMiddleware";
+import {PublicApps} from "./PublicApps";
 import {LoadedPlugin} from "../plugins/Plugin";
 import {Request} from "./Request";
 import {Router} from "./Router";
@@ -205,8 +207,9 @@ class HostingServer {
             request.url.pathname === "/favicon.ico" ||
             (request.method === "GET" && CLI_KEY_POLL.test(request.url.pathname));
 
-        const authentication =
-            new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined, userDirectory, memberships, operatorKey);
+        const publicApps = appSettings ? new PublicApps(appSettings) : undefined;
+        const authentication = new AuthenticationMiddleware(authenticator, tokenAuthenticator, openRequests, undefined,
+            userDirectory, memberships, operatorKey, async request => publicApps ? publicApps.includes(request) : false);
 
         /* Entitlements an inviter chose before this person had a user id were
            put aside under their email address; their first sign-in is when
@@ -223,6 +226,7 @@ class HostingServer {
         this.publicServer = new Server(publicRouter, [
             new SessionMiddleware(),
             new TenantRoutingMiddleware(tenant),
+            new AppSignInMiddleware(authenticator),
             authentication,
             /* After authentication and before routing: an app reached by its own
                hostname owns every path on it, so nothing of the platform's would

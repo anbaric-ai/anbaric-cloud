@@ -87,16 +87,16 @@ describe("app proxy through the hosting server", () => {
         expect(await response.text()).toBe("prefix=/app/myapp cookie=s=1");
     });
 
-    it("keeps the platform's identity cookie from the app, and lets the tenant session through", async () => {
+    it("keeps the platform's cookies from the app when nobody was recognised, passing on the app's own", async () => {
         const port = await startUpstream();
         const started = await serve(runningApp("myapp", "127.0.0.1", port));
         server = started.server;
 
         await fetch(`${started.baseUrl}/app/myapp/`, {
-            headers: { cookie: "anbaric_central_session=id-token; anbaric_session=signed; anbaric_tenant=acme; theirs=1" },
+            headers: { cookie: "anbaric_central_session=id-token; anbaric_session=unverified; anbaric_tenant=acme; theirs=1" },
         });
 
-        expect(received[0].headers.cookie).toBe("anbaric_session=signed; theirs=1");
+        expect(received[0].headers.cookie).toBe("theirs=1");
     });
 
     it("sends no cookie header at all when only the platform's cookies were sent", async () => {

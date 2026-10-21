@@ -8,9 +8,13 @@ type AppSettings = {
        the old go, instead of stopping the old first. Priced, and off unless
        the builder turns it on. */
     zeroDowntime : boolean,
+    /* Anyone may open the app without signing in: no session and no access
+       entitlement. Members are still recognised, so other entitlements
+       apply. Priced, and off unless the builder turns it on. */
+    public : boolean,
 };
 
-const DEFAULT_SETTINGS : Omit<AppSettings, "appName"> = { zeroDowntime: false };
+const DEFAULT_SETTINGS : Omit<AppSettings, "appName"> = { zeroDowntime: false, public: false };
 
 interface AppSettingsStore {
 

@@ -4,17 +4,17 @@ import {InMemoryAppSettingsStore} from "../../src/data-store/InMemoryAppSettings
 describe("InMemoryAppSettingsStore", () => {
 
     it("gives an unconfigured app the defaults", async () => {
-        expect(await new InMemoryAppSettingsStore().get("crm")).toEqual({ appName: "crm", zeroDowntime: false });
+        expect(await new InMemoryAppSettingsStore().get("crm")).toEqual({ appName: "crm", zeroDowntime: false, public: false });
     });
 
     it("keeps what is set, and lists only apps that were configured", async () => {
         const store = new InMemoryAppSettingsStore();
 
-        expect(await store.set("crm", { zeroDowntime: true })).toEqual({ appName: "crm", zeroDowntime: true });
+        expect(await store.set("crm", { zeroDowntime: true })).toEqual({ appName: "crm", zeroDowntime: true, public: false });
         await store.get("other");
 
         expect((await store.get("crm")).zeroDowntime).toBe(true);
-        expect(await store.list()).toEqual([{ appName: "crm", zeroDowntime: true }]);
+        expect(await store.list()).toEqual([{ appName: "crm", zeroDowntime: true, public: false }]);
     });
 
     it("forgets an app that is removed", async () => {

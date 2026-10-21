@@ -76,6 +76,9 @@ anbaric jobs watch <job-id>     # follow a job as it progresses
   Without the setting, jobs pause from the drain until the new version is up.
   The setting takes effect from the next deploy and is off by default. Anbaric
   Cloud only.
+- **Public apps**, also switched on per app on the Manage apps page, for
+  $100/£100 a month, can be opened by anyone without signing in; see
+  [Public apps](public-apps.md).
 
 ## Updating and tearing down
 

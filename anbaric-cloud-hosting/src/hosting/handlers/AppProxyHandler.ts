@@ -24,18 +24,22 @@ const unreached = (error : unknown) : boolean =>
 /* The cookies that are the platform's, never an app's. The central identity
    cookie is the person's proof of who they are at every tenant on the domain;
    handed to an app it would let that app's operator be them anywhere they are
-   a member, so it stops here. The tenant cookie is central's own. An app
-   keeps the tenant session, which is what it resolves a user from and which
-   is good only on this platform. On the way back no app may set any of them:
-   a domain-wide cookie planted by an app would be a session of the app's
-   choosing. */
-const KEPT_FROM_APPS = new Set([IDENTITY_COOKIE, "anbaric_tenant"]);
+   a member, so it stops here. The tenant cookie is central's own. The
+   session cookie the browser sent is never passed on as it came: it may be
+   another tenant's, which this app's operator could replay there. An app is
+   handed the session this platform verified or issued for the person it
+   recognised - what it resolves a user from, and good only here - and an
+   anonymous visitor to a public app is handed none. On the way back no app
+   may set any of them: a domain-wide cookie planted by an app would be a
+   session of the app's choosing. */
+const KEPT_FROM_APPS = new Set([SESSION_COOKIE, IDENTITY_COOKIE, "anbaric_tenant"]);
 const RESERVED_COOKIES = new Set([SESSION_COOKIE, IDENTITY_COOKIE, "anbaric_tenant"]);
 
 const cookieName = (pair : string) : string => pair.slice(0, pair.indexOf("=") < 0 ? pair.length : pair.indexOf("=")).trim();
 
-const withoutPlatformCookies = (cookie : string) : string | undefined => {
-    const kept = cookie.split(";").map(pair => pair.trim()).filter(pair => pair && ! KEPT_FROM_APPS.has(cookieName(pair)));
+const cookiesForApp = (cookie : string | undefined, session : string | undefined) : string | undefined => {
+    const kept = (cookie ?? "").split(";").map(pair => pair.trim()).filter(pair => pair && ! KEPT_FROM_APPS.has(cookieName(pair)));
+    if (session) kept.push(`${SESSION_COOKIE}=${session}`);
     return kept.length > 0 ? kept.join("; ") : undefined;
 };
 
@@ -153,7 +157,7 @@ class AppProxyHandler implements RequestHandler {
     private forwardHeaders(request : Request, prefix : string) : OutgoingHttpHeaders {
         const headers = this.passThrough(request.raw.headers);
         delete headers.host;
-        const cookie = headers.cookie === undefined ? undefined : withoutPlatformCookies(String(headers.cookie));
+        const cookie = cookiesForApp(headers.cookie === undefined ? undefined : String(headers.cookie), request.user ? request.session : undefined);
         if (cookie === undefined) delete headers.cookie;
         else headers.cookie = cookie;
         headers["x-forwarded-prefix"] = prefix;
