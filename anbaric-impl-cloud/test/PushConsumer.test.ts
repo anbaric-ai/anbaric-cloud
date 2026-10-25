@@ -186,6 +186,18 @@ describe("PushConsumer", () => {
         await vi.waitFor(() => expect(confirms).toEqual([message("job-bad"), message("job-good")]));
     });
 
+    it("logs a step that fails, naming the job, so the failure reaches the app's own logs", async () => {
+        const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+        consumer.subscribe(undefined, "workflow-1", vi.fn(async () => {
+            throw new Error('Job "job-bad" cannot be saved');
+        }));
+
+        await push([message("job-bad")]);
+
+        await vi.waitFor(() => expect(logged).toHaveBeenCalledWith('[workflow-1] job job-bad could not be progressed: Job "job-bad" cannot be saved'));
+        logged.mockRestore();
+    });
+
     /* The bug this guards: work that outlives the queue's lease was handed out
        again mid-flight, and each redelivery started another pass over the same
        job. Confirming on acceptance makes the lease irrelevant to slow work. */

@@ -1,6 +1,7 @@
 import {JobPersistence, SystemActor, deserializeJob, serializeJob} from "anbaric-tsapi";
 import {Request} from "../Request";
 import {RequestHandler} from "../RequestHandler";
+import {unstorableCharacterIn} from "../UnstorableCharacter";
 
 class JobsHandler implements RequestHandler {
 
@@ -41,9 +42,15 @@ class JobsHandler implements RequestHandler {
 
     private async handleJob(request : Request, id : string) : Promise<void> {
         switch (request.method) {
-            case "PUT":
-                await this.persistence.create(SystemActor.actor, deserializeJob(await request.body()));
+            case "PUT": {
+                const serialized = await request.body();
+                const unstorable = unstorableCharacterIn(serialized?.properties);
+                if (unstorable !== undefined) {
+                    return request.reply(400, { error: `Job "${id}" cannot be saved: property "${unstorable}" contains the character U+0000, which a job cannot hold. Remove it from the text before saving.` });
+                }
+                await this.persistence.create(SystemActor.actor, deserializeJob(serialized));
                 return request.reply(204);
+            }
             case "GET": {
                 const keys = request.query("keys");
                 const wanted = keys === undefined ? undefined : keys.split(",").map(key => key.trim()).filter(key => key !== "");

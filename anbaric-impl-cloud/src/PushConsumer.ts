@@ -178,7 +178,8 @@ class PushConsumer implements Consumer {
        takes, so confirming at the end would hand a long step out again while
        it was still running. What protects work in hand is draining: the
        platform asks before replacing the app, and a signal asks on the way
-       out. */
+       out. A step that fails past that point is logged here, in the app's own
+       logs, since nothing will offer the job again. */
     private async processAll(messages : Array<QueueMessage>) : Promise<void> {
         for (const message of messages) {
             const processJob = this.subscribers.get(this.key(message.appId, message.workflowId));
@@ -196,8 +197,9 @@ class PushConsumer implements Consumer {
             this.inFlightSteps++;
             try {
                 await processJob(message.jobId);
-            } catch {
-                // The state machine records a failed job; the queue is done here.
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                console.error(`[${message.workflowId}] job ${message.jobId} could not be progressed: ${reason}`);
             } finally {
                 this.inFlightSteps--;
             }

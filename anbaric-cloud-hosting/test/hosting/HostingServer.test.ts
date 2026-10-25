@@ -376,6 +376,14 @@ describe("HostingServer round-trip via the cloud clients", () => {
         expect(response.status).toBe(400);
     });
 
+    it("refuses to save a job whose text holds a NUL character, naming the property and keeping the job as it was", async () => {
+        await persistence.create(actor, makeJob("scan", new Map([["items", [{ title: "fine" }]]])));
+
+        await expect(persistence.create(actor, makeJob("scan", new Map([["items", [{ title: "fine" }, { title: "costs rise\u0000" }]]]))))
+            .rejects.toThrowError('Job "scan" cannot be saved: property "items[1].title" contains the character U+0000, which a job cannot hold. Remove it from the text before saving.');
+        expect(await (await persistence.retrieve("scan", actor)).properties.get("items")).toEqual([{ title: "fine" }]);
+    });
+
     it("cancels a job through the API, marking it killed and Cancelled", async () => {
         await persistence.create(actor, makeJob("doomed"));
 
