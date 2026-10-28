@@ -89,6 +89,21 @@ describe("removing someone from the tenant", () => {
         expect((await remove("ada", "stranger")).status).toBe(404);
     });
 
+    it("removes a member whose id has characters a path must encode", async () => {
+        memberships.add("auth0|6ad7718e", "USER");
+        await entitlements.grant("auth0|6ad7718e", "crm", "access", "", "ada");
+
+        expect((await remove("ada", "auth0|6ad7718e")).status).toBe(204);
+        expect(await memberships.roleFor("auth0|6ad7718e")).toBeUndefined();
+        expect(await entitlements.listGrants("auth0|6ad7718e")).toEqual([]);
+    });
+
+    it("refuses removing yourself when your id has characters a path must encode", async () => {
+        memberships.add("google-oauth2|1043", "ADMIN");
+
+        expect((await remove("google-oauth2|1043", "google-oauth2|1043")).status).toBe(400);
+    });
+
     describe("changing a role", () => {
 
         const change = (who : string, target : string, role : string) =>
@@ -119,6 +134,13 @@ describe("removing someone from the tenant", () => {
 
         it("is a 404 for somebody who was never a member", async () => {
             expect((await change("ada", "stranger", "USER")).status).toBe(404);
+        });
+
+        it("changes the role of a member whose id has characters a path must encode", async () => {
+            memberships.add("auth0|6ad7718e", "USER");
+
+            expect((await change("ada", "auth0|6ad7718e", "BUILDER")).status).toBe(200);
+            expect(await memberships.roleFor("auth0|6ad7718e")).toBe("BUILDER");
         });
 
     });

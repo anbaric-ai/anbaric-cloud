@@ -30,11 +30,22 @@ class Request {
                 rayId : string = randomUUID()) {
         this.rayId = rayId;
         this.parsed = new URL(incoming.url ?? "/", "http://localhost");
-        const raw = this.parsed.pathname.split("/").filter(Boolean);
+        const raw = this.parsed.pathname.split("/").filter(Boolean).map(Request.decoded);
         // The API lives under /api/v2; strip that prefix so resource/id/subresource
         // address the resource, and flag it so the router serves API handlers only there.
         this.api = raw[0] === "api" && raw[1] === "v2";
         this.segments = this.api ? raw.slice(2) : raw;
+    }
+
+    /* A path segment as the client meant it: an id such as "auth0|abc" arrives
+       percent-encoded, and a handler compares and forwards it as it is. One
+       that is not valid percent-encoding is kept as sent. */
+    private static decoded(segment : string) : string {
+        try {
+            return decodeURIComponent(segment);
+        } catch {
+            return segment;
+        }
     }
 
     get method() : string {
