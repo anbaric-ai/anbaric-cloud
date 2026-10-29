@@ -34,6 +34,10 @@ type Pricing = { small: string; large: string; zeroDowntime?: string; public?: s
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
+/* A price is only ever shown in the viewer's own currency, as the control
+   plane quotes it. One it has not quoted is left out rather than guessed. */
+const perMonth = (label: string, price?: string) => (price ? `${label} · ${price}/mo` : label)
+
 const rows: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }
 
 const row: CSSProperties = {
@@ -252,7 +256,6 @@ function ManageAppsPage() {
   }
 
   const unchanged = wanted.trim().toLowerCase() === (changing?.subdomain ?? '')
-  const priceOf = (size: AppSize) => pricing?.[size] ?? (size === 'large' ? '$50 / £50' : '$20 / £20')
 
   return (
     <div style={rows}>
@@ -299,8 +302,8 @@ function ManageAppsPage() {
                 value={app.size ?? 'small'}
                 onChange={(value) => { if (value !== (app.size ?? 'small')) setResizing({ app, to: value as AppSize }) }}
                 options={[
-                  { label: `Small · ${pricing.small}/mo`, value: 'small', disabled: busy !== undefined },
-                  { label: `Large · ${pricing.large}/mo`, value: 'large', disabled: busy !== undefined },
+                  { label: perMonth('Small', pricing.small), value: 'small', disabled: busy !== undefined },
+                  { label: perMonth('Large', pricing.large), value: 'large', disabled: busy !== undefined },
                 ]}
               />
               <Tooltip label={LARGE_EXPLAINED}>
@@ -316,7 +319,7 @@ function ManageAppsPage() {
                 checked={app.zeroDowntime}
                 disabled={busy !== undefined}
                 onChange={(on) => void setSwitch(app, 'zero-downtime', on)}
-                label={`Zero-downtime deploys · ${pricing.zeroDowntime ?? '$10 / £10'}/mo`}
+                label={perMonth('Zero-downtime deploys', pricing.zeroDowntime)}
               />
               <Tooltip label={ZERO_DOWNTIME_EXPLAINED}>
                 <span style={infoIcon} tabIndex={0} aria-label={ZERO_DOWNTIME_EXPLAINED}>i</span>
@@ -331,7 +334,7 @@ function ManageAppsPage() {
                 checked={app.public}
                 disabled={busy !== undefined}
                 onChange={(on) => (on ? setOpening(app) : void setSwitch(app, 'public', false))}
-                label={`Public · ${pricing.public ?? '$100 / £100'}/mo`}
+                label={perMonth('Public', pricing.public)}
               />
               <Tooltip label={PUBLIC_EXPLAINED}>
                 <span style={infoIcon} tabIndex={0} aria-label={PUBLIC_EXPLAINED}>i</span>
@@ -386,15 +389,15 @@ function ManageAppsPage() {
           <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setResizing(undefined)}>Leave it</Button>
             <Button variant="primary" onClick={() => void resize()}>
-              {resizing?.to === 'large' ? `Switch to large · ${priceOf('large')}/mo` : `Switch to small · ${priceOf('small')}/mo`}
+              {resizing?.to === 'large' ? perMonth('Switch to large', pricing?.large) : perMonth('Switch to small', pricing?.small)}
             </Button>
           </div>
         }
       >
         <p style={{ marginTop: 0 }}>
           {resizing?.to === 'large'
-            ? `${LARGE_EXPLAINED} It costs ${priceOf('large')} a month instead of ${priceOf('small')}, charged by the day from today, and is never covered by the free allowance.`
-            : `A small instance costs ${priceOf('small')} a month instead of ${priceOf('large')}, charged by the day from today.`}
+            ? `${LARGE_EXPLAINED} It costs ${pricing?.large} a month instead of ${pricing?.small}, charged by the day from today, and is never covered by the free allowance.`
+            : `A small instance costs ${pricing?.small} a month instead of ${pricing?.large}, charged by the day from today.`}
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app is restarted on the new instance. Anything it has in hand is finished first.
@@ -409,14 +412,15 @@ function ManageAppsPage() {
           <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setOpening(undefined)}>Keep it private</Button>
             <Button variant="primary" onClick={() => opening && void setSwitch(opening, 'public', true)}>
-              Make public · {pricing?.public ?? '$100 / £100'}/mo
+              {perMonth('Make public', pricing?.public)}
             </Button>
           </div>
         }
       >
         <p style={{ marginTop: 0 }}>
-          {PUBLIC_EXPLAINED} It costs {pricing?.public ?? '$100 / £100'} a month, charged by the day from today, and is
-          never covered by the free allowance.
+          {PUBLIC_EXPLAINED}{' '}
+          {pricing?.public ? `It costs ${pricing.public} a month, charged by the day from today, and is` : 'It is charged by the day from today, and is'}
+          {' '}never covered by the free allowance.
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app itself decides what an anonymous visitor may see and do. A member can sign in from it by following
