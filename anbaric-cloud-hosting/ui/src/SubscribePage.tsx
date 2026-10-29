@@ -5,6 +5,7 @@ import { Button } from '@anbaric/design-system/components/Button'
 import { Alert } from '@anbaric/design-system/components/Alert'
 import { Card } from '@anbaric/design-system/components/Card'
 import { Field } from '@anbaric/design-system/components/Field'
+import { RadioGroup } from '@anbaric/design-system/components/RadioGroup'
 import { LoadingBar } from '@anbaric/design-system/components/LoadingBar'
 import { Skeleton } from '@anbaric/design-system/components/Skeleton'
 
@@ -14,6 +15,7 @@ import { ProvisioningPage } from './ProvisioningPage'
 
 type PerApp = { amount: number; display: string; perDay: string; footnote: string }
 type Promo = { code: string; freeMonths: number }
+type HostingRegion = { id: string; label: string }
 type Status = {
   status: 'none' | 'subscribing' | 'provisioning' | 'active' | 'failed'
   slug: string
@@ -31,6 +33,11 @@ type Status = {
   // reached payment can simply be made again; one that did must not be, or the
   // person is charged twice for the same tenant.
   subscribed?: boolean
+  // Where the tenant can be hosted. Absent when there is only one place, so
+  // there is nothing to choose; fixed once the tenant has been built.
+  regions?: Array<HostingRegion>
+  region?: string
+  regionFixed?: boolean
 }
 
 const POLL_MS = 3000
@@ -73,6 +80,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState<string | undefined>(undefined)
   const [entering, setEntering] = useState(false)
+  const [region, setRegion] = useState<string | undefined>(undefined)
   const approved = useRef(false)
   const redirectingRef = useRef(false)
   redirectingRef.current = redirecting
@@ -143,7 +151,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
       const response = await fetch('/subscribe/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ returnTo: window.location.pathname }),
+        body: JSON.stringify({ returnTo: window.location.pathname, region: region ?? data?.region }),
       })
       const body = await response.json()
       if (body?.url) {
@@ -281,6 +289,7 @@ function SubscribePage({ requestId }: { requestId?: string }) {
 
   const tax = data.currency === 'GBP' ? 'VAT' : 'tax'
   const promo = data.promo ?? undefined
+  const choosingRegion = Boolean(data.regions && data.regions.length > 1 && !data.regionFixed)
 
   return (
     <PageShell title="Subscribe">
@@ -321,6 +330,16 @@ function SubscribePage({ requestId }: { requestId?: string }) {
             You'll be billed on the 1st of each month for the days each app has been running.
             Prices exclude {tax}, which is added at checkout for your location.
           </p>
+          {choosingRegion ? (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <Field label="Where should your apps and data be hosted?"
+                     hint="Your apps and their data are hosted in this region. It can't be changed later.">
+                <RadioGroup name="region" value={region ?? data.region}
+                            options={data.regions!.map((option) => ({ value: option.id, label: option.label }))}
+                            onChange={setRegion} />
+              </Field>
+            </div>
+          ) : null}
           <div style={{ marginTop: 'var(--space-md)' }}>
             <Button variant="primary" fullWidth loading={busy} disabled={busy} onClick={() => void subscribe()}>
               Subscribe
