@@ -1,5 +1,5 @@
 import {MembershipService} from "../../../auth/MembershipService";
-import {canInvite, isTenantRole} from "../../../auth/TenantRole";
+import {canAssign, canInvite, isTenantRole} from "../../../auth/TenantRole";
 import {EntitlementStore} from "../../../data-store/EntitlementStore";
 import {Request} from "../../Request";
 import {RequestHandler} from "../../RequestHandler";
@@ -8,7 +8,8 @@ import {RequestHandler} from "../../RequestHandler";
    removing someone, and moving them between admin, builder and user.
    Membership is the control plane's - it is what admits a session at all -
    and it is asked to make each change; it also refuses the changes that are
-   nobody's to make, such as the owner's role or your own.
+   nobody's to make, such as your own role, or an owner's unless a super-admin
+   is asking.
 
    What is this platform's own is the entitlements a removed person held
    here, which go with them so nothing is left granted to somebody who can no
@@ -54,8 +55,10 @@ class MembersHandler implements RequestHandler {
     private async changeRole(request : Request, userId : string) : Promise<void> {
         const body = await request.body() as { role? : unknown } | undefined;
         const role = body?.role;
-        if (! isTenantRole(role) || role === "OWNER") {
-            return request.reply(400, { error: "A member may be made an ADMIN, BUILDER or USER" });
+        if (! isTenantRole(role) || ! canAssign(role, request.user?.tenantRole)) {
+            return request.reply(400, { error: canAssign("OWNER", request.user?.tenantRole)
+                ? "A member may be made an OWNER, ADMIN, BUILDER or USER"
+                : "A member may be made an ADMIN, BUILDER or USER" });
         }
 
         let changed : string | undefined;

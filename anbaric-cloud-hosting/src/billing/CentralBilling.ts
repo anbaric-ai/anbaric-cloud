@@ -14,6 +14,12 @@ class CentralBilling {
         return await response.json() as Record<string, unknown>;
     }
 
+    // Undefined when this tenant has no such invoice.
+    async invoice(id : string) : Promise<Record<string, unknown> | undefined> {
+        const response = await this.call("GET", `/usage/${encodeURIComponent(this.tenantSlug)}/invoices/${encodeURIComponent(id)}`, undefined, {}, [404]);
+        return response.status === 404 ? undefined : await response.json() as Record<string, unknown>;
+    }
+
     async portalUrl(returnUrl : string) : Promise<string> {
         const response = await this.call("POST", `/tenants/${encodeURIComponent(this.tenantSlug)}/billing/portal`, { returnUrl });
         return String((await response.json() as { url : string }).url);
@@ -26,14 +32,15 @@ class CentralBilling {
         await this.call("DELETE", `/tenants/${encodeURIComponent(this.tenantSlug)}`, undefined, { "x-anbaric-user": userId });
     }
 
-    private async call(method : string, path : string, body? : unknown, extra : Record<string, string> = {}) : Promise<Response> {
+    private async call(method : string, path : string, body? : unknown, extra : Record<string, string> = {},
+                       tolerated : Array<number> = []) : Promise<Response> {
         const headers : Record<string, string> = { "x-anbaric-central-key": this.secret, ...extra };
         if (body !== undefined) headers["content-type"] = "application/json";
 
         const response = await this.fetchFn(`${this.centralUrl.replace(/\/$/, "")}${path}`,
             { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
 
-        if (! response.ok) {
+        if (! response.ok && ! tolerated.includes(response.status)) {
             const problem = await response.json().catch(() => ({})) as { error? : string };
             throw new Error(problem.error ?? `The request to the central login failed with status ${response.status}`);
         }

@@ -143,6 +143,19 @@ describe("invitations through the console entry point", () => {
         expect((await invite("SUPERUSER")).status).toBe(400);
     });
 
+    it("lets a super-admin invite an owner, and nobody invite a super-admin", async () => {
+        memberships.add("operator", "SUPER_ADMIN");
+        const inviteAs = (who : string, role : string) => fetch(`${baseUrl}/api/v2/invitations`, {
+            method: "POST",
+            headers: { "content-type": "application/json", cookie: `anbaric_session=${new SessionSigner(SECRET).mint(new User(who), new Tenant("acme"))}` },
+            body: JSON.stringify({ email: "owner@example.com", role }),
+        });
+
+        expect((await (await inviteAs("operator", "OWNER")).json()).role).toBe("OWNER");
+        expect((await inviteAs("operator", "SUPER_ADMIN")).status).toBe(400);
+        expect((await inviteAs("ada", "SUPER_ADMIN")).status).toBe(400);
+    });
+
     it("rejects an address that is not an email", async () => {
         expect((await invite("fox")).status).toBe(400);
     });

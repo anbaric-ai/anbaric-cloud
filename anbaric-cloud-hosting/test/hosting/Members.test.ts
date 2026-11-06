@@ -136,6 +136,15 @@ describe("removing someone from the tenant", () => {
             expect((await change("ada", "stranger", "USER")).status).toBe(404);
         });
 
+        it("lets a super-admin make an owner, and nobody make a super-admin", async () => {
+            memberships.add("operator", "SUPER_ADMIN");
+
+            expect((await change("operator", "fox", "OWNER")).status).toBe(200);
+            expect(await memberships.roleFor("fox")).toBe("OWNER");
+            expect((await change("operator", "bob", "SUPER_ADMIN")).status).toBe(400);
+            expect((await change("ada", "bob", "SUPER_ADMIN")).status).toBe(400);
+        });
+
         it("changes the role of a member whose id has characters a path must encode", async () => {
             memberships.add("auth0|6ad7718e", "USER");
 

@@ -11,6 +11,7 @@ class BillingHandler implements RequestHandler {
 
     async handle(request : Request) : Promise<void> {
         if (request.method === "GET" && request.id === "summary") return this.summary(request);
+        if (request.method === "GET" && request.id === "invoices" && request.subresource) return this.invoice(request, request.subresource);
         if (request.method === "POST" && request.id === "portal") return this.portal(request);
         if (request.method === "DELETE" && request.id === "account") return this.terminate(request);
         request.notFound();
@@ -43,6 +44,20 @@ class BillingHandler implements RequestHandler {
             request.reply(200, await this.billing.summary());
         } catch (error) {
             request.reply(502, { error: error instanceof Error ? error.message : "Could not read this tenant's costs" });
+        }
+    }
+
+    /* One invoice in full, for a tenant that is invoiced rather than charged
+       by card; whoever may see the costs may see what was invoiced. */
+    private async invoice(request : Request, id : string) : Promise<void> {
+        if (deniesBuild(request.user?.tenantRole)) {
+            return request.reply(403, { error: "Your role in this tenant cannot see its invoices" });
+        }
+        try {
+            const invoice = await this.billing.invoice(id);
+            return invoice ? request.reply(200, invoice) : request.notFound();
+        } catch (error) {
+            request.reply(502, { error: error instanceof Error ? error.message : "Could not read this invoice" });
         }
     }
 

@@ -84,7 +84,7 @@ function PlatformNav({
      role permits building would hide the page from every one of them. */
   const mayBuild = user === undefined
     || user.tenantRole === undefined
-    || ['OWNER', 'ADMIN', 'BUILDER'].includes(user.tenantRole)
+    || ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'BUILDER'].includes(user.tenantRole)
 
   const items: NavEntry[] = [
     ...pageEntries,

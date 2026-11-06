@@ -124,6 +124,26 @@ describe("the costs page's billing api", () => {
         expect(central).not.toHaveBeenCalled();
     });
 
+    const invoice = (who : string, id : string) =>
+        fetch(`${baseUrl}/api/v2/billing/invoices/${id}`, { headers: { cookie: as(who) } });
+
+    it("gives a builder one of the tenant's invoices as central has it", async () => {
+        central.mockImplementation(async () => ({ ok: true, status: 200, json: async () => ({ number: "ANB-00001", gross: "£1,200.00" }) }) as Response);
+
+        const response = await invoice("bob", "inv-1");
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ number: "ANB-00001", gross: "£1,200.00" });
+        expect(central.mock.calls[0][0]).toBe("https://central.example/usage/acme/invoices/inv-1");
+    });
+
+    it("is a 404 for an invoice central does not have, and keeps invoices from a plain user", async () => {
+        central.mockImplementation(async () => ({ ok: false, status: 404, json: async () => ({ error: "No invoice" }) }) as Response);
+
+        expect((await invoice("bob", "nope")).status).toBe(404);
+        expect((await invoice("fox", "inv-1")).status).toBe(403);
+    });
+
     it("explains when the tenant has no payment details to change", async () => {
         central.mockImplementation(async () => ({
             ok: false, status: 409, json: async () => ({ error: "This tenant has no payment details to update" }),

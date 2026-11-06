@@ -57,8 +57,14 @@ class PluginBundler {
 
 }
 
+/* A design-system brand asset, such as the logo, is the dashboard's own copy,
+   looked up by its file name. */
+const DESIGN_SYSTEM_ASSET = /^@anbaric\/design-system\/shared\/assets\/([^/]+\.svg)$/;
+
 const browserReplacement = (path : string) : string => {
     if (path.endsWith(".css")) return "";
+    const asset = DESIGN_SYSTEM_ASSET.exec(path);
+    if (asset) return `module.exports = window.AnbaricPluginRuntime.assets[${JSON.stringify(asset[1])}] ?? "";`;
     if (path === "pg" || path.startsWith("pg/") || path.startsWith("node:")) return "module.exports = {};";
     if (path === "react/jsx-runtime" || path === "react/jsx-dev-runtime") {
         return "module.exports = window.AnbaricPluginRuntime.jsxRuntime;";
@@ -73,6 +79,6 @@ const browserReplacement = (path : string) : string => {
 };
 
 const serverReplacement = (path : string) : string =>
-    path.endsWith(".css") ? "" : "module.exports = {};";
+    path.endsWith(".css") ? "" : DESIGN_SYSTEM_ASSET.test(path) ? 'module.exports = "";' : "module.exports = {};";
 
-export { PluginBundler }
+export { PluginBundler, browserReplacement, serverReplacement }

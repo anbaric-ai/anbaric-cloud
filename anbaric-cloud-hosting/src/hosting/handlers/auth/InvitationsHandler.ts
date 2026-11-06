@@ -1,6 +1,6 @@
 import {MembershipService} from "../../../auth/MembershipService";
 import {EntitlementOffer, EntitlementStore} from "../../../data-store/EntitlementStore";
-import {canInvite, isTenantRole} from "../../../auth/TenantRole";
+import {canAssign, canInvite, isTenantRole} from "../../../auth/TenantRole";
 import {Request} from "../../Request";
 import {RequestHandler} from "../../RequestHandler";
 
@@ -58,8 +58,10 @@ class InvitationsHandler implements RequestHandler {
         }
 
         const role = body?.role ?? "USER";
-        if (! isTenantRole(role) || role === "OWNER") {
-            return request.reply(400, { error: "Invite someone as an ADMIN, BUILDER or USER" });
+        if (! isTenantRole(role) || ! canAssign(role, request.user?.tenantRole)) {
+            return request.reply(400, { error: canAssign("OWNER", request.user?.tenantRole)
+                ? "Invite someone as an OWNER, ADMIN, BUILDER or USER"
+                : "Invite someone as an ADMIN, BUILDER or USER" });
         }
 
         const landingApp = typeof body?.landingApp === "string" && body.landingApp.trim()

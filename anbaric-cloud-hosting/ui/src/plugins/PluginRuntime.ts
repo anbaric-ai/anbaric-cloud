@@ -29,6 +29,7 @@ import * as Tabs from '@anbaric/design-system/components/Tabs'
 import * as Toggle from '@anbaric/design-system/components/Toggle'
 import * as Tooltip from '@anbaric/design-system/components/Tooltip'
 import * as useMediaQuery from '@anbaric/design-system/components/useMediaQuery'
+import anbaricLogo from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
 
 /**
  * The host runtime handed to server-compiled plugin bundles: their react,
@@ -74,6 +75,7 @@ declare global {
       ReactDOM: typeof ReactDOM & typeof ReactDOMClient
       jsxRuntime: typeof jsxRuntime
       DesignSystem: typeof DesignSystem
+      assets: Record<string, string>
     }
   }
 }
@@ -83,4 +85,6 @@ window.AnbaricPluginRuntime = {
   ReactDOM: { ...ReactDOM, ...ReactDOMClient },
   jsxRuntime,
   DesignSystem,
+  // The design system's brand assets, by file name, for a plugin that shows the logo.
+  assets: { 'anbaric-logo.svg': anbaricLogo },
 }
