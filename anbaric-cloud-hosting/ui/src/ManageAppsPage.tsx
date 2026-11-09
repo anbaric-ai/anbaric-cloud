@@ -29,8 +29,9 @@ type ManagedApp = {
 }
 
 // What each size, and each extra, costs a month, as the control plane quotes
-// it in the tenant's currency. Absent on a platform with no control plane.
-type Pricing = { small: string; large: string; zeroDowntime?: string; public?: string }
+// it in the tenant's currency. Absent on a platform with no control plane,
+// and empty for an invoiced tenant, which is offered them all at no stated price.
+type Pricing = { small?: string; large?: string; zeroDowntime?: string; public?: string }
 
 const muted: CSSProperties = { color: 'var(--color-foreground-tint-2)' }
 
@@ -135,8 +136,10 @@ function ManageAppsPage() {
     // Only a platform with a control plane has prices, or sizes worth offering.
     void fetch('/api/v2/billing/summary')
       .then((response) => (response.ok ? response.json() : undefined))
-      .then((summary?: { perApp?: { display: string }; perLargeApp?: { display: string }; perZeroDowntime?: { display: string }; perPublicApp?: { display: string } }) => {
-        if (summary?.perApp && summary.perLargeApp) {
+      .then((summary?: { billing?: string; perApp?: { display: string }; perLargeApp?: { display: string }; perZeroDowntime?: { display: string }; perPublicApp?: { display: string } }) => {
+        if (summary?.billing === 'invoiced') {
+          setPricing({})
+        } else if (summary?.perApp && summary.perLargeApp) {
           setPricing({
             small: summary.perApp.display,
             large: summary.perLargeApp.display,
@@ -396,8 +399,12 @@ function ManageAppsPage() {
       >
         <p style={{ marginTop: 0 }}>
           {resizing?.to === 'large'
-            ? `${LARGE_EXPLAINED} It costs ${pricing?.large} a month instead of ${pricing?.small}, charged by the day from today, and is never covered by the free allowance.`
-            : `A small instance costs ${pricing?.small} a month instead of ${pricing?.large}, charged by the day from today.`}
+            ? pricing?.large
+              ? `${LARGE_EXPLAINED} It costs ${pricing.large} a month instead of ${pricing.small}, charged by the day from today, and is never covered by the free allowance.`
+              : LARGE_EXPLAINED
+            : pricing?.small
+              ? `A small instance costs ${pricing.small} a month instead of ${pricing.large}, charged by the day from today.`
+              : 'A small instance has standard compute and half the RAM of a large one.'}
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app is restarted on the new instance. Anything it has in hand is finished first.
@@ -418,9 +425,9 @@ function ManageAppsPage() {
         }
       >
         <p style={{ marginTop: 0 }}>
-          {PUBLIC_EXPLAINED}{' '}
-          {pricing?.public ? `It costs ${pricing.public} a month, charged by the day from today, and is` : 'It is charged by the day from today, and is'}
-          {' '}never covered by the free allowance.
+          {PUBLIC_EXPLAINED}
+          {pricing?.public ? ` It costs ${pricing.public} a month, charged by the day from today, and is never covered by the free allowance.`
+            : pricing?.small ? ' It is charged by the day from today, and is never covered by the free allowance.' : null}
         </p>
         <p style={{ margin: 'var(--space-md) 0 0', fontSize: 'var(--text-sm)', ...muted }}>
           The app itself decides what an anonymous visitor may see and do. A member can sign in from it by following

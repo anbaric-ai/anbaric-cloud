@@ -95,6 +95,11 @@ const PATHS: Path[] = [
         command: 'git clone https://github.com/anbaric-ai/anbaric-skill',
       },
       {
+        title: 'Install the skill',
+        body: "The skill teaches your agent Anbaric's programming model and how to use the server's tools. Copy it into the folder your agent loads skills from.",
+        command: 'cp -r anbaric-skill/plugins/anbaric/skills/anbaric <your agent\'s skills folder>/',
+      },
+      {
         title: 'Register the server in your MCP config',
         body: 'Add the Anbaric server to your MCP client configuration, pointing at the cloned entry point.',
         command: '{\n  "mcpServers": {\n    "anbaric": {\n      "command": "node",\n      "args": ["/abs/path/anbaric-skill/plugins/anbaric/mcp/dist/index.js"]\n    }\n  }\n}',
