@@ -167,6 +167,18 @@ variable "additional_services_browserless_token_secret_arn" {
   default     = ""
 }
 
+variable "additional_services_cloudflare_account_id" {
+  description = "Cloudflare account whose Browser Rendering reads pages for additional-services /html; empty leaves that tier out"
+  type        = string
+  default     = ""
+}
+
+variable "additional_services_cloudflare_token_secret_arn" {
+  description = "Secrets Manager ARN of a Cloudflare API token with Browser Rendering - Edit; empty leaves that tier out"
+  type        = string
+  default     = ""
+}
+
 variable "additional_services_ai_gateway_url" {
   description = "OpenAI-compatible base URL additional-services calls (e.g. the Cloudflare AI Gateway /compat endpoint)"
   type        = string

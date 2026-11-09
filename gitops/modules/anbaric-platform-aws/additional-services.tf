@@ -8,9 +8,12 @@ locals {
 
   additional_services_browserless = var.additional_services_browserless_token_secret_arn != ""
 
+  additional_services_cloudflare = var.additional_services_cloudflare_account_id != "" && var.additional_services_cloudflare_token_secret_arn != ""
+
   additional_services_secret_arns = concat(
     [var.additional_services_api_key_secret_arn, var.additional_services_ai_gateway_token_secret_arn],
     local.additional_services_browserless ? [var.additional_services_browserless_token_secret_arn] : [],
+    local.additional_services_cloudflare ? [var.additional_services_cloudflare_token_secret_arn] : [],
   )
 
   additional_services_secrets = concat(
@@ -20,6 +23,20 @@ locals {
     ],
     local.additional_services_browserless ? [
       { name = "BROWSERLESS_API_TOKEN", valueFrom = var.additional_services_browserless_token_secret_arn },
+    ] : [],
+    local.additional_services_cloudflare ? [
+      { name = "ANBARIC_CLOUDFLARE_BROWSER_TOKEN", valueFrom = var.additional_services_cloudflare_token_secret_arn },
+    ] : [],
+  )
+
+  additional_services_environment = concat(
+    [
+      { name = "ANBARIC_ADDITIONAL_SERVICES_PORT", value = "8790" },
+      { name = "ANBARIC_AI_GATEWAY_URL", value = var.additional_services_ai_gateway_url },
+      { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
+    ],
+    local.additional_services_cloudflare ? [
+      { name = "ANBARIC_CLOUDFLARE_ACCOUNT_ID", value = var.additional_services_cloudflare_account_id },
     ] : [],
   )
 }
@@ -82,11 +99,7 @@ resource "aws_ecs_task_definition" "additional_services" {
     essential    = true
     portMappings = [{ containerPort = 8790, protocol = "tcp" }]
 
-    environment = [
-      { name = "ANBARIC_ADDITIONAL_SERVICES_PORT", value = "8790" },
-      { name = "ANBARIC_AI_GATEWAY_URL", value = var.additional_services_ai_gateway_url },
-      { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
-    ]
+    environment = local.additional_services_environment
 
     secrets = local.additional_services_secrets
 
