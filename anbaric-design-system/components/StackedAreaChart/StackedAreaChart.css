@@ -1,0 +1,130 @@
+/* =============================================================
+   StackedAreaChart — layers stacked on a hairline baseline, a 2px canvas
+   gap between them, an optional dashed threshold, a crosshair and tooltip
+   on hover, and a legend beneath. Depends on tokens.css.
+   ============================================================= */
+
+.ds-stacked-area {
+  width: 100%;
+}
+
+.ds-stacked-area__plot {
+  position: relative;
+  width: 100%;
+  border-bottom: var(--border-hairline);
+  cursor: crosshair;
+}
+
+.ds-stacked-area__plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ds-stacked-area__layer {
+  stroke: var(--color-background);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ds-stacked-area__threshold {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--color-foreground-tint-1);
+  pointer-events: none;
+}
+
+.ds-stacked-area__threshold span {
+  position: absolute;
+  right: 0;
+  bottom: var(--space-xs);
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-foreground-tint-1);
+  background: var(--color-background);
+  border-radius: var(--radius-element);
+}
+
+.ds-stacked-area__crosshair {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-foreground-tint-2);
+  pointer-events: none;
+}
+
+.ds-stacked-area__tooltip {
+  position: absolute;
+  top: 0;
+  z-index: 20;
+  min-width: 10rem;
+  margin-left: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-foreground);
+  color: var(--color-background);
+  border-radius: var(--radius-element);
+  box-shadow: var(--elevation-2);
+  font-size: var(--text-xs);
+  pointer-events: none;
+}
+
+.ds-stacked-area__tooltip--left {
+  margin-left: 0;
+  transform: translateX(calc(-100% - var(--space-sm)));
+}
+
+.ds-stacked-area__tooltip p {
+  margin: 0;
+}
+
+.ds-stacked-area__tooltip-heading {
+  margin-bottom: var(--space-xs) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+.ds-stacked-area__tooltip-row {
+  display: grid;
+  grid-template-columns: 0.625rem 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ds-stacked-area__tooltip-row strong {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+}
+
+.ds-stacked-area__tooltip-total {
+  margin-top: var(--space-xs) !important;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-foreground-tint-1);
+}
+
+.ds-stacked-area__swatch {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  flex: none;
+}
+
+.ds-stacked-area__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-foreground-tint-1);
+}
+
+.ds-stacked-area__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

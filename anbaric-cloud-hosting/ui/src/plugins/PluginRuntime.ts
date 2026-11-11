@@ -23,6 +23,7 @@ import * as SideNav from '@anbaric/design-system/components/SideNav'
 import * as Skeleton from '@anbaric/design-system/components/Skeleton'
 import * as Slider from '@anbaric/design-system/components/Slider'
 import * as SplitButton from '@anbaric/design-system/components/SplitButton'
+import * as StackedAreaChart from '@anbaric/design-system/components/StackedAreaChart'
 import * as Steps from '@anbaric/design-system/components/Steps'
 import * as Table from '@anbaric/design-system/components/Table'
 import * as Tabs from '@anbaric/design-system/components/Tabs'
@@ -37,7 +38,7 @@ import anbaricLogo from '@anbaric/design-system/shared/assets/anbaric-logo.svg'
  * plugin components render with the dashboard's React and styling. Chart
  * components built on recharts (Graph, ConcentrationCurve, ExposureBars) are
  * deliberately left out to keep the dashboard bundle free of it; ColumnChart
- * is plain CSS and is in.
+ * (plain CSS) and StackedAreaChart (plain SVG) are in.
  */
 const DesignSystem = {
   ...Accordion,
@@ -60,6 +61,7 @@ const DesignSystem = {
   ...Skeleton,
   ...Slider,
   ...SplitButton,
+  ...StackedAreaChart,
   ...Steps,
   ...Table,
   ...Tabs,

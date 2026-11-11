@@ -34,6 +34,15 @@
      of Badge and Alert. Don't use it in new work. */
   --color-accent-shade: #3a7099;
 
+  /* --- Colour: Sequence -------------------------------------- */
+  /* One hue, Svalbard Blue, light to dark, for series that have an order -
+     low to high, easy to hard - such as the layers of a stacked chart.
+     Checked for colour-blind separation against the white canvas; the
+     lightest is below 3:1 there, so charts that use it carry a legend. */
+  --color-sequence-1: #74b4e8;
+  --color-sequence-2: #3583c9;
+  --color-sequence-3: #1c548f;
+
   /* --- Colour: Magister Violet ----------------------------- */
   --color-magister: #7867c9;
 

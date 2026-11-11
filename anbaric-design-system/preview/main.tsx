@@ -21,6 +21,7 @@ import { Form } from '../components/Form'
 import { Slider } from '../components/Slider'
 import { Graph } from '../components/Graph'
 import { ColumnChart } from '../components/ColumnChart'
+import { StackedAreaChart } from '../components/StackedAreaChart'
 import { Tooltip } from '../components/Tooltip'
 import { OptionsMenu } from '../components/OptionsMenu'
 import { ConcentrationCurve } from '../components/ConcentrationCurve'
@@ -827,6 +828,24 @@ function ComponentDemos() {
         <div style={{ marginTop: 'var(--space-md)' }}>
           <ColumnChart tone="muted" height={48} data={[1, 0, 1, 2, 4, 6, 5, 7, 5, 3, 2, 1]} aria-label="Example visitors per hour" />
         </div>
+      </Section>
+
+      <Section title="StackedAreaChart">
+        <p className="component-demo__body">
+          Ordered layers stacked over time, such as a day's work by difficulty,
+          with an optional dashed threshold. The legend is always shown, and
+          hovering shows every layer at that point.
+        </p>
+        <StackedAreaChart
+          series={[
+            { label: 'Easy ×1', values: [40, 60, 55, 80, 120, 90, 70, 110, 130, 95, 85, 100] },
+            { label: 'Medium ×2', values: [80, 70, 90, 120, 140, 160, 100, 120, 150, 130, 90, 110] },
+            { label: 'Hard ×4', values: [0, 20, 40, 40, 80, 60, 40, 100, 120, 80, 40, 60] },
+          ]}
+          labels={Array.from({ length: 12 }, (_, index) => `1 Nov + ${index} days`)}
+          threshold={{ value: 300, label: '300 a day' }}
+          aria-label="Example daily work by difficulty against an allowance of 300 a day"
+        />
       </Section>
     </>
   )
