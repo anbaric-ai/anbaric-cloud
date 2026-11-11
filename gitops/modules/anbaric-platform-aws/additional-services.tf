@@ -84,8 +84,8 @@ resource "aws_ecs_task_definition" "additional_services" {
   family                   = "anbaric-${var.environment}-additional-services"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = "512"
+  memory                   = "2048"
   execution_role_arn       = aws_iam_role.app_execution.arn
 
   runtime_platform {
