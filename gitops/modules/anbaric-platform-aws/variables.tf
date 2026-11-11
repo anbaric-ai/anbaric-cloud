@@ -191,6 +191,12 @@ variable "additional_services_agentic_model" {
   default     = ""
 }
 
+variable "additional_services_bedrock_region" {
+  description = "AWS region additional-services calls Claude on Amazon Bedrock in, for easy agentic actions"
+  type        = string
+  default     = "eu-west-1"
+}
+
 variable "additional_services_cpu" {
   description = "Fargate CPU units for the additional-services task; a tenant whose apps read large pages in bulk may need more"
   type        = string

@@ -34,6 +34,7 @@ locals {
       { name = "ANBARIC_ADDITIONAL_SERVICES_PORT", value = "8790" },
       { name = "ANBARIC_AI_GATEWAY_URL", value = var.additional_services_ai_gateway_url },
       { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
+      { name = "ANBARIC_BEDROCK_REGION", value = var.additional_services_bedrock_region },
     ],
     local.additional_services_cloudflare ? [
       { name = "ANBARIC_CLOUDFLARE_ACCOUNT_ID", value = var.additional_services_cloudflare_account_id },
@@ -79,6 +80,37 @@ resource "aws_iam_role_policy" "additional_services_secrets" {
   })
 }
 
+/* The service's own identity, which is how it reaches Claude on Amazon
+   Bedrock: no key is held, the task's role is allowed to run inference. */
+resource "aws_iam_role" "additional_services_task" {
+  count = local.additional_services_count
+  name  = "anbaric-${var.environment}-additional-services-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "additional_services_bedrock" {
+  count = local.additional_services_count
+  name  = "bedrock-inference"
+  role  = aws_iam_role.additional_services_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "bedrock-mantle:CreateInference"
+      Resource = "*"
+    }]
+  })
+}
+
 resource "aws_ecs_task_definition" "additional_services" {
   count                    = local.additional_services_count
   family                   = "anbaric-${var.environment}-additional-services"
@@ -87,6 +119,7 @@ resource "aws_ecs_task_definition" "additional_services" {
   cpu                      = var.additional_services_cpu
   memory                   = var.additional_services_memory
   execution_role_arn       = aws_iam_role.app_execution.arn
+  task_role_arn            = aws_iam_role.additional_services_task[0].arn
 
   runtime_platform {
     operating_system_family = "LINUX"
