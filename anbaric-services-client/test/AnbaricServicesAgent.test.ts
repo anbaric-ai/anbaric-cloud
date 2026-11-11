@@ -39,6 +39,18 @@ describe("AnbaricServicesAgent", () => {
         expect(sent.input).toEqual([{ role: "user", content: "{\"age\":40}" }]);
     });
 
+    it("asks at the agent's difficulty, and leaves it to the service when none is set", async () => {
+        const fetchFn = vi.fn(async (_url : string, _init : RequestInit) => jsonResponse({ output: {} }));
+
+        await new AnbaricServicesAgent("quick", "assistant", { baseUrl: "https://svc.test", difficulty: "easy" }, fetchFn)
+            .client.generate({ messages: [], outputSchema: schema });
+        await new AnbaricServicesAgent("plain", "assistant", { baseUrl: "https://svc.test" }, fetchFn)
+            .client.generate({ messages: [], outputSchema: schema });
+
+        expect(JSON.parse(fetchFn.mock.calls[0][1].body as string).difficulty).toBe("easy");
+        expect(JSON.parse(fetchFn.mock.calls[1][1].body as string)).not.toHaveProperty("difficulty");
+    });
+
     it("throws a clear error when the service rejects the request", async () => {
         const fetchFn = vi.fn(async (_url : string, _init : RequestInit) =>
             jsonResponse({ error: "bad schema" }, false, 400));

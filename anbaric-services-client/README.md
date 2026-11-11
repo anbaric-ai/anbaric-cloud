@@ -55,3 +55,14 @@ const support = new StateMachine("support", [
 | `ANBARIC_SERVICES_API_KEY` | Bearer token for the service (if it requires one) | unset |
 
 The constructor's `connection` argument (`{ baseUrl, apiKey }`) overrides both.
+
+## Difficulty
+
+The connection also takes a `difficulty` - `"easy"`, `"medium"` (the default) or
+`"hard"` - for the agent's tasks. The service picks the model for it, and a
+harder completion counts more heavily against the tenant's fair usage (×1, ×2,
+×4). Start with `easy` and move an agent up only when its answers fall short:
+
+```ts
+const tagger = new AnbaricServicesAgent("tagger", "assistant", { difficulty: "easy" });
+```

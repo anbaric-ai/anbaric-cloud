@@ -2,9 +2,15 @@ import {Agent, AgentRequest} from "anbaric-tsapi";
 
 type FetchFn = (url : string, init : RequestInit) => Promise<Response>;
 
+/* How hard an agent's tasks are. The service picks the model for it - a
+   small fast one for easy, a full-sized one for hard - and weighs harder
+   completions more heavily against the tenant's fair usage. */
+type AnbaricServicesDifficulty = "easy" | "medium" | "hard";
+
 type AnbaricServicesConnection = {
     baseUrl? : string,
     apiKey? : string,
+    difficulty? : AnbaricServicesDifficulty,
 };
 
 const DEFAULT_SERVICES_URL = "http://localhost:8790";
@@ -19,12 +25,14 @@ class AnbaricServicesClient extends Agent.Client {
 
     private baseUrl : string;
     private apiKey? : string;
+    private difficulty? : AnbaricServicesDifficulty;
 
     constructor(connection : AnbaricServicesConnection = {},
                 private fetchFn : FetchFn = (url, init) => fetch(url, init)) {
         super();
         this.baseUrl = connection.baseUrl ?? process.env.ANBARIC_SERVICES_URL ?? DEFAULT_SERVICES_URL;
         this.apiKey = connection.apiKey ?? process.env.ANBARIC_SERVICES_API_KEY;
+        this.difficulty = connection.difficulty;
     }
 
     async generate(request : AgentRequest) : Promise<Record<string, any>> {
@@ -38,7 +46,7 @@ class AnbaricServicesClient extends Agent.Client {
                 "content-type": "application/json",
                 ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
             },
-            body: JSON.stringify({ instructions, input, outputSchema: request.outputSchema }),
+            body: JSON.stringify({ instructions, input, outputSchema: request.outputSchema, difficulty: this.difficulty }),
         });
 
         if (!response.ok) {
@@ -63,4 +71,4 @@ class AnbaricServicesAgent extends Agent {
 }
 
 export { AnbaricServicesAgent, AnbaricServicesClient }
-export type { AnbaricServicesConnection }
+export type { AnbaricServicesConnection, AnbaricServicesDifficulty }
