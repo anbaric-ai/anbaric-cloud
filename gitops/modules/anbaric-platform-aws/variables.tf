@@ -191,6 +191,18 @@ variable "additional_services_agentic_model" {
   default     = ""
 }
 
+variable "additional_services_cpu" {
+  description = "Fargate CPU units for the additional-services task; a tenant whose apps read large pages in bulk may need more"
+  type        = string
+  default     = "256"
+}
+
+variable "additional_services_memory" {
+  description = "Fargate memory (MiB) for the additional-services task, which holds and parses each page it reads"
+  type        = string
+  default     = "512"
+}
+
 variable "ai_gateway_token_secret_arn" {
   description = "Secrets Manager ARN of the OpenAI-compatible gateway token the platform itself uses (doc generation); empty leaves the platform's LLM features off"
   type        = string
