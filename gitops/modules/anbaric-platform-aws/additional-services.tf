@@ -34,7 +34,7 @@ locals {
       { name = "ANBARIC_ADDITIONAL_SERVICES_PORT", value = "8790" },
       { name = "ANBARIC_AI_GATEWAY_URL", value = var.additional_services_ai_gateway_url },
       { name = "ANBARIC_AGENTIC_MODEL", value = var.additional_services_agentic_model },
-      { name = "ANBARIC_BEDROCK_REGION", value = var.additional_services_bedrock_region },
+      { name = "ANBARIC_BEDROCK_REGION", value = var.aws_region },
     ],
     local.additional_services_cloudflare ? [
       { name = "ANBARIC_CLOUDFLARE_ACCOUNT_ID", value = var.additional_services_cloudflare_account_id },
@@ -104,9 +104,12 @@ resource "aws_iam_role_policy" "additional_services_bedrock" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = "bedrock-mantle:CreateInference"
-      Resource = "*"
+      Effect = "Allow"
+      Action = "bedrock:InvokeModel"
+      Resource = [
+        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.*",
+        "arn:aws:bedrock:eu-*::foundation-model/anthropic.*",
+      ]
     }]
   })
 }
