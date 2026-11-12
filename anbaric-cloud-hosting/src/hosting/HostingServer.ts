@@ -243,12 +243,12 @@ class HostingServer {
         this.internalServer = new Server(internalRouter);
     }
 
-    listen(port : number) : Promise<number> {
-        return this.publicServer.listen(port);
+    listen(port : number, host? : string) : Promise<number> {
+        return this.publicServer.listen(port, host);
     }
 
-    listenInternal(port : number) : Promise<number> {
-        return this.internalServer.listen(port);
+    listenInternal(port : number, host? : string) : Promise<number> {
+        return this.internalServer.listen(port, host);
     }
 
     async close() : Promise<void> {

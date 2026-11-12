@@ -37,7 +37,7 @@ describe("the tenant user directory through the public entry point", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
             undefined, new InMemoryUserDirectory());
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

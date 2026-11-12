@@ -85,7 +85,7 @@ describe("platform end to end", () => {
         backingQueue = new ConfirmableInMemoryQueue();
         const registry = new ConsumerRegistry();
         server = new HostingServer(new InMemoryJobPersistence(), backingQueue, registry);
-        const port = await server.listen(0);
+        const port = await server.listen(0, "127.0.0.1");
         baseUrl = `http://127.0.0.1:${port}`;
 
         process.env.ANBARIC_CLOUD_URL = baseUrl;

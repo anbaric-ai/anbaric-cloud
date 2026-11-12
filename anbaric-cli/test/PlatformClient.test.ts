@@ -20,7 +20,7 @@ describe("PlatformClient", () => {
                 response.writeHead(status, { "content-type": "application/json", ...headers });
                 response.end(body ?? "{}");
             });
-            server.listen(0, () => resolve(new PlatformClient({
+            server.listen(0, "127.0.0.1", () => resolve(new PlatformClient({
                 platformUrl: `http://127.0.0.1:${(server!.address() as AddressInfo).port}`,
             })));
         });
@@ -60,7 +60,7 @@ describe("PlatformClient", () => {
                 response.writeHead(200, { "content-type": "application/json" });
                 response.end("{}");
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
         });
 
     it("signs every request with a bearer token when a key is configured", async () => {

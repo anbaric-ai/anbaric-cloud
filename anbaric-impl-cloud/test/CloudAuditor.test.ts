@@ -24,7 +24,7 @@ describe("CloudAuditor", () => {
                     response.end();
                 });
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
         });
 
     it("posts the audit record to the platform", async () => {

@@ -42,7 +42,7 @@ describe("session resolution through the internal endpoint", () => {
 
     const bootAndResolver = async () : Promise<CloudSessionResolver> => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue());
-        process.env.ANBARIC_CLOUD_URL = `http://127.0.0.1:${await server.listenInternal(0)}`;
+        process.env.ANBARIC_CLOUD_URL = `http://127.0.0.1:${await server.listenInternal(0, "127.0.0.1")}`;
         return new CloudSessionResolver();
     };
 

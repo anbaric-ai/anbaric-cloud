@@ -32,7 +32,7 @@ describe("job run schedules round-trip through the cloud client", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
             undefined, [], store);
-        const port = await server.listen(0);
+        const port = await server.listen(0, "127.0.0.1");
         schedules = new CloudJobRunSchedulePersistence(`http://127.0.0.1:${port}`);
     });
 

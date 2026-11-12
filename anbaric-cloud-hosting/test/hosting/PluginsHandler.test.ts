@@ -70,7 +70,7 @@ describe("PluginsHandler through the hosting server", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined,
             runningApp("testing"), undefined, undefined, undefined, undefined, undefined, undefined, undefined,
             [testPlugin]);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

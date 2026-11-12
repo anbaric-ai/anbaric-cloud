@@ -17,7 +17,7 @@ describe("CloudSessionResolver", () => {
                 request.on("data", chunk => chunks.push(chunk));
                 request.on("end", () => handler(request, response, Buffer.concat(chunks).toString()));
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
         });
 
     it("resolves a session via POST /api/v2/sessions/resolve", async () => {

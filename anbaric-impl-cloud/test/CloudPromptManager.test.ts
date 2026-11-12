@@ -31,7 +31,7 @@ describe("CloudPromptManager", () => {
                     response.end(JSON.stringify(reply));
                 });
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
         });
 
     const prompt = { appId: "crm", promptId: "triage", version: 1, instructions: "Decide.", createdAt: "2026-09-22T10:00:00.000Z" };

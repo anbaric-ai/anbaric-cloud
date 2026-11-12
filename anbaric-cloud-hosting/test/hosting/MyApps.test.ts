@@ -71,7 +71,7 @@ describe("the apps a person may open", () => {
             undefined, undefined, undefined, undefined, undefined, "acme",
             undefined, [], undefined, undefined, entitlements, undefined, memberships,
             undefined, undefined, stubSubdomains({ crm: "crm", invoices: "acme-invoices" }));
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

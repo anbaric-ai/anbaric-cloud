@@ -34,7 +34,7 @@ describe("notifications round-trip through the cloud client", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
             undefined, [], undefined, serverNotifier);
-        const port = await server.listen(0);
+        const port = await server.listen(0, "127.0.0.1");
         notifier = new CloudNotifier(`http://127.0.0.1:${port}`);
     });
 
@@ -63,7 +63,7 @@ describe("notifications round-trip through the cloud client", () => {
 
     it("is absent when the platform has no notifier, so posting fails rather than silently dropping", async () => {
         const withoutNotifier = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue());
-        const port = await withoutNotifier.listen(0);
+        const port = await withoutNotifier.listen(0, "127.0.0.1");
         try {
             const client = new CloudNotifier(`http://127.0.0.1:${port}`);
             await expect(client.notify(["a@example.com"], job(), waiting())).rejects.toThrow();

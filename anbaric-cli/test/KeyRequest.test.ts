@@ -32,7 +32,7 @@ describe("KeyRequest", () => {
                     tenant: "internal",
                 }));
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
         });
 
     it("polls until the keypair is issued", async () => {

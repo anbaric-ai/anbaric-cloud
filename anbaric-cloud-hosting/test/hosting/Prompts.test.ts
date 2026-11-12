@@ -36,7 +36,7 @@ describe("prompts end to end through the cloud client", () => {
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
             undefined, undefined, undefined,
             (appId) => managers.get(appId) ?? managers.set(appId, new InMemoryPromptManager(appId)).get(appId)!);
-        internalUrl = `http://127.0.0.1:${await server.listenInternal(0)}`;
+        internalUrl = `http://127.0.0.1:${await server.listenInternal(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

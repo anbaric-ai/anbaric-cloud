@@ -45,8 +45,8 @@ describe("a tenant's skills", () => {
             undefined, undefined, undefined, undefined, undefined, "acme",
             undefined, [], undefined, undefined, undefined, undefined, memberships,
             undefined, undefined, undefined, undefined, undefined, skills, OPERATOR_KEY);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
-        internalUrl = `http://127.0.0.1:${await server.listenInternal(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
+        internalUrl = `http://127.0.0.1:${await server.listenInternal(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

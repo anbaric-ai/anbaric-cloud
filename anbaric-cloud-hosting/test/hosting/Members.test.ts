@@ -43,7 +43,7 @@ describe("removing someone from the tenant", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, "acme", undefined, [], undefined, undefined,
             entitlements, undefined, memberships);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

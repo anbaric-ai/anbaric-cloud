@@ -59,7 +59,7 @@ describe("traffic reports", () => {
             undefined, [], undefined, undefined, undefined, undefined, memberships,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined,
             undefined, undefined, traffic);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     };
 
     afterEach(async () => {

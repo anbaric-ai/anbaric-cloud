@@ -16,7 +16,7 @@ const startConsumer = () : Promise<{ server : Server, url : string, drains : num
             response.writeHead(200, { "content-type": "application/json" });
             response.end(JSON.stringify({ draining: state.drains > 0, inFlight: state.inFlight }));
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
             get drains() { return state.drains; },

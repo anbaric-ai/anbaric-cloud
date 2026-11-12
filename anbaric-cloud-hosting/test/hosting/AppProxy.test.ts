@@ -46,7 +46,7 @@ const runningApp = (appName : string, appHost : string, appPort : number, status
 const serve = async (buildLayer : BuildLayer) : Promise<{ server : HostingServer, baseUrl : string }> => {
     const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined,
         buildLayer, undefined, undefined, undefined, undefined, undefined, undefined, undefined, []);
-    return { server, baseUrl: `http://127.0.0.1:${await server.listen(0)}` };
+    return { server, baseUrl: `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}` };
 };
 
 describe("app proxy through the hosting server", () => {
@@ -66,7 +66,7 @@ describe("app proxy through the hosting server", () => {
             response.writeHead(200, { "content-type": "text/plain", "set-cookie": "sid=abc; Path=/" });
             response.end(`prefix=${request.headers["x-forwarded-prefix"]} cookie=${request.headers.cookie ?? ""}`);
         });
-        await new Promise<void>(resolve => upstream.listen(0, resolve));
+        await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
         return (upstream.address() as AddressInfo).port;
     };
 
@@ -116,7 +116,7 @@ describe("app proxy through the hosting server", () => {
             response.writeHead(200, { "set-cookie": ["anbaric_central_session=planted; Domain=cloud.example; Path=/", "sid=abc; Path=/", "anbaric_session=planted; Path=/"] });
             response.end("ok");
         });
-        await new Promise<void>(resolve => upstream.listen(0, resolve));
+        await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
         const started = await serve(runningApp("myapp", "127.0.0.1", (upstream.address() as AddressInfo).port));
         server = started.server;
 
@@ -151,7 +151,7 @@ describe("app proxy through the hosting server", () => {
                 upstreamSockets.push(request.socket);
                 if (request.url === "/drop") setTimeout(() => request.socket.destroy(), 20);
             });
-            await new Promise<void>(resolve => streaming.listen(0, resolve));
+            await new Promise<void>(resolve => streaming.listen(0, "127.0.0.1", resolve));
             return (streaming.address() as AddressInfo).port;
         };
 

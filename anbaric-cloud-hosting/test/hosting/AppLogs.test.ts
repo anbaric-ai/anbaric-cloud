@@ -48,7 +48,7 @@ const appWithLogs = (appName : string, lines : Array<string>) : BuildLayer => ({
 const serve = async (buildLayer : BuildLayer) : Promise<{ server : HostingServer, baseUrl : string }> => {
     const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined,
         buildLayer, undefined, undefined, undefined, undefined, undefined, undefined, undefined, []);
-    return { server, baseUrl: `http://127.0.0.1:${await server.listen(0)}` };
+    return { server, baseUrl: `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}` };
 };
 
 describe("app runtime log streaming through the hosting server", () => {

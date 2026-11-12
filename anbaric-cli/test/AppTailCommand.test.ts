@@ -13,7 +13,7 @@ const streamingPlatform = (lines : Array<string>) : Promise<{ server : Server, b
             for (const line of lines) response.write(`${line}\n`);
             response.end();
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
             get path() { return state.path; },

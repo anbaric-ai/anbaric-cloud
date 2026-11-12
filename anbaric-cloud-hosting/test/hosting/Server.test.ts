@@ -27,7 +27,7 @@ describe("Server and Router", () => {
 
     const start = async (router : Router, middlewares : Array<Middleware> = []) => {
         server = new Server(router, middlewares);
-        return `http://127.0.0.1:${await server.listen(0)}`;
+        return `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     };
 
     it("routes to the handler registered for the resource", async () => {

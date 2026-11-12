@@ -42,8 +42,8 @@ describe("entitlements end to end: app registers and checks, console grants", ()
         store = new InMemoryEntitlementStore();
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined, store);
-        publicUrl = `http://127.0.0.1:${await server.listen(0)}`;
-        internalUrl = `http://127.0.0.1:${await server.listenInternal(0)}`;
+        publicUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
+        internalUrl = `http://127.0.0.1:${await server.listenInternal(0, "127.0.0.1")}`;
         app = new CloudEntitlements(internalUrl);
     });
 

@@ -25,7 +25,7 @@ const startStubPlatform = (confirms : Array<QueueMessage>, registrations : Array
                 response.end();
             });
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
         }));

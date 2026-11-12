@@ -33,7 +33,7 @@ const startStubPlatform = (respond : (method : string, path : string) => any, re
                 response.end(JSON.stringify(respond(request.method ?? "", path)));
             });
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
         }));

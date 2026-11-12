@@ -38,7 +38,7 @@ describe("LogoutCommand", () => {
                 response.writeHead(204);
                 response.end();
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server!.address() as AddressInfo).port}`));
         });
 
     const storeLogin = async (platformUrl : string) => {

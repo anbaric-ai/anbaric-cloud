@@ -55,9 +55,9 @@ class Server {
         return this.server.listening;
     }
 
-    listen(port : number) : Promise<number> {
+    listen(port : number, host? : string) : Promise<number> {
         return new Promise(resolve =>
-            this.server.listen(port, () => resolve((this.server.address() as AddressInfo).port)));
+            this.server.listen(port, host, () => resolve((this.server.address() as AddressInfo).port)));
     }
 
     close() : Promise<void> {

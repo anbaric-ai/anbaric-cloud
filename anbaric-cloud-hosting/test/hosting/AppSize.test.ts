@@ -57,7 +57,7 @@ describe("an app's size", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, buildLayer,
             undefined, undefined, undefined, undefined, undefined, "acme",
             undefined, [], undefined, undefined, undefined, undefined, memberships);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

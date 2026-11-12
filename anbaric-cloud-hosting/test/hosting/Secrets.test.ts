@@ -45,7 +45,7 @@ describe("managing an app's secrets from the console or the CLI", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, storeFor, undefined, undefined, undefined, "acme", undefined, [], undefined, undefined,
             undefined, undefined, memberships);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

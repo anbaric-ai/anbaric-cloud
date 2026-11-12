@@ -84,7 +84,7 @@ describe("public apps", () => {
             received.push({ method: request.method!, url: request.url!, cookie: request.headers.cookie });
             response.end("from the app");
         });
-        await new Promise<void>(resolve => upstream.listen(0, resolve));
+        await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
 
         const memberships = new InMemoryMembershipService();
         memberships.add("builder", "BUILDER");
@@ -95,7 +95,7 @@ describe("public apps", () => {
             undefined, undefined, new StubAuthenticator(), undefined, undefined, "acme",
             undefined, [], undefined, undefined, undefined, undefined, memberships,
             undefined, undefined, undefined, undefined, settings);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

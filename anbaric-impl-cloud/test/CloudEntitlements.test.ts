@@ -31,7 +31,7 @@ describe("CloudEntitlements", () => {
                     response.end(reply === undefined ? undefined : JSON.stringify(reply));
                 });
             });
-            server.listen(0, () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
+            server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`));
         });
 
     it("registers with a POST carrying the app header", async () => {

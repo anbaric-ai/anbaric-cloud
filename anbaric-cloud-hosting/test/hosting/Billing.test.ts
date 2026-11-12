@@ -48,7 +48,7 @@ describe("the costs page's billing api", () => {
             undefined, undefined, undefined, undefined, undefined, "acme", undefined, [], undefined, undefined,
             undefined, undefined, memberships, undefined, undefined, undefined,
             new CentralBilling("https://central.example", "central-secret", "acme", central));
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

@@ -13,7 +13,7 @@ const stubPlatform = (recorded : Array<Recorded>) : Promise<{ server : Server, b
             response.writeHead(200, { "content-type": "application/json" });
             response.end(JSON.stringify({ appName: "crm", status: "stopped" }));
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
         }));

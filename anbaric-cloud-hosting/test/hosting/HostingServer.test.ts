@@ -78,7 +78,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 return documentStores.get(key)!;
             },
             (appId) => secretStores.get(appId) ?? secretStores.set(appId, new InMemorySecretStore()).get(appId)!);
-        const port = await server.listen(0);
+        const port = await server.listen(0, "127.0.0.1");
         baseUrl = `http://127.0.0.1:${port}`;
         persistence = new CloudJobPersistence(baseUrl);
         queue = new CloudQueue(baseUrl);
@@ -448,7 +448,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("asks a deployed app to drain at its deployment's address once a machine of its is on record", async () => {
             const layer = deployedLayer({ crm: "http://crm.apps:8788" });
             const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), new ConsumerRegistry(), layer);
-            const port = await server.listen(0);
+            const port = await server.listen(0, "127.0.0.1");
             try {
                 expect(await layer.consumerUrlsFor("crm")).toEqual([]);
 
@@ -478,7 +478,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
                 undefined, undefined, undefined, undefined,
                 (appId) => new LocalFileSystemStorage(join(filesRoot, appId)));
-            filesUrl = `http://127.0.0.1:${await filesServer.listen(0)}`;
+            filesUrl = `http://127.0.0.1:${await filesServer.listen(0, "127.0.0.1")}`;
         });
 
         afterEach(async () => {
@@ -579,7 +579,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         beforeEach(async () => {
             authenticatedServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new StubAuthenticator());
-            authenticatedUrl = `http://127.0.0.1:${await authenticatedServer.listen(0)}`;
+            authenticatedUrl = `http://127.0.0.1:${await authenticatedServer.listen(0, "127.0.0.1")}`;
         });
 
         afterEach(async () => {
@@ -622,7 +622,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("sends the browser on to the identity provider's logout when there is one", async () => {
             const server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new ProviderAuthenticator());
-            const url = `http://127.0.0.1:${await server.listen(0)}`;
+            const url = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
 
             try {
                 const response = await fetch(`${url}/logout`, {
@@ -674,7 +674,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
         it("refuses requests the authorizer denies", async () => {
             const denying = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new DenyingAuthenticator());
-            const denyingUrl = `http://127.0.0.1:${await denying.listen(0)}`;
+            const denyingUrl = `http://127.0.0.1:${await denying.listen(0, "127.0.0.1")}`;
 
             const response = await fetch(`${denyingUrl}/api/v2/jobs`, {
                 headers: { cookie: "anbaric_session=valid-session" },
@@ -713,7 +713,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new StubAuthenticator(),
                 new CliAuthorizer(new InMemoryCliKeyStore()));
-            baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+            baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
         });
 
         afterEach(async () => {
@@ -731,7 +731,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const tenantServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new StubAuthenticator(),
                 new CliAuthorizer(new InMemoryCliKeyStore()), undefined, "fallback-tenant");
-            const tenantUrl = `http://127.0.0.1:${await tenantServer.listen(0)}`;
+            const tenantUrl = `http://127.0.0.1:${await tenantServer.listen(0, "127.0.0.1")}`;
 
             await approve("req-tenant", "chris laptop", tenantUrl);
             const issued = await (await fetch(`${tenantUrl}/authorize-cli/req-tenant/poll`)).json();
@@ -839,7 +839,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
             tokenServer = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, new RedirectingAuthenticator(),
                 new CliAuthorizer(keyStore), new TokenAuthenticator(keyStore));
-            tokenUrl = `http://127.0.0.1:${await tokenServer.listen(0)}`;
+            tokenUrl = `http://127.0.0.1:${await tokenServer.listen(0, "127.0.0.1")}`;
         });
 
         afterEach(async () => {
@@ -904,8 +904,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
                 undefined, undefined, () => new InMemoryJsonStore(),
                 () => new InMemorySecretStore(), new WallAuthenticator(),
                 new CliAuthorizer(new InMemoryCliKeyStore()));
-            publicUrl = `http://127.0.0.1:${await walledServer.listen(0)}`;
-            internalUrl = `http://127.0.0.1:${await walledServer.listenInternal(0)}`;
+            publicUrl = `http://127.0.0.1:${await walledServer.listen(0, "127.0.0.1")}`;
+            internalUrl = `http://127.0.0.1:${await walledServer.listenInternal(0, "127.0.0.1")}`;
         });
 
         afterEach(async () => {
@@ -958,8 +958,8 @@ describe("HostingServer round-trip via the cloud clients", () => {
             const audits = new InMemoryAuditRecordStore();
             const audited = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
                 undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, audits);
-            const publicUrl = `http://127.0.0.1:${await audited.listen(0)}`;
-            const internalUrl = `http://127.0.0.1:${await audited.listenInternal(0)}`;
+            const publicUrl = `http://127.0.0.1:${await audited.listen(0, "127.0.0.1")}`;
+            const internalUrl = `http://127.0.0.1:${await audited.listenInternal(0, "127.0.0.1")}`;
 
             const posted = await fetch(`${internalUrl}/api/v2/audits`, {
                 method: "POST",
@@ -1009,7 +1009,7 @@ describe("HostingServer round-trip via the cloud clients", () => {
     it("identifies its tenant in the ping when configured", async () => {
         const tenanted = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(),
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, "internal");
-        const url = `http://127.0.0.1:${await tenanted.listen(0)}`;
+        const url = `http://127.0.0.1:${await tenanted.listen(0, "127.0.0.1")}`;
 
         expect(await (await fetch(`${url}/ping`)).json()).toEqual({ status: "ok", tenant: "internal" });
         await tenanted.close();

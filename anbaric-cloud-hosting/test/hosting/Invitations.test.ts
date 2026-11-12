@@ -41,7 +41,7 @@ describe("invitations through the console entry point", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
             undefined, undefined, memberships);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {
@@ -86,7 +86,7 @@ describe("invitations through the console entry point", () => {
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined, undefined,
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined,
             entitlements, undefined, memberships);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
 
         const invitation = await (await inviteLink({ link: true, uses: 2, entitlements: [{ appId: "crm", entitlementId: "access" }] })).json();
         expect(invitation.entitlements).toBe(1);

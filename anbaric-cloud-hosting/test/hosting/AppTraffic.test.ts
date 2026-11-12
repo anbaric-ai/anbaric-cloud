@@ -60,14 +60,14 @@ describe("traffic through the app proxy", () => {
             response.writeHead(status, { "content-type": contentType });
             response.end("ok");
         });
-        await new Promise<void>(resolve => upstream.listen(0, resolve));
+        await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
 
         traffic = { pageview: vi.fn<TrafficRecorder["pageview"]>() };
         server = new HostingServer(new InMemoryJobPersistence(), new ConfirmableInMemoryQueue(), undefined,
             runningApp("shop", (upstream.address() as AddressInfo).port), undefined, undefined, undefined, undefined, undefined, undefined, undefined, [],
             undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
             undefined, traffic satisfies TrafficRecorder);
-        baseUrl = `http://127.0.0.1:${await server.listen(0)}`;
+        baseUrl = `http://127.0.0.1:${await server.listen(0, "127.0.0.1")}`;
     });
 
     afterEach(async () => {

@@ -57,7 +57,7 @@ const startStubConsumer = (received : Array<Array<QueueMessage>>, alwaysFails : 
                 }));
             });
         });
-        server.listen(0, () => resolve({
+        server.listen(0, "127.0.0.1", () => resolve({
             server,
             url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
         }));

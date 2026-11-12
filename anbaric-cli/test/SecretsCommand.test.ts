@@ -24,7 +24,7 @@ const startStubPlatform = (recorded : Array<RecordedRequest>) : Promise<{ server
                 response.end();
             });
         });
-        server.listen(0, () => resolve({ server, baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}` }));
+        server.listen(0, "127.0.0.1", () => resolve({ server, baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}` }));
     });
 
 describe("secrets commands", () => {
